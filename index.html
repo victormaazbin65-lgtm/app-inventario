@@ -29,6 +29,7 @@
         .tab-btn.active { background-color: var(--primary-blue); color: white; }
         .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
         .section-title { margin-top: 0; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; color: var(--text-dark); }
+        .sub-title { font-size: 15px; color: var(--text-dark); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
         .logo-container { text-align: center; margin-bottom: 20px; }
         .logo-wrapper { position: relative; display: inline-block; }
         #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; }
@@ -44,13 +45,17 @@
         .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
         .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
         .dash-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 13px; font-weight: bold; color: var(--text-light); margin-bottom: 5px; }
         input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #f9fafb; }
         button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .item-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding: 12px 0; }
-        .status-sync { font-size: 11px; text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 15px; background: #dcfce7; color: #166534; font-weight: bold; }
+        .status-sync { font-size: 11px; text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 15px; background: #dcfce7; color: #166534; font-weight: bold; width: 100%; max-width: 850px;}
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
+        .modal-card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
+        .btn-edit { background-color: #fef08a; color: #854d0e; }
+        .btn-delete { background-color: #fecaca; color: var(--primary-red); }
     </style>
 </head>
 <body>
@@ -80,9 +85,9 @@
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
                     <div class="dash-card bg-blue"><p class="dash-title">Valor del Inventario</p><p class="dash-value" id="dash-valor-inv">Q 0.00</p></div>
-                    <div class="dash-card bg-purple"><p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p><button class="dash-btn" onclick="reiniciarCostoProducto()">🔄 Retirar</button></div>
-                    <div class="dash-card bg-orange"><p class="dash-title">Fondo: Luz y Tinta</p><p class="dash-value" id="dash-costo-luz">Q 0.00</p><button class="dash-btn" onclick="reiniciarCostoLuzTinta()">💡 Retirar</button></div>
-                    <div class="dash-card bg-green"><p class="dash-title">Ganancia Libre</p><p class="dash-value" id="dash-ganancia">Q 0.00</p><button class="dash-btn" onclick="reiniciarGanancia()">💵 Retirar</button></div>
+                    <div class="dash-card bg-purple"><p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p><button class="dash-btn" onclick="reiniciarFondo('costoProducto')">🔄 Retirar</button></div>
+                    <div class="dash-card bg-orange"><p class="dash-title">Fondo: Luz y Tinta</p><p class="dash-value" id="dash-costo-luz">Q 0.00</p><button class="dash-btn" onclick="reiniciarFondo('costoLuzTinta')">💡 Retirar</button></div>
+                    <div class="dash-card bg-green"><p class="dash-title">Ganancia Libre</p><p class="dash-value" id="dash-ganancia">Q 0.00</p><button class="dash-btn" onclick="reiniciarFondo('gananciaLibre')">💵 Retirar</button></div>
                 </div>
                 <div style="margin-top: 20px; text-align: center;">
                     <button onclick="generarReporteExcel()" style="background:var(--primary-green); color:white; padding:12px 25px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">📂 Descargar Excel Completo</button>
@@ -94,7 +99,7 @@
             <div class="card">
                 <h3 class="section-title">Ingreso de Mercadería</h3>
                 <div class="form-group"><label>Nombre del Producto</label><input type="text" id="inv-nombre"></div>
-                <div class="grid-2">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
                     <div class="form-group"><label>Cantidad</label><input type="number" id="inv-stock"></div>
                     <div class="form-group"><label>Costo Unitario (Q)</label><input type="number" id="inv-costo" step="0.01"></div>
                 </div>
@@ -113,11 +118,11 @@
             <div class="card">
                 <h3 class="section-title">Registrar Venta</h3>
                 <div class="form-group"><label>Selecciona Producto</label><select id="venta-producto"></select></div>
-                <div class="grid-2">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
                     <div class="form-group"><label>Cantidad</label><input type="number" id="venta-qty" value="1"></div>
                     <div class="form-group"><label>Precio Venta (Q)</label><input type="number" id="venta-precio"></div>
                 </div>
-                <div class="grid-2">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
                     <div class="form-group"><label>Luz/Tinta (Q)</label><input type="number" id="venta-tinta" value="0"></div>
                     <div class="form-group"><label>Mensajero (Q)</label><input type="number" id="venta-envio" value="0"></div>
                 </div>
@@ -127,7 +132,7 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN FIREBASE VICTOR MAAZ
+        // CONFIGURACIÓN FIREBASE (Tus llaves exactas)
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n8jOIndL19O7Vwq464",
             authDomain: "sublicosturas-app.firebaseapp.com",
@@ -151,6 +156,7 @@
                 fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                 actualizarUI();
                 document.getElementById('sync-msg').innerText = "✅ SISTEMA EN LÍNEA Y SINCRONIZADO";
+                document.getElementById('sync-msg').style.background = "#dcfce7";
             }
         });
 
@@ -169,6 +175,7 @@
             if(!n || isNaN(s)) return alert("Datos incompletos");
             inventario.push({ id: Date.now(), nombre: n, stock: s, costo: c });
             db.ref('sublicosturas/inventario').set(inventario);
+            alert("Guardado en la nube");
             document.getElementById('inv-nombre').value=""; document.getElementById('inv-stock').value=""; document.getElementById('inv-costo').value="";
         }
 
@@ -191,12 +198,15 @@
             fondos.gananciaLibre += gan;
 
             db.ref('sublicosturas').update({ inventario, fondos });
-            alert("Venta sincronizada!");
+            alert("Venta registrada!");
         }
 
-        function reiniciarCostoProducto() { if(confirm("¿Retirar fondo?")) { fondos.costoProducto = 0; db.ref('sublicosturas/fondos').set(fondos); } }
-        function reiniciarCostoLuzTinta() { if(confirm("¿Retirar fondo?")) { fondos.costoLuzTinta = 0; db.ref('sublicosturas/fondos').set(fondos); } }
-        function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; db.ref('sublicosturas/fondos').set(fondos); } }
+        function reiniciarFondo(tipo) {
+            if(confirm("¿Deseas retirar este fondo?")) {
+                fondos[tipo] = 0;
+                db.ref('sublicosturas/fondos').set(fondos);
+            }
+        }
 
         function actualizarUI() {
             document.getElementById('dash-valor-inv').innerText = 'Q ' + inventario.reduce((s,x)=>s+(x.stock*x.costo),0).toFixed(2);
@@ -205,14 +215,14 @@
             document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
             
             const cont = document.getElementById('lista-inventario');
-            cont.innerHTML = inventario.length ? "" : "Vacio";
+            cont.innerHTML = inventario.length ? "" : "<p style='text-align:center; color:gray;'>Inventario vacío</p>";
             inventario.forEach(x => {
-                cont.innerHTML += `<div class="item-row"><span><b>${x.nombre}</b> (Stock: ${x.stock})</span><button onclick="borrarProd(${x.id})" style="border:none;color:red;cursor:pointer">❌</button></div>`;
+                cont.innerHTML += `<div class="item-row"><span><b>${x.nombre}</b> (Stock: ${x.stock} | Costo: Q${x.costo})</span><button class="btn-sm btn-delete" onclick="borrarProd(${x.id})">❌</button></div>`;
             });
         }
 
         function borrarProd(id) {
-            if(confirm("¿Borrar?")) {
+            if(confirm("¿Borrar definitivamente?")) {
                 inventario = inventario.filter(x => x.id != id);
                 db.ref('sublicosturas/inventario').set(inventario);
             }
