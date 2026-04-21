@@ -639,42 +639,6 @@
         }
 
         cargarDatos();
-   <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
-  authDomain: "sublicosturas-app.firebaseapp.com",
-  projectId: "sublicosturas-app",
-  storageBucket: "sublicosturas-app.firebasestorage.app",
-  messagingSenderId: "672743665524",
-  appId: "1:672743665524:web:19af273c8d88b929c18621",
-  measurementId: "G-EHE8KQVFEE"
-};
-
-// 🔌 Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-
-// 🔥 Conectar a base de datos (Firestore)
-const db = getFirestore(app);
-
-// ✅ Verificación en consola (opcional)
-console.log("Firebase conectado correctamente");
-</script>
-<script type="module">
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// usa el mismo db que ya tienes
-async function pruebaGuardar() {
-  await addDoc(collection(db, "prueba"), {
-    mensaje: "Hola nube",
-    fecha: new Date()
-  });
-  console.log("Dato guardado");
-}
-
-pruebaGuardar(); // esto guarda automáticamente al cargar
-</script>
+    </script>
 </body>
 </html>
