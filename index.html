@@ -3,92 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubliCosturas Pro V11 - Nube</title>
-    
+    <title>SubliCosturas - Sistema Pro V11 (Nube)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <style>
         :root {
-            --bg: #f3f4f6; --card: #ffffff; --blue: #2563eb;
-            --green: #16a34a; --red: #dc2626; --purple: #7c3aed;
-            --orange: #ea580c; --dark: #1f2937; --light: #6b7280;
-            --border: #e5e7eb; --shd: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --primary-blue: #2563eb;
+            --primary-green: #16a34a;
+            --primary-red: #dc2626;
+            --primary-purple: #7c3aed;
+            --primary-orange: #ea580c;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 800px; padding-bottom: 50px; }
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background: var(--card); color: var(--light); box-shadow: var(--shd); }
-        .tab-btn.active { background: var(--blue); color: white; }
-        .card { background: var(--card); border-radius: 12px; box-shadow: var(--shd); padding: 20px; margin-bottom: 15px; }
-        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .dash-card { padding: 15px; border-radius: 10px; color: white; text-align: center; }
-        .bg-blue { background: var(--blue); } .bg-purple { background: var(--purple); }
-        .bg-orange { background: var(--orange); } .bg-green { background: var(--green); }
-        .dash-value { font-size: 20px; font-weight: bold; margin: 5px 0; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: var(--light); }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
-        .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; background: var(--blue); margin-top: 10px; }
-        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        .status-sync { font-size: 11px; text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 10px; background: #dcfce7; color: #166534; font-weight: bold; border: 1px solid #bbf7d0; }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
+        .tab-btn.active { background-color: var(--primary-blue); color: white; }
+        .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+        .section-title { margin-top: 0; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; color: var(--text-dark); }
+        .logo-container { text-align: center; margin-bottom: 20px; }
+        .logo-wrapper { position: relative; display: inline-block; }
+        #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; }
+        .logo-edit-btn { background: white; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 18px; align-items: center; justify-content: center; padding: 0;}
+        .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+        .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
+        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media (min-width: 600px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
+        .dash-card { padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: var(--shadow); }
+        .bg-blue { background-color: var(--primary-blue); } .bg-purple { background-color: var(--primary-purple); }
+        .bg-orange { background-color: var(--primary-orange); } .bg-green { background-color: var(--primary-green); }
+        .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
+        .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
+        .dash-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; font-weight: bold; color: var(--text-light); margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #f9fafb; }
+        button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .item-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding: 12px 0; }
+        .status-sync { font-size: 11px; text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 15px; background: #dcfce7; color: #166534; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div id="sync-msg" class="status-sync">📡 Conectando a la nube de SubliCosturas...</div>
-
+        
         <div class="tabs">
-            <button id="t-ini" class="tab-btn active" onclick="show('ini')">📊 Resumen</button>
-            <button id="t-ing" class="tab-btn" onclick="show('ing')">📥 Ingreso</button>
-            <button id="t-inv" class="tab-btn" onclick="show('inv')">📦 Stock</button>
-            <button id="t-ven" class="tab-btn" onclick="show('ven')">🛒 Venta</button>
+            <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
+            <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
+            <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
+            <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
         </div>
 
-        <div id="s-ini" class="card">
-            <h3 style="margin-top:0">Panel en Tiempo Real</h3>
-            <div class="dash-grid">
-                <div class="dash-card bg-blue"><p style="margin:0;font-size:11px;">Valor Inventario</p><p class="dash-value" id="v-inv">Q 0.00</p></div>
-                <div class="dash-card bg-purple"><p style="margin:0;font-size:11px;">Fondo Productos</p><p class="dash-value" id="v-f-pro">Q 0.00</p></div>
-                <div class="dash-card bg-orange"><p style="margin:0;font-size:11px;">Fondo Luz/Tinta</p><p class="dash-value" id="v-f-luz">Q 0.00</p></div>
-                <div class="dash-card bg-green"><p style="margin:0;font-size:11px;">Ganancia Libre</p><p class="dash-value" id="v-gan">Q 0.00</p></div>
-            </div>
-            <div style="margin-top:20px; text-align:center;">
-                <button onclick="exportExcel()" style="background:var(--green); color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">📂 Descargar Respaldo Excel</button>
+        <div id="sec-inicio" style="display: block;">
+            <div class="card">
+                <div class="logo-container">
+                    <div class="logo-wrapper">
+                        <img id="logo-img" src="" alt="Logo SubliCosturas">
+                        <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">✏️</button>
+                    </div>
+                    <div id="logo-upload-wrapper" class="file-input-wrapper">
+                        <button class="btn-upload">📸 Subir Logo de mi Marca</button>
+                        <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
+                    </div>
+                </div>
+                <h3 class="section-title">Panel de Finanzas</h3>
+                <div class="dash-grid">
+                    <div class="dash-card bg-blue"><p class="dash-title">Valor del Inventario</p><p class="dash-value" id="dash-valor-inv">Q 0.00</p></div>
+                    <div class="dash-card bg-purple"><p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p><button class="dash-btn" onclick="reiniciarCostoProducto()">🔄 Retirar</button></div>
+                    <div class="dash-card bg-orange"><p class="dash-title">Fondo: Luz y Tinta</p><p class="dash-value" id="dash-costo-luz">Q 0.00</p><button class="dash-btn" onclick="reiniciarCostoLuzTinta()">💡 Retirar</button></div>
+                    <div class="dash-card bg-green"><p class="dash-title">Ganancia Libre</p><p class="dash-value" id="dash-ganancia">Q 0.00</p><button class="dash-btn" onclick="reiniciarGanancia()">💵 Retirar</button></div>
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="generarReporteExcel()" style="background:var(--primary-green); color:white; padding:12px 25px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">📂 Descargar Excel Completo</button>
+                </div>
             </div>
         </div>
 
-        <div id="s-ing" class="card" style="display:none;">
-            <h3 style="margin-top:0">Registrar Producto</h3>
-            <div class="form-group"><label>Nombre</label><input type="text" id="i-nom"></div>
-            <div class="dash-grid">
-                <div class="form-group"><label>Stock</label><input type="number" id="i-can"></div>
-                <div class="form-group"><label>Costo (Q)</label><input type="number" id="i-cos" step="0.1"></div>
+        <div id="sec-ingreso" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">Ingreso de Mercadería</h3>
+                <div class="form-group"><label>Nombre del Producto</label><input type="text" id="inv-nombre"></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad</label><input type="number" id="inv-stock"></div>
+                    <div class="form-group"><label>Costo Unitario (Q)</label><input type="number" id="inv-costo" step="0.01"></div>
+                </div>
+                <button class="btn-main" onclick="agregarAlInventario()">✅ Guardar en la Nube</button>
             </div>
-            <button class="btn-main" onclick="saveInv()">✅ Guardar en la Nube</button>
         </div>
 
-        <div id="s-inv" class="card" style="display:none;"><h3 style="margin-top:0">Inventario Sincronizado</h3><div id="list-inv"></div></div>
+        <div id="sec-inventario" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">Mi Inventario Actual</h3>
+                <div id="lista-inventario"></div>
+            </div>
+        </div>
 
-        <div id="s-ven" class="card" style="display:none;">
-            <h3 style="margin-top:0">Nueva Venta</h3>
-            <div class="form-group"><label>Producto</label><select id="v-sel"></select></div>
-            <div class="dash-grid">
-                <div class="form-group"><label>Cantidad</label><input type="number" id="v-can" value="1"></div>
-                <div class="form-group"><label>Precio Venta (Q)</label><input type="number" id="v-pre"></div>
+        <div id="sec-ventas" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">Registrar Venta</h3>
+                <div class="form-group"><label>Selecciona Producto</label><select id="venta-producto"></select></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad</label><input type="number" id="venta-qty" value="1"></div>
+                    <div class="form-group"><label>Precio Venta (Q)</label><input type="number" id="venta-precio"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Luz/Tinta (Q)</label><input type="number" id="venta-tinta" value="0"></div>
+                    <div class="form-group"><label>Mensajero (Q)</label><input type="number" id="venta-envio" value="0"></div>
+                </div>
+                <button class="btn-main" style="background:var(--primary-green)" onclick="procesarVenta()">💰 Finalizar Venta</button>
             </div>
-            <div class="dash-grid">
-                <div class="form-group"><label>Luz/Tinta (Q)</label><input type="number" id="v-tin" value="0"></div>
-                <div class="form-group"><label>Mensajero (Q)</label><input type="number" id="v-env" value="0"></div>
-            </div>
-            <button class="btn-main" style="background:var(--green)" onclick="doVenta()">💰 Finalizar y Sincronizar</button>
         </div>
     </div>
 
     <script>
+        // CONFIGURACIÓN FIREBASE VICTOR MAAZ
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n8jOIndL19O7Vwq464",
             authDomain: "sublicosturas-app.firebaseapp.com",
@@ -101,94 +140,117 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let inv = [];
-        let fnd = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+        let inventario = [];
+        let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
 
+        // ESCUCHA EN TIEMPO REAL
         db.ref('sublicosturas').on('value', (snap) => {
             const data = snap.val();
             if(data) {
-                inv = data.inventario || [];
-                fnd = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
-                render();
+                inventario = data.inventario || [];
+                fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                actualizarUI();
                 document.getElementById('sync-msg').innerText = "✅ SISTEMA EN LÍNEA Y SINCRONIZADO";
             }
         });
 
-        function show(p) {
-            ['ini','ing','inv','ven'].forEach(id => {
-                document.getElementById('s-'+id).style.display = 'none';
-                document.getElementById('t-'+id).classList.remove('active');
-            });
-            document.getElementById('s-'+p).style.display = 'block';
-            document.getElementById('t-'+p).classList.add('active');
-            if(p === 'ven') fillVen();
+        function cambiarPestaña(p) {
+            ['inicio', 'ingreso', 'inventario', 'ventas'].forEach(s => document.getElementById('sec-' + s).style.display = 'none');
+            ['tab-inicio', 'tab-ingreso', 'tab-inventario', 'tab-ventas'].forEach(t => document.getElementById(t).classList.remove('active'));
+            document.getElementById('sec-' + p).style.display = 'block';
+            document.getElementById('tab-' + p).classList.add('active');
+            if(p === 'ventas') renderSelectVentas();
         }
 
-        function saveInv() {
-            const n = document.getElementById('i-nom').value;
-            const c = parseInt(document.getElementById('i-can').value);
-            const cos = parseFloat(document.getElementById('i-cos').value);
-            if(!n || isNaN(c)) return alert("Datos inválidos");
-            inv.push({ id: Date.now(), nombre: n, stock: c, costo: cos });
-            db.ref('sublicosturas/inventario').set(inv);
-            alert("Guardado!");
-            document.getElementById('i-nom').value=""; document.getElementById('i-can').value=""; document.getElementById('i-cos').value="";
+        function agregarAlInventario() {
+            const n = document.getElementById('inv-nombre').value;
+            const s = parseInt(document.getElementById('inv-stock').value);
+            const c = parseFloat(document.getElementById('inv-costo').value);
+            if(!n || isNaN(s)) return alert("Datos incompletos");
+            inventario.push({ id: Date.now(), nombre: n, stock: s, costo: c });
+            db.ref('sublicosturas/inventario').set(inventario);
+            document.getElementById('inv-nombre').value=""; document.getElementById('inv-stock').value=""; document.getElementById('inv-costo').value="";
         }
 
-        function doVenta() {
-            const id = document.getElementById('v-sel').value;
-            const q = parseInt(document.getElementById('v-can').value);
-            const p = parseFloat(document.getElementById('v-pre').value);
-            const tin = parseFloat(document.getElementById('v-tin').value) || 0;
-            const env = parseFloat(document.getElementById('v-env').value) || 0;
+        function procesarVenta() {
+            const id = document.getElementById('venta-producto').value;
+            const q = parseInt(document.getElementById('venta-qty').value);
+            const p = parseFloat(document.getElementById('venta-precio').value);
+            const tin = parseFloat(document.getElementById('venta-tinta').value) || 0;
+            const env = parseFloat(document.getElementById('venta-envio').value) || 0;
 
-            const item = inv.find(x => x.id == id);
-            if(!item || item.stock < q) return alert("Error de Stock");
+            const item = inventario.find(x => x.id == id);
+            if(!item || item.stock < q) return alert("Stock insuficiente");
 
             item.stock -= q;
             const cMat = q * item.costo;
             const gan = (q * p) - cMat - tin - env;
 
-            fnd.costoProducto += cMat;
-            fnd.costoLuzTinta += tin;
-            fnd.gananciaLibre += gan;
+            fondos.costoProducto += cMat;
+            fondos.costoLuzTinta += tin;
+            fondos.gananciaLibre += gan;
 
-            db.ref('sublicosturas').update({ inventario: inv, fondos: fnd });
-            alert("Venta procesada!");
+            db.ref('sublicosturas').update({ inventario, fondos });
+            alert("Venta sincronizada!");
         }
 
-        function render() {
-            document.getElementById('v-inv').innerText = 'Q ' + inv.reduce((s,x)=>s+(x.stock*x.costo),0).toFixed(2);
-            document.getElementById('v-f-pro').innerText = 'Q ' + fnd.costoProducto.toFixed(2);
-            document.getElementById('v-f-luz').innerText = 'Q ' + fnd.costoLuzTinta.toFixed(2);
-            document.getElementById('v-gan').innerText = 'Q ' + fnd.gananciaLibre.toFixed(2);
-            const l = document.getElementById('list-inv');
-            l.innerHTML = "";
-            inv.forEach(x => {
-                l.innerHTML += `<div class="item-row"><span><b>${x.nombre}</b> (Stock: ${x.stock})</span><button onclick="del(${x.id})" style="border:none;background:none;color:red;cursor:pointer">❌</button></div>`;
+        function reiniciarCostoProducto() { if(confirm("¿Retirar fondo?")) { fondos.costoProducto = 0; db.ref('sublicosturas/fondos').set(fondos); } }
+        function reiniciarCostoLuzTinta() { if(confirm("¿Retirar fondo?")) { fondos.costoLuzTinta = 0; db.ref('sublicosturas/fondos').set(fondos); } }
+        function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; db.ref('sublicosturas/fondos').set(fondos); } }
+
+        function actualizarUI() {
+            document.getElementById('dash-valor-inv').innerText = 'Q ' + inventario.reduce((s,x)=>s+(x.stock*x.costo),0).toFixed(2);
+            document.getElementById('dash-costo-producto').innerText = 'Q ' + fondos.costoProducto.toFixed(2);
+            document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
+            document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
+            
+            const cont = document.getElementById('lista-inventario');
+            cont.innerHTML = inventario.length ? "" : "Vacio";
+            inventario.forEach(x => {
+                cont.innerHTML += `<div class="item-row"><span><b>${x.nombre}</b> (Stock: ${x.stock})</span><button onclick="borrarProd(${x.id})" style="border:none;color:red;cursor:pointer">❌</button></div>`;
             });
         }
 
-        function del(id) {
+        function borrarProd(id) {
             if(confirm("¿Borrar?")) {
-                inv = inv.filter(x => x.id != id);
-                db.ref('sublicosturas/inventario').set(inv);
+                inventario = inventario.filter(x => x.id != id);
+                db.ref('sublicosturas/inventario').set(inventario);
             }
         }
 
-        function fillVen() {
-            const s = document.getElementById('v-sel');
-            s.innerHTML = inv.map(x => `<option value="${x.id}">${x.nombre} (${x.stock})</option>`).join('');
+        function renderSelectVentas() {
+            const s = document.getElementById('venta-producto');
+            s.innerHTML = inventario.map(x => `<option value="${x.id}">${x.nombre} (${x.stock})</option>`).join('');
         }
 
-        function exportExcel() {
+        function generarReporteExcel() {
             const wb = XLSX.utils.book_new();
-            const ws1 = XLSX.utils.json_to_sheet([{ "Resumen": "Valor Inventario", "Total": inv.reduce((s,x)=>s+(x.stock*x.costo),0) }, { "Resumen": "Ganancia", "Total": fnd.gananciaLibre }]);
-            const ws2 = XLSX.utils.json_to_sheet(inv);
-            XLSX.utils.book_append_sheet(wb, ws1, "Finanzas");
-            XLSX.utils.book_append_sheet(wb, ws2, "Productos");
-            XLSX.writeFile(wb, "SubliCosturas_Cloud.xlsx");
+            const ws1 = XLSX.utils.json_to_sheet(inventario);
+            XLSX.utils.book_append_sheet(wb, ws1, "Inventario");
+            XLSX.writeFile(wb, "SubliCosturas_Nube.xlsx");
         }
+
+        function cargarLogo(event) {
+            const file = event.target.files[0];
+            if(file){
+                const reader = new FileReader();
+                reader.onload = function(e){
+                    localStorage.setItem('subli_logo', e.target.result);
+                    mostrarLogo();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        function mostrarLogo() {
+            const logo = localStorage.getItem('subli_logo');
+            if(logo){
+                document.getElementById('logo-img').src = logo;
+                document.getElementById('logo-img').style.display = 'block';
+                document.getElementById('btn-edit-logo').style.display = 'flex';
+                document.getElementById('logo-upload-wrapper').style.display = 'none';
+            }
+        }
+        mostrarLogo();
     </script>
 </body>
 </html>
