@@ -639,6 +639,28 @@
         }
 
         cargarDatos();
-    </script>
+   <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
+  authDomain: "sublicosturas-app.firebaseapp.com",
+  projectId: "sublicosturas-app",
+  storageBucket: "sublicosturas-app.firebasestorage.app",
+  messagingSenderId: "672743665524",
+  appId: "1:672743665524:web:19af273c8d88b929c18621",
+  measurementId: "G-EHE8KQVFEE"
+};
+
+// 🔌 Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+
+// 🔥 Conectar a base de datos (Firestore)
+const db = getFirestore(app);
+
+// ✅ Verificación en consola (opcional)
+console.log("Firebase conectado correctamente");
+</script>
 </body>
 </html>
