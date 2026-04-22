@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubliCosturas - Sistema Pro V11 (Sincronizado)</title>
+    <title>SubliCosturas - Sistema Pro V10</title>
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -91,16 +91,11 @@
         .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #e5e7eb; color: #374151; }
-        
-        /* BARRA DE SINCRONIZACIÓN */
-        .sync-status { width: 100%; max-width: 850px; background: #dcfce7; color: #166534; padding: 8px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; font-weight: bold; text-align: center; border: 1px solid #bbf7d0; display: none; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div id="sync-indicator" class="sync-status">✅ SISTEMA SINCRONIZADO EN LA NUBE</div>
-        
         <div class="tabs">
             <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
             <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
@@ -281,38 +276,34 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-    <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBX_IY50FSYoP4Q9n8jOIndL19O7Vwq464",
-    authDomain: "sublicosturas-app.firebaseapp.com",
-    projectId: "sublicosturas-app",
-    storageBucket: "sublicosturas-app.firebasestorage.app",
-    messagingSenderId: "672743665524",
-    appId: "1:672743665524:web:19af273c8d88b929c18621",
-    measurementId: "G-EHE8KQVFEE"
-  };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Iniciar Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-</script>
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
-            apiKey: "AIzaSyBX_IY50FSYoP4Q9n8jOIndL19O7Vwq464",
+            apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
             authDomain: "sublicosturas-app.firebaseapp.com",
             projectId: "sublicosturas-app",
             storageBucket: "sublicosturas-app.firebasestorage.app",
             messagingSenderId: "672743665524",
-            appId: "1:672743665524:web:19af273c8d88b929c18621"
+            appId: "1:672743665524:web:19af273c8d88b929c18621",
+            measurementId: "G-EHE8KQVFEE"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        // Constantes LocalStorage (Se mantienen por respaldo)
+        // Exponer db al objeto window para que las funciones existentes puedan usarlo
+        window.db = db;
+        window.setDoc = setDoc;
+        window.doc = doc;
+        window.getDoc = getDoc;
+
+        console.log("🔥 Firebase SubliCosturas Conectado");
+    </script>
+
+    <script>
         const KEY_INV = 'subli_inv_v10';
         const KEY_VENTAS = 'subli_vent_v10';
         const KEY_FONDOS = 'subli_fondos_v10';
@@ -326,23 +317,7 @@
         let carritoIngresos = [];
         let carritoVentas = [];
 
-        // --- CARGA DESDE FIREBASE (Sincronización en tiempo real) ---
-        db.ref('sublicosturas_pro').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                inventario = data.inventario || [];
-                ventas = data.ventas || [];
-                historialIngresos = data.historialIngresos || [];
-                fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
-                document.getElementById('sync-indicator').style.display = 'block';
-                actualizarUI();
-            } else {
-                // Si la nube está vacía, intentamos cargar localmente por única vez
-                cargarDatosLocales();
-            }
-        });
-
-        function cargarDatosLocales() {
+        function cargarDatos() {
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
                 if (dataInv) inventario = JSON.parse(dataInv) || [];
@@ -352,25 +327,11 @@
                 if (dataFondos) fondos = JSON.parse(dataFondos) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                 const dataIngresos = localStorage.getItem(KEY_INGRESOS);
                 if (dataIngresos) historialIngresos = JSON.parse(dataIngresos) || [];
-                actualizarUI();
-            } catch (e) { console.error("Error cargando local", e); }
-        }
-
-        // --- GUARDADO HACIA FIREBASE ---
-        function guardarDatos() {
-            // Guardar en la nube
-            db.ref('sublicosturas_pro').set({
-                inventario: inventario,
-                ventas: ventas,
-                historialIngresos: historialIngresos,
-                fondos: fondos
-            });
-
-            // Respaldo LocalStorage
-            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
-            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
-            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
-            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+            } catch (e) { 
+                inventario = []; ventas = []; historialIngresos = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
+            }
+            mostrarLogo();
+            actualizarUI();
         }
 
         // --- NAVEGACIÓN ---
@@ -624,22 +585,77 @@
         function reiniciarCostoLuzTinta() { if(confirm("¿Retirar dinero para pagos?")) { fondos.costoLuzTinta = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; guardarDatos(); actualizarUI(); } }
 
-        // ================= FUNCIÓN EXCEL MULTI-HOJA =================
+        // ================= FUNCIÓN EXCEL MULTI-HOJA MEJORADA =================
         function generarReporteExcel() {
+            const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
+            const vent = JSON.parse(localStorage.getItem(KEY_VENTAS)) || [];
+            const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+            let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+
             const libro = XLSX.utils.book_new();
+
             const dataResumen = [
-                { "Concepto": "Fondo Acumulado: Productos", "Monto (Q)": fondos.costoProducto.toFixed(2) },
-                { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fondos.costoLuzTinta.toFixed(2) },
-                { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fondos.gananciaLibre.toFixed(2) }
+                { "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) },
+                { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) },
+                { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) },
+                { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }
             ];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen);
-            XLSX.utils.book_append_sheet(libro, hojaResumen, "Finanzas");
+            XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            const dataInv = inventario.map(p => ({ "Nombre": p.nombre, "Stock": p.stock, "Costo (Q)": p.costo.toFixed(2), "Proveedor": p.proveedor || "" }));
-            const hojaInv = XLSX.utils.json_to_sheet(dataInv);
-            XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario");
+            if (inv.length > 0) {
+                const dataInv = inv.map(p => ({
+                    "Nombre del Producto": p.nombre,
+                    "Existencias (Stock)": p.stock,
+                    "Costo Unitario (Q)": p.costo.toFixed(2),
+                    "Proveedor": p.proveedor || "No especificado",
+                    "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2)
+                }));
+                const hojaInv = XLSX.utils.json_to_sheet(dataInv);
+                XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario");
+            }
 
-            XLSX.writeFile(libro, `SubliCosturas_Nube_${new Date().toLocaleDateString()}.xlsx`);
+            if (vent.length > 0) {
+                const dataVent = vent.map(v => ({
+                    "Fecha y Hora": v.fecha,
+                    "Detalle de Artículos": v.resumenItems,
+                    "Total Cobrado (Q)": v.ingresoTotal.toFixed(2),
+                    "Costo de Materiales (Q)": v.costosProductos.toFixed(2),
+                    "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2),
+                    "Pago Mensajero (Q)": v.costoEnvio.toFixed(2),
+                    "Ganancia Neta (Q)": v.ganancia.toFixed(2)
+                }));
+                const hojaVent = XLSX.utils.json_to_sheet(dataVent);
+                XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas");
+            }
+
+            const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+            XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
+        }
+
+        // --- ACTUALIZACIÓN VISUAL Y RESPALDO CLOUD ---
+        async function guardarDatos() {
+            // LocalStorage (Respaldo rápido)
+            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+
+            // Firebase Cloud (Sincronización en tiempo real)
+            if(window.db) {
+                try {
+                    await setDoc(doc(window.db, "sistema", "datos_actuales"), {
+                        inventario: inventario,
+                        ventas: ventas,
+                        fondos: fondos,
+                        historialIngresos: historialIngresos,
+                        ultimaActualizacion: new Date()
+                    });
+                    console.log("☁️ Nube de SubliCosturas actualizada");
+                } catch (e) {
+                    console.error("Error sincronizando nube:", e);
+                }
+            }
         }
 
         function actualizarUI() {
@@ -658,11 +674,10 @@
             [...ventas].reverse().forEach(v => {
                 contVentas.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${v.resumenItems}</p><p class="item-details"><b>Fecha:</b> ${v.fecha}<br><b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}<br><span class="profit-text">Ganancia: Q${v.ganancia.toFixed(2)}</span></p></div><div class="item-actions"><button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Anular</button></div></div>`;
             });
-            mostrarLogo();
             renderSelectIngreso(); renderSelectVentas();
         }
 
-        mostrarLogo();
+        cargarDatos();
     </script>
 </body>
 </html>
