@@ -1,283 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubliCosturas - Sistema Pro V10</title>
-    <style>
-        :root {
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --primary-blue: #2563eb;
-            --primary-green: #16a34a;
-            --primary-red: #dc2626;
-            --primary-purple: #7c3aed;
-            --primary-orange: #ea580c;
-            --text-dark: #1f2937;
-            --text-light: #6b7280;
-            --border-color: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
-
-        /* Pestañas */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
-        .tab-btn.active { background-color: var(--primary-blue); color: white; }
-
-        /* Tarjetas */
-        .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
-        .section-title { margin-top: 0; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; color: var(--text-dark); }
-        .sub-title { font-size: 15px; color: var(--text-dark); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
-
-        /* Logo */
-        .logo-container { text-align: center; margin-bottom: 20px; }
-        .logo-wrapper { position: relative; display: inline-block; }
-        #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; }
-        .logo-edit-btn { background: white; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 18px; align-items: center; justify-content: center; padding: 0;}
-        .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
-        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
-        .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
-
-        /* Dashboard */
-        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 600px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
-        .dash-card { padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: var(--shadow); }
-        .bg-blue { background-color: var(--primary-blue); }
-        .bg-purple { background-color: var(--primary-purple); }
-        .bg-orange { background-color: var(--primary-orange); }
-        .bg-green { background-color: var(--primary-green); }
-        .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
-        .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
-        .dash-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
-        .dash-btn:hover { background: rgba(255,255,255,0.3); }
-
-        /* Formularios */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 13px; font-weight: bold; color: var(--text-light); margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #f9fafb; }
-        input:focus, select:focus { outline: none; border-color: var(--primary-blue); background-color: white;}
-
-        button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button.btn-main:hover { background-color: #1d4ed8; }
-        button.btn-green { background-color: var(--primary-green); }
-
-        /* Listas y Tablas (Carritos) */
-        .cart-container { background-color: #f8fafc; border: 1px dashed var(--primary-blue); border-radius: 8px; padding: 15px; margin-top: 15px; }
-        .cart-title { font-size: 14px; font-weight: bold; color: var(--primary-blue); margin-top: 0; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; }
-        
-        .item-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding: 12px 0; }
-        .item-info { flex: 1; }
-        .item-title { font-weight: bold; font-size: 15px; margin: 0 0 5px 0; text-transform: capitalize; }
-        .item-details { font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5; }
-        .item-actions { display: flex; gap: 8px; flex-direction: row; flex-wrap: wrap;}
-
-        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
-        .btn-edit { background-color: #fef08a; color: #854d0e; }
-        .btn-delete { background-color: #fecaca; color: var(--primary-red); }
-        
-        .alert-stock { color: var(--primary-red); font-weight: bold; }
-        .profit-text { color: var(--primary-green); font-weight: bold; font-size: 14px; display: block; margin-top: 3px;}
-        .cost-text { color: var(--primary-red); font-size: 12px; }
-        .cart-total { text-align: right; font-size: 18px; font-weight: bold; color: var(--text-dark); margin-top: 10px; }
-
-        /* MODAL DE EDICIÓN */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
-        .modal-card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .modal-title { margin-top: 0; color: var(--primary-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
-        .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: #e5e7eb; color: #374151; }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div class="tabs">
-            <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
-            <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
-            <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
-            <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
-        </div>
-
-        <div id="sec-inicio" style="display: block;">
-            <div class="card">
-                
-                <div class="logo-container">
-                    <div class="logo-wrapper">
-                        <img id="logo-img" src="" alt="Logo SubliCosturas">
-                        <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">✏️</button>
-                    </div>
-                    <div id="logo-upload-wrapper" class="file-input-wrapper">
-                        <button class="btn-upload">📸 Subir Logo de mi Marca</button>
-                        <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
-                    </div>
-                </div>
-
-                <h3 class="section-title">Panel de Finanzas</h3>
-                <div class="dash-grid">
-                    <div class="dash-card bg-blue">
-                        <p class="dash-title">Valor del Inventario</p>
-                        <p class="dash-value" id="dash-valor-inv">Q 0.00</p>
-                        <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Capital físico</p>
-                    </div>
-                    <div class="dash-card bg-purple">
-                        <p class="dash-title">Fondo: Productos</p>
-                        <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarCostoProducto()">🔄 Retirar para Surtir</button>
-                    </div>
-                    <div class="dash-card bg-orange">
-                        <p class="dash-title">Fondo: Luz y Tinta</p>
-                        <p class="dash-value" id="dash-costo-luz">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarCostoLuzTinta()">💡 Retirar para Recibos</button>
-                    </div>
-                    <div class="dash-card bg-green">
-                        <p class="dash-title">Ganancia Libre</p>
-                        <p class="dash-value" id="dash-ganancia">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarGanancia()">💵 Retirar Ganancia</button>
-                    </div>
-                </div>
-
-                <div style="margin-top: 25px; text-align: center;">
-                    <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: var(--shadow);">
-                        📂 Descargar Reporte Completo (Excel)
-                    </button>
-                </div>
-
-                <p style="font-size: 12px; color: var(--text-light); text-align: center; margin-top: 25px;">
-                    * Los gastos de mensajero/envío se restan automáticamente de la venta y no se guardan aquí, ya que ese dinero se le entrega al transportista.
-                </p>
-            </div>
-        </div>
-
-        <div id="sec-ingreso" style="display: none;">
-            <div class="card">
-                <h3 class="section-title">1. Añadir a la lista de ingresos</h3>
-                
-                <div class="form-group" id="grupo-select-producto">
-                    <label>¿Qué estás ingresando?</label>
-                    <select id="inv-select" onchange="toggleNuevoProducto()">
-                        <option value="nuevo">➕ Crear un Producto Nuevo</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="grupo-nombre-producto">
-                    <label>Nombre del Nuevo Producto</label>
-                    <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
-                </div>
-                
-                <div class="grid-2">
-                    <div class="form-group"><label>Cantidad (Piezas)</label><input type="number" id="inv-stock" placeholder="0"></div>
-                    <div class="form-group"><label>Costo Unitario Base (Q)</label><input type="number" id="inv-costo" step="0.01" placeholder="0.00"></div>
-                </div>
-
-                <div class="form-group"><label>Proveedor (Opcional)</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
-
-                <button class="btn-main" onclick="agregarAlCarritoIngreso()">👇 Añadir a la Lista Previa</button>
-            </div>
-
-            <div class="card cart-container">
-                <h3 class="cart-title">📝 Lista Previa de Ingresos</h3>
-                <div id="lista-ingresos-pendientes">
-                    <p class="item-details" style="text-align:center;">Lista vacía.</p>
-                </div>
-                
-                <h4 class="sub-title">2. Transporte Total (Opcional)</h4>
-                <div class="form-group">
-                    <label>Costo de Transporte/Envío global de este lote (Q)</label>
-                    <input type="number" id="ingreso-transporte-global" step="0.01" placeholder="0.00">
-                    <p class="item-details" style="font-size:11px; margin-top:5px;">*Se dividirá matemáticamente entre todas las piezas de la lista para sumar a tu costo real.</p>
-                </div>
-
-                <button class="btn-main btn-green" onclick="procesarIngresoMultiple()">✅ Confirmar y Guardar Todo en Inventario</button>
-            </div>
-
-            <div class="card">
-                <h3 class="section-title">Historial de Ingresos</h3>
-                <div id="lista-historial-ingresos"></div>
-            </div>
-        </div>
-
-        <div id="sec-inventario" style="display: none;">
-            <div class="card">
-                <h3 class="section-title">Mi Inventario Actual</h3>
-                <div id="lista-inventario"></div>
-            </div>
-        </div>
-
-        <div id="sec-ventas" style="display: none;">
-            <div class="card">
-                <h3 class="section-title">1. Agregar al Carrito</h3>
-                
-                <div class="form-group">
-                    <label>Selecciona Artículo de tu Inventario</label>
-                    <select id="venta-producto">
-                        <option value="">-- Selecciona --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>¿Cuál es su función en esta venta?</label>
-                    <select id="venta-rol" onchange="cambiarRolVenta()">
-                        <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
-                        <option value="material">✂️ MATERIAL USADO (Gasto interno, resta ganancia)</option>
-                    </select>
-                </div>
-
-                <div class="grid-2">
-                    <div class="form-group"><label>Cantidad a usar/vender</label><input type="number" id="venta-qty" value="1" min="1"></div>
-                    <div class="form-group" id="grupo-venta-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" placeholder="0.00"></div>
-                </div>
-
-                <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
-            </div>
-
-            <div class="card cart-container">
-                <h3 class="cart-title">🛍️ Carrito de la Venta Actual</h3>
-                <div id="lista-carrito-ventas">
-                    <p class="item-details" style="text-align:center;">Carrito vacío.</p>
-                </div>
-                
-                <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
-                <div class="grid-2">
-                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" placeholder="0.00"></div>
-                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" placeholder="0.00"></div>
-                </div>
-
-                <div class="cart-total" id="venta-total-preview">Total a Cobrar: Q 0.00</div>
-                <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
-            </div>
-
-            <div class="card">
-                <h3 class="section-title">Historial de Ventas</h3>
-                <div id="lista-ventas"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-editar" class="modal-overlay">
-        <div class="modal-card">
-            <h3 class="modal-title">Editar Producto</h3>
-            <input type="hidden" id="edit-id">
-            
-            <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
-            <div class="form-group"><label>Cantidad Disponible (Stock)</label><input type="number" id="edit-stock"></div>
-            <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01"></div>
-            <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
-
-            <div class="modal-btn-row">
-                <button class="btn-cancel" onclick="cerrarModalEditar()">Cancelar</button>
-                <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionInventario()">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -294,13 +15,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Exponer db al objeto window para que las funciones existentes puedan usarlo
         window.db = db;
         window.setDoc = setDoc;
         window.doc = doc;
         window.getDoc = getDoc;
 
         console.log("🔥 Firebase SubliCosturas Conectado");
+        
+        // Ejecutar carga inicial desde la nube
+        window.cargarDesdeNube();
     </script>
 
     <script>
@@ -317,6 +40,35 @@
         let carritoIngresos = [];
         let carritoVentas = [];
 
+        // NUEVA FUNCIÓN: Trae los datos de la nube al celular automáticamente
+        async function cargarDesdeNube() {
+            if(!window.db) return;
+            try {
+                const docRef = doc(window.db, "sistema", "datos_actuales");
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    inventario = data.inventario || [];
+                    ventas = data.ventas || [];
+                    fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                    historialIngresos = data.historialIngresos || [];
+                    
+                    // Guardar localmente para acceso rápido
+                    localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+                    localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+                    localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+                    localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+                    
+                    actualizarUI();
+                    console.log("☁️ Datos de SubliCosturas sincronizados desde la nube");
+                }
+            } catch (e) {
+                console.error("Error al cargar de la nube:", e);
+            }
+        }
+        window.cargarDesdeNube = cargarDesdeNube;
+
         function cargarDatos() {
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
@@ -328,13 +80,12 @@
                 const dataIngresos = localStorage.getItem(KEY_INGRESOS);
                 if (dataIngresos) historialIngresos = JSON.parse(dataIngresos) || [];
             } catch (e) { 
-                inventario = []; ventas = []; historialIngresos = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
+                console.log("Iniciando datos vacíos");
             }
             mostrarLogo();
             actualizarUI();
         }
 
-        // --- NAVEGACIÓN ---
         function cambiarPestaña(pestaña) {
             ['inicio', 'ingreso', 'inventario', 'ventas'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
@@ -347,7 +98,6 @@
             if(pestaña === 'ventas') renderSelectVentas();
         }
 
-        // --- LOGO ---
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
@@ -373,7 +123,6 @@
             }
         }
 
-        // ================= LÓGICA DE INGRESO MÚLTIPLE =================
         function toggleNuevoProducto() {
             const val = document.getElementById('inv-select').value;
             document.getElementById('grupo-nombre-producto').style.display = val === 'nuevo' ? 'block' : 'none';
@@ -472,7 +221,6 @@
             }
         }
 
-        // ================= LÓGICA DE EDICIÓN DIRECTA EN INVENTARIO =================
         function abrirModalEditar(id) {
             const prod = inventario.find(p => p.id === id);
             if(!prod) return;
@@ -498,7 +246,6 @@
             if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
         }
 
-        // ================= LÓGICA DE VENTA MÚLTIPLE =================
         function renderSelectVentas() {
             const select = document.getElementById('venta-producto');
             select.innerHTML = '<option value="">-- Selecciona --</option>';
@@ -580,20 +327,16 @@
             }
         }
 
-        // --- RETIROS ---
         function reiniciarCostoProducto() { if(confirm("¿Retirar dinero para surtir?")) { fondos.costoProducto = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarCostoLuzTinta() { if(confirm("¿Retirar dinero para pagos?")) { fondos.costoLuzTinta = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; guardarDatos(); actualizarUI(); } }
 
-        // ================= FUNCIÓN EXCEL MULTI-HOJA MEJORADA =================
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
             const vent = JSON.parse(localStorage.getItem(KEY_VENTAS)) || [];
             const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
             let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
-
             const libro = XLSX.utils.book_new();
-
             const dataResumen = [
                 { "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) },
                 { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) },
@@ -602,54 +345,30 @@
             ];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen);
             XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
-
             if (inv.length > 0) {
-                const dataInv = inv.map(p => ({
-                    "Nombre del Producto": p.nombre,
-                    "Existencias (Stock)": p.stock,
-                    "Costo Unitario (Q)": p.costo.toFixed(2),
-                    "Proveedor": p.proveedor || "No especificado",
-                    "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2)
-                }));
+                const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Existencias (Stock)": p.stock, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": p.proveedor || "No especificado", "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2) }));
                 const hojaInv = XLSX.utils.json_to_sheet(dataInv);
                 XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario");
             }
-
             if (vent.length > 0) {
-                const dataVent = vent.map(v => ({
-                    "Fecha y Hora": v.fecha,
-                    "Detalle de Artículos": v.resumenItems,
-                    "Total Cobrado (Q)": v.ingresoTotal.toFixed(2),
-                    "Costo de Materiales (Q)": v.costosProductos.toFixed(2),
-                    "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2),
-                    "Pago Mensajero (Q)": v.costoEnvio.toFixed(2),
-                    "Ganancia Neta (Q)": v.ganancia.toFixed(2)
-                }));
+                const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Detalle de Artículos": v.resumenItems, "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) }));
                 const hojaVent = XLSX.utils.json_to_sheet(dataVent);
                 XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas");
             }
-
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
             XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
-        // --- ACTUALIZACIÓN VISUAL Y RESPALDO CLOUD ---
         async function guardarDatos() {
-            // LocalStorage (Respaldo rápido)
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
 
-            // Firebase Cloud (Sincronización en tiempo real)
             if(window.db) {
                 try {
                     await setDoc(doc(window.db, "sistema", "datos_actuales"), {
-                        inventario: inventario,
-                        ventas: ventas,
-                        fondos: fondos,
-                        historialIngresos: historialIngresos,
-                        ultimaActualizacion: new Date()
+                        inventario, ventas, fondos, historialIngresos, ultimaActualizacion: new Date()
                     });
                     console.log("☁️ Nube de SubliCosturas actualizada");
                 } catch (e) {
@@ -679,5 +398,3 @@
 
         cargarDatos();
     </script>
-</body>
-</html>
