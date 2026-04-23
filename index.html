@@ -786,8 +786,24 @@
             renderSelectIngreso(); renderSelectVentas();
         }
 
-        // Arrancamos la carga
-        cargarDatos();
+        // ===== NUEVO SISTEMA DE ARRANQUE DE SUBLICOSTURAS =====
+        let intentosConexion = 0;
+        function arrancarSistema() {
+            if (window.db) {
+                // Firebase ya despertó, ¡trae los datos!
+                cargarDatos();
+            } else if (intentosConexion > 6) { 
+                // Si pasaron 3 segundos y Firebase no conectó (sin internet), cargar en ceros
+                cargarDatos(); 
+            } else {
+                // Esperar medio segundo más a que el internet reaccione
+                intentosConexion++;
+                setTimeout(arrancarSistema, 500); 
+            }
+        }
+
+        // Darle ignición al sistema
+        arrancarSistema();
     </script>
 </body>
 </html>
