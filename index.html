@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubliCosturas - Sistema Pro V10</title>
+    <title>SubliCosturas - Sistema Pro</title>
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -78,6 +78,7 @@
         .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
         .btn-edit { background-color: #fef08a; color: #854d0e; }
         .btn-delete { background-color: #fecaca; color: var(--primary-red); }
+        .btn-sell { background-color: #bfdbfe; color: var(--primary-blue); border: 1px solid var(--primary-blue); }
         
         .alert-stock { color: var(--primary-red); font-weight: bold; }
         .profit-text { color: var(--primary-green); font-weight: bold; font-size: 14px; display: block; margin-top: 3px;}
@@ -104,7 +105,16 @@
 </head>
 <body>
 
-    <div class="container">
+    <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
+            <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
+            <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
+            <input type="password" id="login-pass" placeholder="••••" style="margin-bottom: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; width: 80%; margin-left: auto; margin-right: auto; display: block;" onkeydown="if(event.key === 'Enter') verificarLogin()">
+            <button class="btn-main" onclick="verificarLogin()" style="width: 80%;">Entrar al Sistema</button>
+        </div>
+    </div>
+
+    <div class="container" id="main-app" style="display: none;">
         <div class="tabs">
             <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
             <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
@@ -329,10 +339,17 @@
 
                 <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
                 
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
                     <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
+                    <button class="btn-main" style="background-color: var(--primary-blue); flex: 1; margin-top: 0; font-size: 13px;" onclick="generarImagenCotizacionActual()">🖼️ Generar Imagen</button>
                     <button class="btn-main btn-green" style="flex: 1; margin-top: 0; font-size: 13px;" onclick="convertirCotizacionAVenta()">✅ Confirmar como Venta</button>
                 </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3 class="section-title">Historial de Cotizaciones</h3>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas más adelante.</p>
+                <div id="lista-historial-cotizaciones"></div>
             </div>
         </div>
 
@@ -401,15 +418,29 @@
         const KEY_VENTAS = 'subli_vent_v10';
         const KEY_FONDOS = 'subli_fondos_v10';
         const KEY_INGRESOS = 'subli_ingresos_v10';
+        const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
 
         let inventario = [];
         let ventas = [];
         let historialIngresos = [];
+        let historialCotizaciones = [];
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
         
         let carritoIngresos = [];
         let carritoVentas = [];
         let carritoCotizacion = []; 
+
+        // ----- FUNCIÓN LOGIN -----
+        function verificarLogin() {
+            const pass = document.getElementById('login-pass').value;
+            if(pass === '1010') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+            } else {
+                alert('Contraseña incorrecta. Intente de nuevo.');
+                document.getElementById('login-pass').value = '';
+            }
+        }
 
         // Ocultar las listas si el usuario hace clic afuera de ellas
         document.addEventListener('click', function(e) {
@@ -437,11 +468,13 @@
                         ventas = data.ventas || [];
                         fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                         historialIngresos = data.historialIngresos || [];
+                        historialCotizaciones = data.historialCotizaciones || [];
                         
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
                         localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
                         localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
                         localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+                        localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
                         
                         mostrarLogo();
                         actualizarUI();
@@ -461,8 +494,10 @@
                 if (dataFondos) fondos = JSON.parse(dataFondos) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                 const dataIngresos = localStorage.getItem(KEY_INGRESOS);
                 if (dataIngresos) historialIngresos = JSON.parse(dataIngresos) || [];
+                const dataCotiz = localStorage.getItem(KEY_COTIZ_HIST);
+                if (dataCotiz) historialCotizaciones = JSON.parse(dataCotiz) || [];
             } catch (e) { 
-                inventario = []; ventas = []; historialIngresos = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
+                inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
             }
             mostrarLogo();
             actualizarUI();
@@ -479,6 +514,7 @@
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
             if(pestaña === 'inventario') { renderInventario(); }
+            if(pestaña === 'cotizacion') { renderHistorialCotizaciones(); }
             if(pestaña === 'alertas') { renderAlertas(); }
         }
 
@@ -692,7 +728,6 @@
             const textoBuscado = input.value.toLowerCase();
             box.innerHTML = '';
             
-            // Forzamos a que si borran o escriben, se limpie la selección interna obligándolos a volver a tocar la lista
             if(!mostrarTodo) hiddenId.value = ''; 
             
             if (textoBuscado.length === 0 && !mostrarTodo) {
@@ -711,7 +746,6 @@
                     div.className = 'sugerencia-item';
                     div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
                     
-                    // Al tocar la opción, guardamos los datos
                     div.onclick = function() {
                         input.value = p.nombre; 
                         hiddenId.value = p.id;  
@@ -758,7 +792,6 @@
             
             carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             
-            // Limpiamos los campos
             document.getElementById('venta-qty').value = '1';
             if(rol === 'principal') document.getElementById('venta-precio').value = '';
             document.getElementById('buscador-venta-producto').value = ''; 
@@ -924,7 +957,6 @@
                     const esPrincipal = item.rol === 'principal';
                     const icon = esPrincipal ? '🏷️' : '✂️';
                     
-                    // ALERTA DE STOCK EN COTIZACIÓN
                     const prod = inventario.find(x => x.id == item.idProd);
                     const stockActual = prod ? prod.stock : 0;
                     const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
@@ -942,7 +974,7 @@
             
             let ingresoTotal = 0; 
             let costosProductos = 0; 
-            let resumen = "📄 RESUMEN DE COTIZACIÓN\n\n";
+            let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
             
             carritoCotizacion.forEach(item => {
                 ingresoTotal += (item.qty * item.precioCobrado);
@@ -959,9 +991,186 @@
             resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
             resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
             resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
-            resumen += `* Esta operación NO modificó tu inventario ni tus fondos.`;
+            resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
+            // GUARDAR EN HISTORIAL
+            historialCotizaciones.push({
+                id: Date.now(),
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                detalleItems: [...carritoCotizacion],
+                costoTinta: costoTinta,
+                costoEnvio: costoEnvio,
+                ingresoTotal: ingresoTotal,
+                costosProductos: costosProductos,
+                gananciaNeta: gananciaNeta
+            });
+
+            guardarDatos();
+            renderHistorialCotizaciones();
             alert(resumen);
+        }
+
+        function generarImagenCotizacionActual() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            
+            const principales = carritoCotizacion.filter(item => item.rol === 'principal');
+            if(principales.length === 0) { alert("No hay productos principales para cobrarle al cliente en esta cotización."); return; }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 600;
+            canvas.height = 300 + (principales.length * 40);
+
+            // Fondo
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const logoSrc = localStorage.getItem('subli_logo');
+            let img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 30, 20, 100, 100);
+                dibujarContenidoImagen(ctx, principales, canvas);
+            };
+            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas); };
+            
+            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas); }
+        }
+
+        function dibujarContenidoImagen(ctx, principales, canvas) {
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 26px Arial';
+            ctx.fillText('COTIZACIÓN - SUBLICOSTURAS', 150, 60);
+            
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#6b7280';
+            ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 90);
+
+            let y = 170;
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('Cant.', 40, y);
+            ctx.fillText('Descripción del Producto', 120, y);
+            ctx.fillText('Precio', 480, y);
+            
+            ctx.beginPath(); 
+            ctx.moveTo(30, y + 15); 
+            ctx.lineTo(570, y + 15); 
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            y += 45;
+            ctx.font = '18px Arial';
+            let total = 0;
+
+            principales.forEach(item => {
+                ctx.fillStyle = '#374151';
+                ctx.fillText(item.qty + 'x', 45, y);
+                ctx.fillText(item.nombre, 120, y);
+                let sub = item.qty * item.precioCobrado;
+                ctx.fillText('Q ' + sub.toFixed(2), 480, y);
+                total += sub;
+                y += 40;
+            });
+
+            ctx.beginPath(); 
+            ctx.moveTo(30, y - 10); 
+            ctx.lineTo(570, y - 10); 
+            ctx.stroke();
+
+            y += 30;
+            ctx.font = 'bold 22px Arial';
+            ctx.fillStyle = '#2563eb';
+            ctx.fillText('TOTAL:', 380, y);
+            ctx.fillText('Q ' + total.toFixed(2), 480, y);
+
+            // Descargar la imagen automáticamente
+            const link = document.createElement('a');
+            link.download = `Cotizacion_SubliCosturas_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function renderHistorialCotizaciones() {
+            const cont = document.getElementById('lista-historial-cotizaciones');
+            cont.innerHTML = '';
+            if(historialCotizaciones.length === 0) { 
+                cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas.</p>'; 
+                return; 
+            }
+
+            [...historialCotizaciones].reverse().forEach(cot => {
+                const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', ');
+                cont.innerHTML += `
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen}</p>
+                        <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
+                    </div>
+                    <div class="item-details" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <div>
+                            <span style="display: block; margin-bottom: 4px;">📅 ${cot.fecha}</span>
+                            <span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${cot.ingresoTotal.toFixed(2)}</span>
+                        </div>
+                        <button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function borrarHistorialCotizacion(id) {
+            if(confirm("¿Eliminar esta cotización del historial?")) {
+                historialCotizaciones = historialCotizaciones.filter(c => c.id !== id);
+                guardarDatos();
+                renderHistorialCotizaciones();
+            }
+        }
+
+        function venderCotizacionPasada(id) {
+            const cot = historialCotizaciones.find(c => c.id === id);
+            if(!cot) return;
+            
+            // Verificar stock antes de vender
+            for (let item of cot.detalleItems) {
+                const prod = inventario.find(p => p.id == item.idProd);
+                if (!prod || prod.stock < item.qty) {
+                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nSurte el inventario antes de confirmar esta venta.`);
+                    return;
+                }
+            }
+
+            if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
+
+            // Restar stock
+            cot.detalleItems.forEach(item => {
+                const p = inventario.find(x => x.id == item.idProd);
+                if(p) p.stock -= item.qty; 
+            });
+
+            fondos.costoProducto += cot.costosProductos; 
+            fondos.costoLuzTinta += cot.costoTinta; 
+            fondos.gananciaLibre += cot.gananciaNeta;
+            
+            ventas.push({ 
+                id: Date.now(), 
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
+                ingresoTotal: cot.ingresoTotal, 
+                costosProductos: cot.costosProductos, 
+                costoTinta: cot.costoTinta, 
+                costoEnvio: cot.costoEnvio, 
+                ganancia: cot.gananciaNeta, 
+                detalleItems: [...cot.detalleItems] 
+            });
+            
+            // Opcional: Eliminar la cotización del historial una vez vendida para no duplicar por error
+            historialCotizaciones = historialCotizaciones.filter(c => c.id !== id);
+
+            guardarDatos(); 
+            actualizarUI();
+            
+            alert("✅ ¡Venta registrada con éxito desde el historial!");
+            cambiarPestaña('ventas');
         }
 
         function convertirCotizacionAVenta() {
@@ -1111,6 +1320,7 @@
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
 
             if(window.db) {
                 try {
@@ -1119,6 +1329,7 @@
                         ventas: ventas,
                         fondos: fondos,
                         historialIngresos: historialIngresos,
+                        historialCotizaciones: historialCotizaciones,
                         ultimaActualizacion: new Date()
                     });
                     console.log("☁️ Nube de SubliCosturas actualizada");
@@ -1158,7 +1369,8 @@
                 </div>`;
             });
             renderSelectIngreso(); 
-            // Si la pestaña de alertas está activa, refrescarla también
+            renderHistorialCotizaciones();
+            
             if (document.getElementById('tab-alertas').classList.contains('active')) {
                 renderAlertas();
             }
