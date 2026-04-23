@@ -101,6 +101,7 @@
             <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
             <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
+            <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
@@ -219,6 +220,7 @@
                 
                 <div class="form-group">
                     <label>Selecciona Artículo de tu Inventario</label>
+                    <input type="text" id="buscador-venta-producto" placeholder="🔍 Buscar producto..." onkeyup="renderSelectVentas()" style="margin-bottom: 8px;">
                     <select id="venta-producto">
                         <option value="">-- Selecciona --</option>
                     </select>
@@ -261,6 +263,53 @@
                 <div id="lista-ventas"></div>
             </div>
         </div>
+
+        <div id="sec-cotizacion" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">1. Armar Cotización</h3>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es solo para hacer cálculos. No descontará tu inventario ni sumará a tus fondos.</p>
+                
+                <div class="form-group">
+                    <label>Selecciona Artículo de tu Inventario</label>
+                    <input type="text" id="buscador-cotiza-producto" placeholder="🔍 Buscar producto..." onkeyup="renderSelectCotizacion()" style="margin-bottom: 8px;">
+                    <select id="cotiza-producto">
+                        <option value="">-- Selecciona --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>¿Cuál es su función en esta cotización?</label>
+                    <select id="cotiza-rol" onchange="cambiarRolCotizacion()">
+                        <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
+                        <option value="material">✂️ MATERIAL USADO (Gasto interno)</option>
+                    </select>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad a cotizar</label><input type="number" id="cotiza-qty" value="1" min="1"></div>
+                    <div class="form-group" id="grupo-cotiza-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <button class="btn-main" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
+            </div>
+
+            <div class="card cart-container">
+                <h3 class="cart-title" style="color: var(--primary-purple); border-color: var(--primary-purple);">📄 Detalles de la Cotización</h3>
+                <div id="lista-carrito-cotizacion">
+                    <p class="item-details" style="text-align:center;">Cotización vacía.</p>
+                </div>
+                
+                <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
+                <button class="btn-main" style="background-color: var(--primary-purple);" onclick="procesarCotizacion()">🖩 Generar Resumen de Cotización</button>
+            </div>
+        </div>
+
     </div>
 
     <div id="modal-editar" class="modal-overlay">
@@ -299,7 +348,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Exponer db al objeto window para que las funciones existentes puedan usarlo
         window.db = db;
         window.setDoc = setDoc;
         window.doc = doc;
@@ -321,29 +369,24 @@
         
         let carritoIngresos = [];
         let carritoVentas = [];
+        let carritoCotizacion = []; // NUEVO: Carrito independiente para cotizaciones
 
-        // --- CARGA ASÍNCRONA CORREGIDA ---
+        // --- CARGA ASÍNCRONA ---
         async function cargarDatos() {
-            // 1. Mostrar un indicador de carga temporal en la pantalla
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
 
-            // 2. Intentar descargar desde Firebase primero
             if (window.db) {
                 try {
-                    console.log("Iniciando descarga desde Firebase...");
-                    // Usamos la misma ruta exacta donde guardamos: colección "sistema", documento "datos_actuales"
                     const docRef = window.doc(window.db, "sistema", "datos_actuales");
                     const docSnap = await window.getDoc(docRef);
 
                     if (docSnap.exists()) {
-                        console.log("¡Documento encontrado en Firebase!");
                         const data = docSnap.data();
                         inventario = data.inventario || [];
                         ventas = data.ventas || [];
                         fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                         historialIngresos = data.historialIngresos || [];
                         
-                        // Guardar respaldo local inmediatamente
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
                         localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
                         localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
@@ -351,21 +394,15 @@
                         
                         mostrarLogo();
                         actualizarUI();
-                        // Alerta de éxito temporal para diagnosticar
                         alert("✅ Datos sincronizados correctamente desde la nube."); 
-                        return; // Salir de la función si tuvo éxito
-                    } else {
-                        console.log("El documento existe, pero no hay datos guardados aún.");
-                    }
+                        return; 
+                    } 
                 } catch (e) {
                     console.error("Fallo la conexión a Firebase. Usando datos locales. Error:", e);
                     alert("⚠️ No se pudo conectar a la base de datos. Se usará el inventario local.");
                 }
-            } else {
-                 console.log("Firebase no está inicializado en la ventana.");
-            }
+            } 
 
-            // 3. Plan B: Si Firebase falla, cargar memoria local
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
                 if (dataInv) inventario = JSON.parse(dataInv) || [];
@@ -382,18 +419,20 @@
             actualizarUI();
         }
 
-        // --- NAVEGACIÓN ---
+        // --- NAVEGACIÓN ACTUALIZADA ---
         function cambiarPestaña(pestaña) {
-            ['inicio', 'ingreso', 'inventario', 'ventas'].forEach(p => {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
                 document.getElementById('tab-' + p).classList.remove('active');
             });
             document.getElementById('sec-' + pestaña).style.display = 'block';
             document.getElementById('tab-' + pestaña).classList.add('active');
+            
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
             if(pestaña === 'inventario') { renderInventario(); }
             if(pestaña === 'ventas') renderSelectVentas();
+            if(pestaña === 'cotizacion') renderSelectCotizacion();
         }
 
         // --- LOGO ---
@@ -429,7 +468,6 @@
         }
 
         function renderSelectIngreso() {
-            // Ordenar el select alfabéticamente
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             const select = document.getElementById('inv-select');
             select.innerHTML = '<option value="nuevo">➕ Crear un Producto Nuevo</option>';
@@ -466,8 +504,6 @@
             const contenedor = document.getElementById('lista-ingresos-pendientes');
             if (carritoIngresos.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Lista vacía.</p>'; return; }
             contenedor.innerHTML = '';
-            
-            // Variables para sumar totales
             let totalPiezas = 0;
             let costoTotalPreview = 0;
 
@@ -477,7 +513,6 @@
                 contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
 
-            // Agregar el resumen al final de la lista
             contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
                 Total a Ingresar: <b>${totalPiezas} piezas</b><br>
                 Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b>
@@ -491,11 +526,11 @@
             const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
             let registroHistorial = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
             
-            let valorTotalIngresado = 0; // Para la alerta final
+            let valorTotalIngresado = 0; 
 
             carritoIngresos.forEach(item => {
                 const costoFinal = item.costoBase + transportePorPieza;
-                valorTotalIngresado += (item.stock * costoFinal); // Calcular el valor real total
+                valorTotalIngresado += (item.stock * costoFinal); 
 
                 let idFinalAsignado;
                 if(item.isNew) {
@@ -519,7 +554,6 @@
             document.getElementById('ingreso-transporte-global').value = '';
             guardarDatos(); actualizarUI(); renderCarritoIngresos(); renderHistorialIngresos();
             
-            // Alerta con el total ingresado
             alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${valorTotalIngresado.toFixed(2)}`);
         }
 
@@ -569,16 +603,12 @@
             if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
         }
 
-        // ================= LÓGICA DE INVENTARIO CON BUSCADOR Y ORDEN =================
         function renderInventario() {
             const contInv = document.getElementById('lista-inventario');
             contInv.innerHTML = '';
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
             
-            // 1. Ordenar alfabéticamente
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            // 2. Filtrar por buscador
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
             
             if(invFiltrado.length === 0) {
@@ -590,25 +620,32 @@
             });
         }
 
-        // ================= LÓGICA DE VENTA MÚLTIPLE =================
+        // ================= LÓGICA DE VENTA MÚLTIPLE (CON BUSCADOR) =================
         function renderSelectVentas() {
-            // Ordenar alfabéticamente para facilitar la venta
+            // Leer el buscador de la pestaña Ventas
+            const textoBuscado = document.getElementById('buscador-venta-producto') ? document.getElementById('buscador-venta-producto').value.toLowerCase() : '';
+            
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+
             const select = document.getElementById('venta-producto');
             select.innerHTML = '<option value="">-- Selecciona --</option>';
-            invOrdenado.forEach(p => { if(p.stock > 0) select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
+            invFiltrado.forEach(p => { if(p.stock > 0) select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
         }
+
         function cambiarRolVenta() {
             const rol = document.getElementById('venta-rol').value;
             if(rol === 'material') { document.getElementById('grupo-venta-precio').style.display = 'none'; document.getElementById('venta-precio').value = '0';
             } else { document.getElementById('grupo-venta-precio').style.display = 'block'; document.getElementById('venta-precio').value = ''; }
         }
+
         function getStockDisponible(idProd) {
             const prod = inventario.find(p => p.id == idProd);
             if(!prod) return 0;
             let qtyEnCarrito = carritoVentas.filter(item => item.idProd == idProd).reduce((sum, item) => sum + item.qty, 0);
             return prod.stock - qtyEnCarrito;
         }
+
         function agregarAlCarritoVenta() {
             const idProd = document.getElementById('venta-producto').value;
             const rol = document.getElementById('venta-rol').value; 
@@ -618,12 +655,15 @@
             const prod = inventario.find(p => p.id == idProd);
             const stockLibre = getStockDisponible(idProd);
             if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
+            
             carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             document.getElementById('venta-qty').value = '1';
             if(rol === 'principal') document.getElementById('venta-precio').value = '';
             renderCarritoVentas();
         }
+
         function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); renderCarritoVentas(); }
+        
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
             let totalCobrar = 0; let totalCostoInterno = 0;
@@ -658,7 +698,12 @@
             const gananciaNeta = ingresoTotal - totalCostosOperativos;
             fondos.costoProducto += costosProductos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta;
             ventas.push({ id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, ganancia: gananciaNeta, detalleItems: [...carritoVentas] });
-            carritoVentas = []; document.getElementById('venta-tinta').value = ''; document.getElementById('venta-envio').value = '';
+            
+            carritoVentas = []; 
+            document.getElementById('venta-tinta').value = ''; 
+            document.getElementById('venta-envio').value = '';
+            document.getElementById('buscador-venta-producto').value = '';
+            
             renderCarritoVentas(); guardarDatos(); actualizarUI();
             alert("💰 ¡Venta procesada con éxito!");
         }
@@ -672,6 +717,101 @@
                 ventas = ventas.filter(x => x.id !== id);
                 guardarDatos(); actualizarUI();
             }
+        }
+
+        // ================= NUEVO: LÓGICA DE COTIZACIÓN =================
+        function renderSelectCotizacion() {
+            const textoBuscado = document.getElementById('buscador-cotiza-producto') ? document.getElementById('buscador-cotiza-producto').value.toLowerCase() : '';
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+
+            const select = document.getElementById('cotiza-producto');
+            select.innerHTML = '<option value="">-- Selecciona --</option>';
+            // En cotización sí permitimos mostrar productos aunque el stock sea 0, para poder cotizar futuros trabajos
+            invFiltrado.forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
+        }
+
+        function cambiarRolCotizacion() {
+            const rol = document.getElementById('cotiza-rol').value;
+            if(rol === 'material') { document.getElementById('grupo-cotiza-precio').style.display = 'none'; document.getElementById('cotiza-precio').value = '0';
+            } else { document.getElementById('grupo-cotiza-precio').style.display = 'block'; document.getElementById('cotiza-precio').value = ''; }
+        }
+
+        function agregarAlCarritoCotizacion() {
+            const idProd = document.getElementById('cotiza-producto').value;
+            const rol = document.getElementById('cotiza-rol').value; 
+            const qty = parseInt(document.getElementById('cotiza-qty').value);
+            const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
+            
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos ingresados."); return; }
+            const prod = inventario.find(p => p.id == idProd);
+            
+            // Nota: En cotización NO verificamos el stockLibre porque no estamos vendiendo, solo estimando.
+            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            
+            document.getElementById('cotiza-qty').value = '1';
+            if(rol === 'principal') document.getElementById('cotiza-precio').value = '';
+            renderCarritoCotizacion();
+        }
+
+        function borrarDelCarritoCotizacion(tempId) { 
+            carritoCotizacion = carritoCotizacion.filter(item => item.tempId !== tempId); 
+            renderCarritoCotizacion(); 
+        }
+
+        function renderCarritoCotizacion() {
+            const contenedor = document.getElementById('lista-carrito-cotizacion');
+            let totalCobrar = 0; let totalCostoInterno = 0;
+            if (carritoCotizacion.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
+            } else {
+                contenedor.innerHTML = '';
+                carritoCotizacion.forEach(item => {
+                    const subtotalCobrado = item.qty * item.precioCobrado;
+                    const subtotalCosto = item.qty * item.costoBase;
+                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const esPrincipal = item.rol === 'principal';
+                    const icon = esPrincipal ? '🏷️' : '✂️';
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                });
+            }
+            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
+        }
+
+        function procesarCotizacion() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            
+            let ingresoTotal = 0; 
+            let costosProductos = 0; 
+            let resumen = "📄 RESUMEN DE COTIZACIÓN\n\n";
+            
+            carritoCotizacion.forEach(item => {
+                ingresoTotal += (item.qty * item.precioCobrado);
+                costosProductos += (item.qty * item.costoBase); 
+                resumen += `- ${item.qty}x ${item.nombre} ${item.rol === 'material' ? '(Gasto Interno)' : `(Q${item.precioCobrado.toFixed(2)} c/u)`}\n`;
+            });
+            
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            const gananciaNeta = ingresoTotal - totalCostosOperativos;
+
+            resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
+            resumen += `--------------------------------------\n`;
+            resumen += `📦 Costos de Materiales: Q ${costosProductos.toFixed(2)}\n`;
+            resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
+            resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
+            resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
+            resumen += `* Esta operación NO modificó tu inventario ni tus fondos.`;
+
+            // Mostrar el resumen para que puedas copiarlo o verlo
+            alert(resumen);
+
+            // Limpiar la cotización después de generar el resumen
+            carritoCotizacion = []; 
+            document.getElementById('cotiza-tinta').value = ''; 
+            document.getElementById('cotiza-envio').value = '';
+            document.getElementById('buscador-cotiza-producto').value = '';
+            renderCarritoCotizacion();
         }
 
         // --- RETIROS ---
@@ -729,13 +869,11 @@
 
         // --- ACTUALIZACIÓN VISUAL Y RESPALDO CLOUD ---
         async function guardarDatos() {
-            // LocalStorage (Respaldo rápido)
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
 
-            // Firebase Cloud (Sincronización en tiempo real)
             if(window.db) {
                 try {
                     await setDoc(doc(window.db, "sistema", "datos_actuales"), {
@@ -759,10 +897,8 @@
             document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
             document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
             
-            // Reemplazado por renderInventario() para incluir orden y buscador
             renderInventario();
 
-            // Historial de ventas con detalle desglosado
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
                 contVentas.innerHTML += `
@@ -783,26 +919,24 @@
                     </div>
                 </div>`;
             });
-            renderSelectIngreso(); renderSelectVentas();
+            renderSelectIngreso(); 
+            renderSelectVentas();
+            renderSelectCotizacion();
         }
 
         // ===== NUEVO SISTEMA DE ARRANQUE DE SUBLICOSTURAS =====
         let intentosConexion = 0;
         function arrancarSistema() {
             if (window.db) {
-                // Firebase ya despertó, ¡trae los datos!
                 cargarDatos();
             } else if (intentosConexion > 6) { 
-                // Si pasaron 3 segundos y Firebase no conectó (sin internet), cargar en ceros
                 cargarDatos(); 
             } else {
-                // Esperar medio segundo más a que el internet reaccione
                 intentosConexion++;
                 setTimeout(arrancarSistema, 500); 
             }
         }
 
-        // Darle ignición al sistema
         arrancarSistema();
     </script>
 </body>
