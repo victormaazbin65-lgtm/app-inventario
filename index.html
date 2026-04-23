@@ -91,6 +91,15 @@
         .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #e5e7eb; color: #374151; }
+
+        /* ESTILOS NUEVOS PARA EL AUTOCOMPLETADO */
+        .autocomplete-input { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #fff; transition: 0.2s;}
+        .autocomplete-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 100; border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: none; margin-top: 5px; }
+        .sugerencia-item { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; font-size: 14px; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center; transition: 0.2s;}
+        .sugerencia-item:hover { background-color: var(--primary-blue); color: white; }
+        .sugerencia-item:hover span { color: #e5e7eb !important; }
+        .sugerencia-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -218,14 +227,11 @@
             <div class="card">
                 <h3 class="section-title">1. Agregar al Carrito</h3>
                 
-                <div class="form-group" style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-blue);">
-                    <label style="color: var(--primary-blue); margin-bottom: 5px;">🔍 Paso 1: Busca el artículo</label>
-                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza'..." oninput="renderSelectVentas()" style="margin-bottom: 12px; border: 1px solid #bfdbfe;">
-                    
-                    <label style="color: var(--primary-blue); margin-bottom: 5px;">✅ Paso 2: Verifica la selección</label>
-                    <select id="venta-producto" style="border: 1px solid #bfdbfe; background-color: white;">
-                        <option value="">-- Selecciona --</option>
-                    </select>
+                <div class="form-group" style="position: relative; z-index: 10;">
+                    <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
+                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza' o toca aquí..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
+                    <div id="sugerencias-ventas-box" class="sugerencias-box"></div>
+                    <input type="hidden" id="venta-producto">
                 </div>
 
                 <div class="form-group">
@@ -271,14 +277,11 @@
                 <h3 class="section-title">1. Armar Cotización</h3>
                 <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es para cálculos. No descuenta tu inventario a menos que confirmes la venta.</p>
                 
-                <div class="form-group" style="background-color: #faf5ff; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-purple);">
-                    <label style="color: var(--primary-purple); margin-bottom: 5px;">🔍 Paso 1: Busca el artículo</label>
-                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. Escribe 'playera'..." oninput="renderSelectCotizacion()" style="margin-bottom: 12px; border: 1px solid #e9d5ff;">
-                    
-                    <label style="color: var(--primary-purple); margin-bottom: 5px;">✅ Paso 2: Verifica la selección</label>
-                    <select id="cotiza-producto" style="border: 1px solid #e9d5ff; background-color: white;">
-                        <option value="">-- Selecciona --</option>
-                    </select>
+                <div class="form-group" style="position: relative; z-index: 10;">
+                    <label style="color: var(--primary-purple);">🔍 Busca y selecciona el artículo</label>
+                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. Escribe 'playera' o toca aquí..." oninput="renderSelectCotizacion()" onclick="renderSelectCotizacion(true)" class="autocomplete-input">
+                    <div id="sugerencias-cotiza-box" class="sugerencias-box"></div>
+                    <input type="hidden" id="cotiza-producto">
                 </div>
 
                 <div class="form-group">
@@ -379,6 +382,18 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
+        // Ocultar las listas si el usuario hace clic afuera de ellas
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#sec-ventas .form-group')) {
+                const boxV = document.getElementById('sugerencias-ventas-box');
+                if(boxV) boxV.style.display = 'none';
+            }
+            if (!e.target.closest('#sec-cotizacion .form-group')) {
+                const boxC = document.getElementById('sugerencias-cotiza-box');
+                if(boxC) boxC.style.display = 'none';
+            }
+        });
+
         async function cargarDatos() {
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
 
@@ -435,8 +450,6 @@
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
             if(pestaña === 'inventario') { renderInventario(); }
-            if(pestaña === 'ventas') renderSelectVentas();
-            if(pestaña === 'cotizacion') renderSelectCotizacion();
         }
 
         function cargarLogo(event) {
@@ -623,31 +636,49 @@
             });
         }
 
-        // ================= VENTA MÚLTIPLE (CON BUSCADOR MEJORADO) =================
-        function renderSelectVentas() {
-            const buscador = document.getElementById('buscador-venta-producto');
-            const textoBuscado = buscador ? buscador.value.toLowerCase() : '';
+        // ================= VENTA MÚLTIPLE =================
+        function renderSelectVentas(mostrarTodo = false) {
+            const input = document.getElementById('buscador-venta-producto');
+            const box = document.getElementById('sugerencias-ventas-box');
+            const hiddenId = document.getElementById('venta-producto');
             
+            const textoBuscado = input.value.toLowerCase();
+            box.innerHTML = '';
+            
+            // Forzamos a que si borran o escriben, se limpie la selección interna obligándolos a volver a tocar la lista
+            if(!mostrarTodo) hiddenId.value = ''; 
+            
+            if (textoBuscado.length === 0 && !mostrarTodo) {
+                box.style.display = 'none';
+                return;
+            }
+
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
-            const select = document.getElementById('venta-producto');
-            select.innerHTML = '<option value="">-- Selecciona --</option>';
-            
-            let idAutoSeleccion = null;
-            let resultadosEncontrados = 0;
-
+            let hayResultados = false;
             invFiltrado.forEach(p => { 
                 if(p.stock > 0) {
-                    select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; 
-                    resultadosEncontrados++;
-                    if(resultadosEncontrados === 1) idAutoSeleccion = p.id;
+                    hayResultados = true;
+                    const div = document.createElement('div');
+                    div.className = 'sugerencia-item';
+                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
+                    
+                    // Al tocar la opción, guardamos los datos
+                    div.onclick = function() {
+                        input.value = p.nombre; 
+                        hiddenId.value = p.id;  
+                        box.style.display = 'none'; 
+                    };
+                    box.appendChild(div);
                 }
             });
 
-            if(textoBuscado !== '' && idAutoSeleccion) {
-                select.value = idAutoSeleccion;
+            if(!hayResultados) {
+                box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Sin stock o no existe</div>';
             }
+
+            box.style.display = 'block';
         }
 
         function cambiarRolVenta() {
@@ -664,18 +695,27 @@
         }
 
         function agregarAlCarritoVenta() {
-            const idProd = document.getElementById('venta-producto').value;
+            const idProd = document.getElementById('venta-producto').value; // ID Oculto
             const rol = document.getElementById('venta-rol').value; 
             const qty = parseInt(document.getElementById('venta-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos y asegúrate de haber seleccionado un producto."); return; }
+            
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+                return; 
+            }
+            
             const prod = inventario.find(p => p.id == idProd);
             const stockLibre = getStockDisponible(idProd);
             if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
             
             carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            
+            // Limpiamos los campos
             document.getElementById('venta-qty').value = '1';
             if(rol === 'principal') document.getElementById('venta-precio').value = '';
+            document.getElementById('buscador-venta-producto').value = ''; 
+            document.getElementById('venta-producto').value = ''; 
             renderCarritoVentas();
         }
 
@@ -720,6 +760,7 @@
             document.getElementById('venta-tinta').value = ''; 
             document.getElementById('venta-envio').value = '';
             document.getElementById('buscador-venta-producto').value = '';
+            document.getElementById('venta-producto').value = '';
             
             renderCarritoVentas(); guardarDatos(); actualizarUI();
             alert("💰 ¡Venta procesada con éxito!");
@@ -736,29 +777,45 @@
             }
         }
 
-        // ================= COTIZACIÓN (CON CONVERSIÓN A VENTA) =================
-        function renderSelectCotizacion() {
-            const buscador = document.getElementById('buscador-cotiza-producto');
-            const textoBuscado = buscador ? buscador.value.toLowerCase() : '';
+        // ================= COTIZACIÓN =================
+        function renderSelectCotizacion(mostrarTodo = false) {
+            const input = document.getElementById('buscador-cotiza-producto');
+            const box = document.getElementById('sugerencias-cotiza-box');
+            const hiddenId = document.getElementById('cotiza-producto');
             
+            const textoBuscado = input.value.toLowerCase();
+            box.innerHTML = '';
+            
+            if(!mostrarTodo) hiddenId.value = '';
+            
+            if (textoBuscado.length === 0 && !mostrarTodo) {
+                box.style.display = 'none';
+                return;
+            }
+
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
-            const select = document.getElementById('cotiza-producto');
-            select.innerHTML = '<option value="">-- Selecciona --</option>';
-            
-            let idAutoSeleccion = null;
-            let resultadosEncontrados = 0;
-
+            let hayResultados = false;
             invFiltrado.forEach(p => { 
-                select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; 
-                resultadosEncontrados++;
-                if(resultadosEncontrados === 1) idAutoSeleccion = p.id;
+                hayResultados = true;
+                const div = document.createElement('div');
+                div.className = 'sugerencia-item';
+                div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
+                
+                div.onclick = function() {
+                    input.value = p.nombre; 
+                    hiddenId.value = p.id;  
+                    box.style.display = 'none'; 
+                };
+                box.appendChild(div);
             });
 
-            if(textoBuscado !== '' && idAutoSeleccion) {
-                select.value = idAutoSeleccion;
+            if(!hayResultados) {
+                box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Producto no encontrado</div>';
             }
+
+            box.style.display = 'block';
         }
 
         function cambiarRolCotizacion() {
@@ -773,13 +830,18 @@
             const qty = parseInt(document.getElementById('cotiza-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos y asegúrate de haber seleccionado un producto."); return; }
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+                return; 
+            }
             const prod = inventario.find(p => p.id == idProd);
             
             carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             
             document.getElementById('cotiza-qty').value = '1';
             if(rol === 'principal') document.getElementById('cotiza-precio').value = '';
+            document.getElementById('buscador-cotiza-producto').value = '';
+            document.getElementById('cotiza-producto').value = '';
             renderCarritoCotizacion();
         }
 
@@ -835,11 +897,9 @@
             alert(resumen);
         }
 
-        // --- NUEVA FUNCIÓN: CONVERTIR COTIZACIÓN A VENTA ---
         function convertirCotizacionAVenta() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             
-            // 1. Validar que exista inventario suficiente antes de proceder
             for (let item of carritoCotizacion) {
                 const prod = inventario.find(p => p.id == item.idProd);
                 if (!prod || prod.stock < item.qty) {
@@ -850,7 +910,6 @@
 
             if(!confirm("¿Seguro que deseas convertir esta cotización en una venta real? Se descontará de tu inventario.")) return;
 
-            // 2. Procesar la venta
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
             
@@ -858,7 +917,7 @@
             
             carritoCotizacion.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
-                if(p) p.stock -= item.qty; // Descontar stock real
+                if(p) p.stock -= item.qty; 
                 
                 ingresoTotal += (item.qty * item.precioCobrado);
                 costosProductos += (item.qty * item.costoBase); 
@@ -884,18 +943,18 @@
                 detalleItems: [...carritoCotizacion] 
             });
             
-            // 3. Limpiar formulario
             carritoCotizacion = []; 
             document.getElementById('cotiza-tinta').value = ''; 
             document.getElementById('cotiza-envio').value = '';
             document.getElementById('buscador-cotiza-producto').value = '';
+            document.getElementById('cotiza-producto').value = '';
             
             renderCarritoCotizacion(); 
             guardarDatos(); 
             actualizarUI();
             
             alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado.");
-            cambiarPestaña('ventas'); // Llevar al usuario a ver su venta
+            cambiarPestaña('ventas');
         }
 
         // --- RETIROS Y REPORTES ---
@@ -1002,8 +1061,6 @@
                 </div>`;
             });
             renderSelectIngreso(); 
-            renderSelectVentas();
-            renderSelectCotizacion();
         }
 
         let intentosConexion = 0;
