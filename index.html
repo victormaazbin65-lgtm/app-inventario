@@ -207,7 +207,7 @@
                 <h3 class="section-title">Mi Inventario Actual</h3>
                 
                 <div class="form-group">
-                    <input type="text" id="buscador-inv" placeholder="🔍 Buscar producto por nombre..." onkeyup="renderInventario()" style="margin-bottom: 15px;">
+                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 15px;">
                 </div>
 
                 <div id="lista-inventario"></div>
@@ -218,10 +218,12 @@
             <div class="card">
                 <h3 class="section-title">1. Agregar al Carrito</h3>
                 
-                <div class="form-group">
-                    <label>Selecciona Artículo de tu Inventario</label>
-                    <input type="text" id="buscador-venta-producto" placeholder="🔍 Buscar producto..." onkeyup="renderSelectVentas()" style="margin-bottom: 8px;">
-                    <select id="venta-producto">
+                <div class="form-group" style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-blue);">
+                    <label style="color: var(--primary-blue); margin-bottom: 5px;">🔍 Paso 1: Busca el artículo</label>
+                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza'..." oninput="renderSelectVentas()" style="margin-bottom: 12px; border: 1px solid #bfdbfe;">
+                    
+                    <label style="color: var(--primary-blue); margin-bottom: 5px;">✅ Paso 2: Verifica la selección</label>
+                    <select id="venta-producto" style="border: 1px solid #bfdbfe; background-color: white;">
                         <option value="">-- Selecciona --</option>
                     </select>
                 </div>
@@ -267,12 +269,14 @@
         <div id="sec-cotizacion" style="display: none;">
             <div class="card">
                 <h3 class="section-title">1. Armar Cotización</h3>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es solo para hacer cálculos. No descontará tu inventario ni sumará a tus fondos.</p>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es para cálculos. No descuenta tu inventario a menos que confirmes la venta.</p>
                 
-                <div class="form-group">
-                    <label>Selecciona Artículo de tu Inventario</label>
-                    <input type="text" id="buscador-cotiza-producto" placeholder="🔍 Buscar producto..." onkeyup="renderSelectCotizacion()" style="margin-bottom: 8px;">
-                    <select id="cotiza-producto">
+                <div class="form-group" style="background-color: #faf5ff; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary-purple);">
+                    <label style="color: var(--primary-purple); margin-bottom: 5px;">🔍 Paso 1: Busca el artículo</label>
+                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. Escribe 'playera'..." oninput="renderSelectCotizacion()" style="margin-bottom: 12px; border: 1px solid #e9d5ff;">
+                    
+                    <label style="color: var(--primary-purple); margin-bottom: 5px;">✅ Paso 2: Verifica la selección</label>
+                    <select id="cotiza-producto" style="border: 1px solid #e9d5ff; background-color: white;">
                         <option value="">-- Selecciona --</option>
                     </select>
                 </div>
@@ -306,7 +310,11 @@
                 </div>
 
                 <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
-                <button class="btn-main" style="background-color: var(--primary-purple);" onclick="procesarCotizacion()">🖩 Generar Resumen de Cotización</button>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
+                    <button class="btn-main btn-green" style="flex: 1; margin-top: 0; font-size: 13px;" onclick="convertirCotizacionAVenta()">✅ Confirmar como Venta</button>
+                </div>
             </div>
         </div>
 
@@ -369,9 +377,8 @@
         
         let carritoIngresos = [];
         let carritoVentas = [];
-        let carritoCotizacion = []; // NUEVO: Carrito independiente para cotizaciones
+        let carritoCotizacion = []; 
 
-        // --- CARGA ASÍNCRONA ---
         async function cargarDatos() {
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
 
@@ -394,12 +401,10 @@
                         
                         mostrarLogo();
                         actualizarUI();
-                        alert("✅ Datos sincronizados correctamente desde la nube."); 
                         return; 
                     } 
                 } catch (e) {
-                    console.error("Fallo la conexión a Firebase. Usando datos locales. Error:", e);
-                    alert("⚠️ No se pudo conectar a la base de datos. Se usará el inventario local.");
+                    console.error("Fallo la conexión a Firebase.", e);
                 }
             } 
 
@@ -419,7 +424,6 @@
             actualizarUI();
         }
 
-        // --- NAVEGACIÓN ACTUALIZADA ---
         function cambiarPestaña(pestaña) {
             ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
@@ -435,7 +439,6 @@
             if(pestaña === 'cotizacion') renderSelectCotizacion();
         }
 
-        // --- LOGO ---
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
@@ -461,7 +464,7 @@
             }
         }
 
-        // ================= LÓGICA DE INGRESO MÚLTIPLE =================
+        // ================= INGRESO =================
         function toggleNuevoProducto() {
             const val = document.getElementById('inv-select').value;
             document.getElementById('grupo-nombre-producto').style.display = val === 'nuevo' ? 'block' : 'none';
@@ -577,7 +580,7 @@
             }
         }
 
-        // ================= LÓGICA DE EDICIÓN DIRECTA EN INVENTARIO =================
+        // ================= INVENTARIO =================
         function abrirModalEditar(id) {
             const prod = inventario.find(p => p.id === id);
             if(!prod) return;
@@ -620,17 +623,31 @@
             });
         }
 
-        // ================= LÓGICA DE VENTA MÚLTIPLE (CON BUSCADOR) =================
+        // ================= VENTA MÚLTIPLE (CON BUSCADOR MEJORADO) =================
         function renderSelectVentas() {
-            // Leer el buscador de la pestaña Ventas
-            const textoBuscado = document.getElementById('buscador-venta-producto') ? document.getElementById('buscador-venta-producto').value.toLowerCase() : '';
+            const buscador = document.getElementById('buscador-venta-producto');
+            const textoBuscado = buscador ? buscador.value.toLowerCase() : '';
             
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             const select = document.getElementById('venta-producto');
             select.innerHTML = '<option value="">-- Selecciona --</option>';
-            invFiltrado.forEach(p => { if(p.stock > 0) select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
+            
+            let idAutoSeleccion = null;
+            let resultadosEncontrados = 0;
+
+            invFiltrado.forEach(p => { 
+                if(p.stock > 0) {
+                    select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; 
+                    resultadosEncontrados++;
+                    if(resultadosEncontrados === 1) idAutoSeleccion = p.id;
+                }
+            });
+
+            if(textoBuscado !== '' && idAutoSeleccion) {
+                select.value = idAutoSeleccion;
+            }
         }
 
         function cambiarRolVenta() {
@@ -651,7 +668,7 @@
             const rol = document.getElementById('venta-rol').value; 
             const qty = parseInt(document.getElementById('venta-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos ingresados."); return; }
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos y asegúrate de haber seleccionado un producto."); return; }
             const prod = inventario.find(p => p.id == idProd);
             const stockLibre = getStockDisponible(idProd);
             if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
@@ -719,16 +736,29 @@
             }
         }
 
-        // ================= NUEVO: LÓGICA DE COTIZACIÓN =================
+        // ================= COTIZACIÓN (CON CONVERSIÓN A VENTA) =================
         function renderSelectCotizacion() {
-            const textoBuscado = document.getElementById('buscador-cotiza-producto') ? document.getElementById('buscador-cotiza-producto').value.toLowerCase() : '';
+            const buscador = document.getElementById('buscador-cotiza-producto');
+            const textoBuscado = buscador ? buscador.value.toLowerCase() : '';
+            
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             const select = document.getElementById('cotiza-producto');
             select.innerHTML = '<option value="">-- Selecciona --</option>';
-            // En cotización sí permitimos mostrar productos aunque el stock sea 0, para poder cotizar futuros trabajos
-            invFiltrado.forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
+            
+            let idAutoSeleccion = null;
+            let resultadosEncontrados = 0;
+
+            invFiltrado.forEach(p => { 
+                select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; 
+                resultadosEncontrados++;
+                if(resultadosEncontrados === 1) idAutoSeleccion = p.id;
+            });
+
+            if(textoBuscado !== '' && idAutoSeleccion) {
+                select.value = idAutoSeleccion;
+            }
         }
 
         function cambiarRolCotizacion() {
@@ -743,10 +773,9 @@
             const qty = parseInt(document.getElementById('cotiza-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos ingresados."); return; }
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { alert("⚠️ Revisa los datos y asegúrate de haber seleccionado un producto."); return; }
             const prod = inventario.find(p => p.id == idProd);
             
-            // Nota: En cotización NO verificamos el stockLibre porque no estamos vendiendo, solo estimando.
             carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             
             document.getElementById('cotiza-qty').value = '1';
@@ -803,23 +832,77 @@
             resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
             resumen += `* Esta operación NO modificó tu inventario ni tus fondos.`;
 
-            // Mostrar el resumen para que puedas copiarlo o verlo
             alert(resumen);
+        }
 
-            // Limpiar la cotización después de generar el resumen
+        // --- NUEVA FUNCIÓN: CONVERTIR COTIZACIÓN A VENTA ---
+        function convertirCotizacionAVenta() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            
+            // 1. Validar que exista inventario suficiente antes de proceder
+            for (let item of carritoCotizacion) {
+                const prod = inventario.find(p => p.id == item.idProd);
+                if (!prod || prod.stock < item.qty) {
+                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nAjusta las cantidades o surte el inventario antes de confirmar la venta.`);
+                    return;
+                }
+            }
+
+            if(!confirm("¿Seguro que deseas convertir esta cotización en una venta real? Se descontará de tu inventario.")) return;
+
+            // 2. Procesar la venta
+            const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            
+            let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
+            
+            carritoCotizacion.forEach(item => {
+                const p = inventario.find(x => x.id == item.idProd);
+                if(p) p.stock -= item.qty; // Descontar stock real
+                
+                ingresoTotal += (item.qty * item.precioCobrado);
+                costosProductos += (item.qty * item.costoBase); 
+                itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
+            });
+            
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            const gananciaNeta = ingresoTotal - totalCostosOperativos;
+            
+            fondos.costoProducto += costosProductos; 
+            fondos.costoLuzTinta += costoTinta; 
+            fondos.gananciaLibre += gananciaNeta;
+            
+            ventas.push({ 
+                id: Date.now(), 
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                resumenItems: itemsResumen.join(' + '), 
+                ingresoTotal: ingresoTotal, 
+                costosProductos: costosProductos, 
+                costoTinta: costoTinta, 
+                costoEnvio: costoEnvio, 
+                ganancia: gananciaNeta, 
+                detalleItems: [...carritoCotizacion] 
+            });
+            
+            // 3. Limpiar formulario
             carritoCotizacion = []; 
             document.getElementById('cotiza-tinta').value = ''; 
             document.getElementById('cotiza-envio').value = '';
             document.getElementById('buscador-cotiza-producto').value = '';
-            renderCarritoCotizacion();
+            
+            renderCarritoCotizacion(); 
+            guardarDatos(); 
+            actualizarUI();
+            
+            alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado.");
+            cambiarPestaña('ventas'); // Llevar al usuario a ver su venta
         }
 
-        // --- RETIROS ---
+        // --- RETIROS Y REPORTES ---
         function reiniciarCostoProducto() { if(confirm("¿Retirar dinero para surtir?")) { fondos.costoProducto = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarCostoLuzTinta() { if(confirm("¿Retirar dinero para pagos?")) { fondos.costoLuzTinta = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; guardarDatos(); actualizarUI(); } }
 
-        // ================= FUNCIÓN EXCEL MULTI-HOJA MEJORADA =================
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
             const vent = JSON.parse(localStorage.getItem(KEY_VENTAS)) || [];
@@ -867,7 +950,6 @@
             XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
-        // --- ACTUALIZACIÓN VISUAL Y RESPALDO CLOUD ---
         async function guardarDatos() {
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -924,7 +1006,6 @@
             renderSelectCotizacion();
         }
 
-        // ===== NUEVO SISTEMA DE ARRANQUE DE SUBLICOSTURAS =====
         let intentosConexion = 0;
         function arrancarSistema() {
             if (window.db) {
