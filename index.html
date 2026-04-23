@@ -111,6 +111,7 @@
             <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
+            <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
@@ -177,6 +178,12 @@
                 <div class="form-group" id="grupo-nombre-producto">
                     <label>Nombre del Nuevo Producto</label>
                     <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
+                </div>
+                
+                <div class="form-group" id="grupo-min-producto">
+                    <label>Alerta de Stock Mínimo (Opcional)</label>
+                    <input type="number" id="inv-min" placeholder="Ej: 5" value="5">
+                    <p class="item-details" style="font-size:11px; margin-top:3px;">Te avisará en color rojo cuando el inventario llegue a esta cantidad.</p>
                 </div>
                 
                 <div class="grid-2">
@@ -251,7 +258,11 @@
             </div>
 
             <div class="card cart-container">
-                <h3 class="cart-title">🛍️ Carrito de la Venta Actual</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; margin-bottom: 10px;">
+                    <h3 class="cart-title" style="border: none; padding: 0; margin: 0;">🛍️ Carrito de la Venta Actual</h3>
+                    <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
+                </div>
+
                 <div id="lista-carrito-ventas">
                     <p class="item-details" style="text-align:center;">Carrito vacío.</p>
                 </div>
@@ -301,7 +312,11 @@
             </div>
 
             <div class="card cart-container">
-                <h3 class="cart-title" style="color: var(--primary-purple); border-color: var(--primary-purple);">📄 Detalles de la Cotización</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9d5ff; padding-bottom: 5px; margin-bottom: 10px;">
+                    <h3 class="cart-title" style="color: var(--primary-purple); border: none; padding: 0; margin: 0;">📄 Detalles de la Cotización</h3>
+                    <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
+                </div>
+                
                 <div id="lista-carrito-cotizacion">
                     <p class="item-details" style="text-align:center;">Cotización vacía.</p>
                 </div>
@@ -321,6 +336,17 @@
             </div>
         </div>
 
+        <div id="sec-alertas" style="display: none;">
+            <div class="card">
+                <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Productos por Surtir</h3>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
+                
+                <div id="lista-alertas-surtir" style="margin-top: 15px;">
+                    <p class="item-details" style="text-align:center;">Cargando alertas...</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="modal-editar" class="modal-overlay">
@@ -329,7 +355,10 @@
             <input type="hidden" id="edit-id">
             
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
-            <div class="form-group"><label>Cantidad Disponible (Stock)</label><input type="number" id="edit-stock"></div>
+            <div class="grid-2">
+                <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock"></div>
+                <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min"></div>
+            </div>
             <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01"></div>
             <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
 
@@ -440,7 +469,7 @@
         }
 
         function cambiarPestaña(pestaña) {
-            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion'].forEach(p => {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
                 document.getElementById('tab-' + p).classList.remove('active');
             });
@@ -450,6 +479,7 @@
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
             if(pestaña === 'inventario') { renderInventario(); }
+            if(pestaña === 'alertas') { renderAlertas(); }
         }
 
         function cargarLogo(event) {
@@ -480,7 +510,9 @@
         // ================= INGRESO =================
         function toggleNuevoProducto() {
             const val = document.getElementById('inv-select').value;
-            document.getElementById('grupo-nombre-producto').style.display = val === 'nuevo' ? 'block' : 'none';
+            const esNuevo = val === 'nuevo';
+            document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
+            document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
         }
 
         function renderSelectIngreso() {
@@ -496,18 +528,26 @@
             const costoBase = parseFloat(document.getElementById('inv-costo').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
             if (isNaN(stock) || isNaN(costoBase) || stock <= 0) { alert("⚠️ Cantidad y Costo deben ser mayores a cero."); return; }
+            
             let nombreProd = "";
+            let minStock = 5;
+
             if (selectId === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
+                minStock = parseInt(document.getElementById('inv-min').value);
+                if(isNaN(minStock)) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
             } else {
                 const prod = inventario.find(p => p.id == selectId);
                 nombreProd = prod ? prod.nombre : "Producto";
+                minStock = prod && prod.min !== undefined ? prod.min : 5;
             }
-            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, costoBase: costoBase, proveedor: proveedor });
+            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor });
+            
             document.getElementById('inv-stock').value = '';
             document.getElementById('inv-costo').value = '';
             document.getElementById('inv-nombre').value = '';
+            if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
             renderCarritoIngresos();
         }
 
@@ -551,7 +591,7 @@
                 let idFinalAsignado;
                 if(item.isNew) {
                     idFinalAsignado = Date.now() + Math.random();
-                    inventario.push({ id: idFinalAsignado, nombre: item.nombre, stock: item.stock, min: 5, costo: costoFinal, proveedor: item.proveedor });
+                    inventario.push({ id: idFinalAsignado, nombre: item.nombre, stock: item.stock, min: item.min !== undefined ? item.min : 5, costo: costoFinal, proveedor: item.proveedor });
                 } else {
                     idFinalAsignado = item.idOriginal;
                     const p = inventario.find(x => x.id == idFinalAsignado);
@@ -600,6 +640,7 @@
             document.getElementById('edit-id').value = prod.id;
             document.getElementById('edit-nombre').value = prod.nombre;
             document.getElementById('edit-stock').value = prod.stock;
+            document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0;
             document.getElementById('edit-costo').value = prod.costo.toFixed(2);
             document.getElementById('edit-proveedor').value = prod.proveedor || '';
             document.getElementById('modal-editar').style.display = 'flex';
@@ -609,11 +650,12 @@
             const id = parseFloat(document.getElementById('edit-id').value);
             const nombre = document.getElementById('edit-nombre').value.trim();
             const stock = parseInt(document.getElementById('edit-stock').value);
+            const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
             if(!nombre || isNaN(stock) || isNaN(costo)) { alert("Datos inválidos."); return; }
             const p = inventario.find(x => x.id === id);
-            if(p) { p.nombre = nombre; p.stock = stock; p.costo = costo; p.proveedor = proveedor; guardarDatos(); actualizarUI(); cerrarModalEditar(); }
+            if(p) { p.nombre = nombre; p.stock = stock; p.min = min; p.costo = costo; p.proveedor = proveedor; guardarDatos(); actualizarUI(); cerrarModalEditar(); }
         }
         function borrarProducto(id) {
             if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
@@ -632,7 +674,12 @@
             }
 
             invFiltrado.forEach(p => {
-                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b>${p.stock}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
+                let minVal = p.min !== undefined ? p.min : 0;
+                let stockBajo = p.stock <= minVal;
+                let stockStyle = stockBajo ? 'color: var(--primary-red); font-weight: bold;' : '';
+                let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
+
+                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${p.stock}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
             });
         }
 
@@ -695,7 +742,7 @@
         }
 
         function agregarAlCarritoVenta() {
-            const idProd = document.getElementById('venta-producto').value; // ID Oculto
+            const idProd = document.getElementById('venta-producto').value; 
             const rol = document.getElementById('venta-rol').value; 
             const qty = parseInt(document.getElementById('venta-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
@@ -720,6 +767,13 @@
         }
 
         function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); renderCarritoVentas(); }
+
+        function vaciarCarritoVentas() {
+            if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) {
+                carritoVentas = [];
+                renderCarritoVentas();
+            }
+        }
         
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
@@ -850,6 +904,13 @@
             renderCarritoCotizacion(); 
         }
 
+        function vaciarCarritoCotizacion() {
+            if(confirm("¿Estás seguro de vaciar toda la cotización?")) {
+                carritoCotizacion = [];
+                renderCarritoCotizacion();
+            }
+        }
+
         function renderCarritoCotizacion() {
             const contenedor = document.getElementById('lista-carrito-cotizacion');
             let totalCobrar = 0; let totalCostoInterno = 0;
@@ -862,7 +923,13 @@
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
                     const esPrincipal = item.rol === 'principal';
                     const icon = esPrincipal ? '🏷️' : '✂️';
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    
+                    // ALERTA DE STOCK EN COTIZACIÓN
+                    const prod = inventario.find(x => x.id == item.idProd);
+                    const stockActual = prod ? prod.stock : 0;
+                    const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
+
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
             document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
@@ -957,6 +1024,35 @@
             cambiarPestaña('ventas');
         }
 
+        // ================= PESTAÑA ALERTAS / POR SURTIR =================
+        function renderAlertas() {
+            const contAlertas = document.getElementById('lista-alertas-surtir');
+            contAlertas.innerHTML = '';
+            
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let productosBajos = invOrdenado.filter(p => p.stock <= (p.min || 0));
+            
+            if(productosBajos.length === 0) {
+                contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>';
+                return;
+            }
+
+            productosBajos.forEach(p => {
+                contAlertas.innerHTML += `
+                <div class="item-row" style="background-color: #fef2f2; border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #fecaca; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                        <span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span>
+                        <span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span>
+                        <span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "No especificado"}</span>
+                        <span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span>
+                    </div>
+                </div>`;
+            });
+        }
+
         // --- RETIROS Y REPORTES ---
         function reiniciarCostoProducto() { if(confirm("¿Retirar dinero para surtir?")) { fondos.costoProducto = 0; guardarDatos(); actualizarUI(); } }
         function reiniciarCostoLuzTinta() { if(confirm("¿Retirar dinero para pagos?")) { fondos.costoLuzTinta = 0; guardarDatos(); actualizarUI(); } }
@@ -983,6 +1079,7 @@
                 const dataInv = inv.map(p => ({
                     "Nombre del Producto": p.nombre,
                     "Existencias (Stock)": p.stock,
+                    "Alerta Mínima": p.min !== undefined ? p.min : 0,
                     "Costo Unitario (Q)": p.costo.toFixed(2),
                     "Proveedor": p.proveedor || "No especificado",
                     "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2)
@@ -1061,6 +1158,10 @@
                 </div>`;
             });
             renderSelectIngreso(); 
+            // Si la pestaña de alertas está activa, refrescarla también
+            if (document.getElementById('tab-alertas').classList.contains('active')) {
+                renderAlertas();
+            }
         }
 
         let intentosConexion = 0;
