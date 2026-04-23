@@ -322,21 +322,28 @@
         let carritoIngresos = [];
         let carritoVentas = [];
 
-        // --- CARGA ASÍNCRONA DE FIREBASE INTEGRADA ---
+        // --- CARGA ASÍNCRONA CORREGIDA ---
         async function cargarDatos() {
-            // 1. Intentar descargar desde la nube de Firebase primero
+            // 1. Mostrar un indicador de carga temporal en la pantalla
+            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
+
+            // 2. Intentar descargar desde Firebase primero
             if (window.db) {
                 try {
-                    const docSnap = await window.getDoc(window.doc(window.db, "sistema", "datos_actuales"));
+                    console.log("Iniciando descarga desde Firebase...");
+                    // Usamos la misma ruta exacta donde guardamos: colección "sistema", documento "datos_actuales"
+                    const docRef = window.doc(window.db, "sistema", "datos_actuales");
+                    const docSnap = await window.getDoc(docRef);
+
                     if (docSnap.exists()) {
+                        console.log("¡Documento encontrado en Firebase!");
                         const data = docSnap.data();
                         inventario = data.inventario || [];
                         ventas = data.ventas || [];
                         fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                         historialIngresos = data.historialIngresos || [];
-                        console.log("☁️ Datos descargados de Firebase exitosamente.");
                         
-                        // Respaldo local
+                        // Guardar respaldo local inmediatamente
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
                         localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
                         localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
@@ -344,16 +351,21 @@
                         
                         mostrarLogo();
                         actualizarUI();
-                        return; // Termina la función aquí si Firebase funcionó
+                        // Alerta de éxito temporal para diagnosticar
+                        alert("✅ Datos sincronizados correctamente desde la nube."); 
+                        return; // Salir de la función si tuvo éxito
                     } else {
-                        console.log("☁️ No hay datos guardados en Firebase aún.");
+                        console.log("El documento existe, pero no hay datos guardados aún.");
                     }
                 } catch (e) {
-                    console.error("Error al descargar de Firebase, usando memoria local:", e);
+                    console.error("Fallo la conexión a Firebase. Usando datos locales. Error:", e);
+                    alert("⚠️ No se pudo conectar a la base de datos. Se usará el inventario local.");
                 }
+            } else {
+                 console.log("Firebase no está inicializado en la ventana.");
             }
 
-            // 2. Plan B: Si no hay internet o falla Firebase, usar memoria local
+            // 3. Plan B: Si Firebase falla, cargar memoria local
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
                 if (dataInv) inventario = JSON.parse(dataInv) || [];
@@ -774,6 +786,7 @@
             renderSelectIngreso(); renderSelectVentas();
         }
 
+        // Arrancamos la carga
         cargarDatos();
     </script>
 </body>
