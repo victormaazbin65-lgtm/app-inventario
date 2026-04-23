@@ -204,6 +204,11 @@
         <div id="sec-inventario" style="display: none;">
             <div class="card">
                 <h3 class="section-title">Mi Inventario Actual</h3>
+                
+                <div class="form-group">
+                    <input type="text" id="buscador-inv" placeholder="🔍 Buscar producto por nombre..." onkeyup="renderInventario()" style="margin-bottom: 15px;">
+                </div>
+
                 <div id="lista-inventario"></div>
             </div>
         </div>
@@ -317,7 +322,38 @@
         let carritoIngresos = [];
         let carritoVentas = [];
 
-        function cargarDatos() {
+        // --- CARGA ASÍNCRONA DE FIREBASE INTEGRADA ---
+        async function cargarDatos() {
+            // 1. Intentar descargar desde la nube de Firebase primero
+            if (window.db) {
+                try {
+                    const docSnap = await window.getDoc(window.doc(window.db, "sistema", "datos_actuales"));
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        inventario = data.inventario || [];
+                        ventas = data.ventas || [];
+                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                        historialIngresos = data.historialIngresos || [];
+                        console.log("☁️ Datos descargados de Firebase exitosamente.");
+                        
+                        // Respaldo local
+                        localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+                        localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+                        localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+                        localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+                        
+                        mostrarLogo();
+                        actualizarUI();
+                        return; // Termina la función aquí si Firebase funcionó
+                    } else {
+                        console.log("☁️ No hay datos guardados en Firebase aún.");
+                    }
+                } catch (e) {
+                    console.error("Error al descargar de Firebase, usando memoria local:", e);
+                }
+            }
+
+            // 2. Plan B: Si no hay internet o falla Firebase, usar memoria local
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
                 if (dataInv) inventario = JSON.parse(dataInv) || [];
@@ -344,6 +380,7 @@
             document.getElementById('tab-' + pestaña).classList.add('active');
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
+            if(pestaña === 'inventario') { renderInventario(); }
             if(pestaña === 'ventas') renderSelectVentas();
         }
 
@@ -380,9 +417,11 @@
         }
 
         function renderSelectIngreso() {
+            // Ordenar el select alfabéticamente
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             const select = document.getElementById('inv-select');
             select.innerHTML = '<option value="nuevo">➕ Crear un Producto Nuevo</option>';
-            inventario.forEach(p => { select.innerHTML += `<option value="${p.id}">Añadir stock a: ${p.nombre}</option>`; });
+            invOrdenado.forEach(p => { select.innerHTML += `<option value="${p.id}">Añadir stock a: ${p.nombre}</option>`; });
         }
 
         function agregarAlCarritoIngreso() {
@@ -415,9 +454,22 @@
             const contenedor = document.getElementById('lista-ingresos-pendientes');
             if (carritoIngresos.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Lista vacía.</p>'; return; }
             contenedor.innerHTML = '';
+            
+            // Variables para sumar totales
+            let totalPiezas = 0;
+            let costoTotalPreview = 0;
+
             carritoIngresos.forEach(item => {
+                totalPiezas += item.stock;
+                costoTotalPreview += (item.stock * item.costoBase);
                 contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
+
+            // Agregar el resumen al final de la lista
+            contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
+                Total a Ingresar: <b>${totalPiezas} piezas</b><br>
+                Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b>
+            </div>`;
         }
 
         function procesarIngresoMultiple() {
@@ -426,8 +478,13 @@
             const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
             const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
             let registroHistorial = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
+            
+            let valorTotalIngresado = 0; // Para la alerta final
+
             carritoIngresos.forEach(item => {
                 const costoFinal = item.costoBase + transportePorPieza;
+                valorTotalIngresado += (item.stock * costoFinal); // Calcular el valor real total
+
                 let idFinalAsignado;
                 if(item.isNew) {
                     idFinalAsignado = Date.now() + Math.random();
@@ -449,7 +506,9 @@
             carritoIngresos = [];
             document.getElementById('ingreso-transporte-global').value = '';
             guardarDatos(); actualizarUI(); renderCarritoIngresos(); renderHistorialIngresos();
-            alert(`✅ ¡Guardado! Se agregaron a tu inventario.`);
+            
+            // Alerta con el total ingresado
+            alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${valorTotalIngresado.toFixed(2)}`);
         }
 
         function renderHistorialIngresos() {
@@ -498,11 +557,34 @@
             if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
         }
 
+        // ================= LÓGICA DE INVENTARIO CON BUSCADOR Y ORDEN =================
+        function renderInventario() {
+            const contInv = document.getElementById('lista-inventario');
+            contInv.innerHTML = '';
+            const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
+            
+            // 1. Ordenar alfabéticamente
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            // 2. Filtrar por buscador
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            
+            if(invFiltrado.length === 0) {
+                contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
+            }
+
+            invFiltrado.forEach(p => {
+                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b>${p.stock}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
+            });
+        }
+
         // ================= LÓGICA DE VENTA MÚLTIPLE =================
         function renderSelectVentas() {
+            // Ordenar alfabéticamente para facilitar la venta
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             const select = document.getElementById('venta-producto');
             select.innerHTML = '<option value="">-- Selecciona --</option>';
-            inventario.forEach(p => { if(p.stock > 0) select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
+            invOrdenado.forEach(p => { if(p.stock > 0) select.innerHTML += `<option value="${p.id}">${p.nombre} (Hay ${p.stock})</option>`; });
         }
         function cambiarRolVenta() {
             const rol = document.getElementById('venta-rol').value;
@@ -665,14 +747,29 @@
             document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
             document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
             
-            const contInv = document.getElementById('lista-inventario'); contInv.innerHTML = '';
-            inventario.forEach(p => {
-                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b>${p.stock}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
-            });
+            // Reemplazado por renderInventario() para incluir orden y buscador
+            renderInventario();
 
+            // Historial de ventas con detalle desglosado
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
-                contVentas.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${v.resumenItems}</p><p class="item-details"><b>Fecha:</b> ${v.fecha}<br><b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}<br><span class="profit-text">Ganancia: Q${v.ganancia.toFixed(2)}</span></p></div><div class="item-actions"><button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Anular</button></div></div>`;
+                contVentas.innerHTML += `
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems}</p>
+                        <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
+                    </div>
+                    <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                        <span>📅 ${v.fecha}</span>
+                        <span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span>
+                        <span class="cost-text">📦 <b>Costo Mat.:</b> Q${v.costosProductos.toFixed(2)}</span>
+                        <span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span>
+                        <span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>
+                        <span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 5px;">
+                            Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}
+                        </span>
+                    </div>
+                </div>`;
             });
             renderSelectIngreso(); renderSelectVentas();
         }
