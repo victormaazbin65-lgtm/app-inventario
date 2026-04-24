@@ -145,20 +145,30 @@
                         <p class="dash-value" id="dash-valor-inv">Q 0.00</p>
                         <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Capital físico</p>
                     </div>
+                    
                     <div class="dash-card bg-purple">
                         <p class="dash-title">Fondo: Productos</p>
                         <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarCostoProducto()">🔄 Retirar para Surtir</button>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;">
+                            <input type="number" id="ret-prod" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoProducto()">Retirar</button>
+                        </div>
                     </div>
                     <div class="dash-card bg-orange">
                         <p class="dash-title">Fondo: Luz y Tinta</p>
                         <p class="dash-value" id="dash-costo-luz">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarCostoLuzTinta()">💡 Retirar para Recibos</button>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;">
+                            <input type="number" id="ret-luz" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoLuz()">Retirar</button>
+                        </div>
                     </div>
                     <div class="dash-card bg-green">
                         <p class="dash-title">Ganancia Libre</p>
                         <p class="dash-value" id="dash-ganancia">Q 0.00</p>
-                        <button class="dash-btn" onclick="reiniciarGanancia()">💵 Retirar Ganancia</button>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;">
+                            <input type="number" id="ret-ganancia" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1010,6 +1020,28 @@
             alert(resumen);
         }
 
+        // FUNCION NUEVA PARA AJUSTAR TEXTO
+        function wrapTextCotizacion(context, text, x, y, maxWidth, lineHeight) {
+            var words = text.split(' ');
+            var line = '';
+            var count = 0;
+            for(var n = 0; n < words.length; n++) {
+                var testLine = line + words[n] + ' ';
+                var metrics = context.measureText(testLine);
+                var testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                    count++;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+            return count + 1;
+        }
+
         function generarImagenCotizacionActual() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             
@@ -1018,8 +1050,18 @@
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
+            
+            // PRE-CALCULAR ALTURA DINÁMICA
+            ctx.font = '18px Arial';
+            let alturaExtra = 0;
+            principales.forEach(item => {
+                let textWidth = ctx.measureText(item.nombre).width;
+                let lineas = Math.max(1, Math.ceil(textWidth / 340));
+                alturaExtra += (lineas * 22) + 20; // 22px alto de linea + 20px separacion
+            });
+
             canvas.width = 600;
-            canvas.height = 300 + (principales.length * 40);
+            canvas.height = 300 + alturaExtra;
 
             // Fondo
             ctx.fillStyle = '#ffffff';
@@ -1066,11 +1108,15 @@
             principales.forEach(item => {
                 ctx.fillStyle = '#374151';
                 ctx.fillText(item.qty + 'x', 45, y);
-                ctx.fillText(item.nombre, 120, y);
+                
                 let sub = item.qty * item.precioCobrado;
                 ctx.fillText('Q ' + sub.toFixed(2), 480, y);
                 total += sub;
-                y += 40;
+
+                ctx.fillStyle = '#1f2937';
+                let lineasUsadas = wrapTextCotizacion(ctx, item.nombre, 120, y, 340, 22);
+                
+                y += (lineasUsadas * 22) + 20;
             });
 
             ctx.beginPath(); 
@@ -1262,10 +1308,31 @@
             });
         }
 
-        // --- RETIROS Y REPORTES ---
-        function reiniciarCostoProducto() { if(confirm("¿Retirar dinero para surtir?")) { fondos.costoProducto = 0; guardarDatos(); actualizarUI(); } }
-        function reiniciarCostoLuzTinta() { if(confirm("¿Retirar dinero para pagos?")) { fondos.costoLuzTinta = 0; guardarDatos(); actualizarUI(); } }
-        function reiniciarGanancia() { if(confirm("¿Retirar ganancia?")) { fondos.gananciaLibre = 0; guardarDatos(); actualizarUI(); } }
+        // --- RETIROS MODIFICADOS ---
+        function retirarCostoProducto() { 
+            let val = parseFloat(document.getElementById('ret-prod').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.costoProducto) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " para surtir?")) { 
+                fondos.costoProducto -= val; document.getElementById('ret-prod').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
+        function retirarCostoLuz() { 
+            let val = parseFloat(document.getElementById('ret-luz').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.costoLuzTinta) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " para pagos de luz/tinta?")) { 
+                fondos.costoLuzTinta -= val; document.getElementById('ret-luz').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
+        function retirarGanancia() { 
+            let val = parseFloat(document.getElementById('ret-ganancia').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.gananciaLibre) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " de la ganancia libre?")) { 
+                fondos.gananciaLibre -= val; document.getElementById('ret-ganancia').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
 
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
