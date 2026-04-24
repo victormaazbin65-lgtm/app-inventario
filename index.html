@@ -341,7 +341,13 @@
                     <p class="item-details" style="text-align:center;">Cotización vacía.</p>
                 </div>
                 
-                <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
+                <h4 class="sub-title">2. Datos del Cliente (Opcional)</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" placeholder="Ej. Juan Pérez"></div>
+                    <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
+                </div>
+
+                <h4 class="sub-title">3. Gastos de Producción / Envío</h4>
                 <div class="grid-2">
                     <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" placeholder="0.00"></div>
                     <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" placeholder="0.00"></div>
@@ -1020,7 +1026,7 @@
             alert(resumen);
         }
 
-        // FUNCION NUEVA PARA AJUSTAR TEXTO
+        // FUNCION PARA AJUSTAR TEXTO
         function wrapTextCotizacion(context, text, x, y, maxWidth, lineHeight) {
             var words = text.split(' ');
             var line = '';
@@ -1042,11 +1048,17 @@
             return count + 1;
         }
 
+        // --- ACTUALIZACIÓN DE IMAGEN PARA ALTA DEFINICIÓN (HD) Y LOGO ---
         function generarImagenCotizacionActual() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             
             const principales = carritoCotizacion.filter(item => item.rol === 'principal');
             if(principales.length === 0) { alert("No hay productos principales para cobrarle al cliente en esta cotización."); return; }
+
+            // Recoger los datos del cliente
+            let clienteNombre = document.getElementById('cotiza-nombre').value.trim();
+            let clienteNit = document.getElementById('cotiza-nit').value.trim();
+            if(clienteNit === '') clienteNit = 'C/F';
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -1057,36 +1069,68 @@
             principales.forEach(item => {
                 let textWidth = ctx.measureText(item.nombre).width;
                 let lineas = Math.max(1, Math.ceil(textWidth / 340));
-                alturaExtra += (lineas * 22) + 20; // 22px alto de linea + 20px separacion
+                alturaExtra += (lineas * 22) + 20; 
             });
 
-            canvas.width = 600;
-            canvas.height = 300 + alturaExtra;
+            // Medidas base (se subió a 350 para acomodar los datos del cliente)
+            const widthBase = 600;
+            const heightBase = 350 + alturaExtra; 
+            
+            // MULTIPLICAR RESOLUCIÓN POR 2 PARA EVITAR BORROSO (HD)
+            const scale = 2;
+            canvas.width = widthBase * scale;
+            canvas.height = heightBase * scale;
+            
+            // Escalar el contexto interno
+            ctx.scale(scale, scale);
 
             // Fondo
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, widthBase, heightBase);
 
             const logoSrc = localStorage.getItem('subli_logo');
             let img = new Image();
             img.onload = function() {
-                ctx.drawImage(img, 30, 20, 100, 100);
-                dibujarContenidoImagen(ctx, principales, canvas);
+                // Ajustar proporción del logo sin estirar
+                let maxWidth = 100;
+                let maxHeight = 100;
+                let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+                let newWidth = img.width * ratio;
+                let newHeight = img.height * ratio;
+                
+                // Centrarlo si es necesario
+                let offsetY = 20 + (maxHeight - newHeight) / 2;
+                
+                ctx.drawImage(img, 30, offsetY, newWidth, newHeight);
+                dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit);
             };
-            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas); };
+            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); };
             
-            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas); }
+            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); }
         }
 
-        function dibujarContenidoImagen(ctx, principales, canvas) {
+        // --- DIBUJO DEL TEXTO CON LOS DATOS DEL CLIENTE ---
+        function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit) {
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 26px Arial';
-            ctx.fillText('COTIZACIÓN - SUBLICOSTURAS', 150, 60);
+            ctx.fillText('COTIZACIÓN - SUBLICOSTURAS', 150, 50);
             
             ctx.font = '16px Arial';
             ctx.fillStyle = '#6b7280';
-            ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 90);
+            ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 75);
 
+            // Inserción de Datos del Cliente
+            ctx.fillStyle = '#374151';
+            let offsetX = 150;
+            let offsetY = 100;
+            
+            if(nombre !== '') {
+                ctx.fillText('Cliente: ' + nombre, offsetX, offsetY);
+                offsetY += 20;
+            }
+            ctx.fillText('NIT: ' + nit, offsetX, offsetY);
+
+            // Tabla
             let y = 170;
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 18px Arial';
