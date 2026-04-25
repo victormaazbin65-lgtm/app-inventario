@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
-
-    <link rel="manifest" href="manifest.json">
+    
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#2563eb">
-    <link rel="apple-touch-icon" href="logo.jpg">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./logo.jpg">
 
     <style>
         :root {
@@ -47,28 +45,6 @@
         .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
         .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
-
-        /* Botón Instalar App (NUEVO) */
-        #btn-instalar-app {
-            background-color: #10b981;
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
-            display: none; /* Oculto por defecto, se muestra si se puede instalar */
-            animation: latido 2s infinite;
-        }
-        @keyframes latido {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
 
         /* Dashboard */
         .dash-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
@@ -130,6 +106,10 @@
         .sugerencia-item:hover { background-color: var(--primary-blue); color: white; }
         .sugerencia-item:hover span { color: #e5e7eb !important; }
         .sugerencia-item:last-child { border-bottom: none; }
+
+        /* CÓDIGO AÑADIDO: Estilos del Botón de Instalación */
+        #btn-instalar-app { display: none; background-color: #10b981; color: white; border: none; padding: 15px 20px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); animation: latido 2s infinite; }
+        @keyframes latido { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -167,7 +147,7 @@
                     </div>
                 </div>
 
-                <button id="btn-instalar-app">📲 Instalar App en este dispositivo</button>
+                <button id="btn-instalar-app" onclick="instalarApp()">📲 Instalar SubliCosturas Pro en mi dispositivo</button>
 
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
@@ -461,51 +441,6 @@
     </script>
 
     <script>
-        // ==========================================
-        // LÓGICA DE INSTALACIÓN PWA (NUEVA)
-        // ==========================================
-        let deferredPrompt;
-        const installBtn = document.getElementById('btn-instalar-app');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Evita que Chrome muestre el prompt automáticamente
-            e.preventDefault();
-            // Guarda el evento para usarlo luego
-            deferredPrompt = e;
-            // Muestra nuestro botón gigante
-            if(installBtn) installBtn.style.display = 'block';
-        });
-
-        if(installBtn) {
-            installBtn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    // Muestra el prompt de instalación nativo
-                    deferredPrompt.prompt();
-                    // Espera a que el usuario responda
-                    const { outcome } = await deferredPrompt.userChoice;
-                    // Limpiamos la variable
-                    deferredPrompt = null;
-                    // Escondemos el botón
-                    installBtn.style.display = 'none';
-                }
-            });
-        }
-
-        window.addEventListener('appinstalled', () => {
-            // Si ya se instaló, esconder el botón
-            if(installBtn) installBtn.style.display = 'none';
-        });
-
-        // REGISTRO DEL SERVICE WORKER (Vital para que Chrome permita instalar)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('SW Registrado correctamente');
-                }).catch(err => console.log('Error registrando SW', err));
-            });
-        }
-        // ==========================================
-
         const KEY_INV = 'subli_inv_v10';
         const KEY_VENTAS = 'subli_vent_v10';
         const KEY_FONDOS = 'subli_fondos_v10';
@@ -521,6 +456,44 @@
         let carritoIngresos = [];
         let carritoVentas = [];
         let carritoCotizacion = []; 
+
+        // CÓDIGO AÑADIDO: Lógica de Instalación de la App
+        let eventoInstalacion;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Previene que Chrome muestre el mini-cartel nativo de inmediato
+            e.preventDefault();
+            // Guarda el evento para usarlo cuando el usuario toque el botón
+            eventoInstalacion = e;
+            // Muestra nuestro botón verde gigante
+            document.getElementById('btn-instalar-app').style.display = 'block';
+        });
+
+        function instalarApp() {
+            if (eventoInstalacion) {
+                // Muestra la ventana oficial de instalación de Chrome
+                eventoInstalacion.prompt();
+                // Espera a ver qué elige el usuario
+                eventoInstalacion.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('El usuario aceptó instalar la app');
+                        document.getElementById('btn-instalar-app').style.display = 'none';
+                    } else {
+                        console.log('El usuario rechazó la instalación');
+                    }
+                    eventoInstalacion = null;
+                });
+            }
+        }
+
+        // Registrar el Service Worker (Obligatorio para instalar)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then((reg) => console.log('Service Worker registrado correctamente.', reg.scope))
+                .catch((err) => console.log('Falló el registro del Service Worker.', err));
+            });
+        }
+
 
         // ----- FUNCIÓN LOGIN -----
         function verificarLogin() {
