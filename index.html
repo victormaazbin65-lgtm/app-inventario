@@ -447,20 +447,14 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        // ----- PARCHE 4: FUNCIÓN LOGIN CON HASH -----
-        async function encriptar(texto) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(texto);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        async function verificarLogin() {
+        // ----- FUNCIÓN LOGIN CORREGIDA -----
+        function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
-            const hash = await encriptar(pass);
-            // La huella digital corresponde a "1010"
-            if(hash === '11e3b6d2c4623101c5cc832c3bb6b6ec863ab7cc11b2259160cc124a9a08e7c8') {
+            
+            // btoa() convierte el texto a formato Base64. 
+            // "MTAxMA==" es exactamente la palabra "1010" oculta en este formato.
+            // De esta forma, nadie lee tu clave a simple vista al inspeccionar tu código.
+            if(btoa(pass) === 'MTAxMA==') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
             } else {
