@@ -2,12 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SubliCosturas - Sistema Pro</title>
     
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <link rel="apple-touch-icon" href="./logo.jpg">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SubliCosturas">
+    <link rel="apple-touch-icon" href="https://sublicosturas-app.firebaseapp.com/logo.png"> <meta name="theme-color" content="#2563eb">
 
     <style>
         :root {
@@ -24,7 +26,17 @@
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        /* Ajuste preventivo para que no se vea el scroll del navegador en móvil */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+            background-color: var(--bg-color); 
+            margin: 0; 
+            padding: 20px; 
+            padding-top: env(safe-area-inset-top); /* Soporte para el notch de iPhones modernos */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
         .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
 
         /* Pestañas */
@@ -70,7 +82,7 @@
         button.btn-main:hover { background-color: #1d4ed8; }
         button.btn-green { background-color: var(--primary-green); }
 
-        /* Listas y Tablas */
+        /* Listas y Tablas (Carritos) */
         .cart-container { background-color: #f8fafc; border: 1px dashed var(--primary-blue); border-radius: 8px; padding: 15px; margin-top: 15px; }
         .cart-title { font-size: 14px; font-weight: bold; color: var(--primary-blue); margin-top: 0; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; }
         
@@ -98,7 +110,7 @@
         .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #e5e7eb; color: #374151; }
 
-        /* Autocompletado */
+        /* ESTILOS NUEVOS PARA EL AUTOCOMPLETADO */
         .autocomplete-input { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #fff; transition: 0.2s;}
         .autocomplete-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         .sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 100; border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: none; margin-top: 5px; }
@@ -106,10 +118,6 @@
         .sugerencia-item:hover { background-color: var(--primary-blue); color: white; }
         .sugerencia-item:hover span { color: #e5e7eb !important; }
         .sugerencia-item:last-child { border-bottom: none; }
-
-        /* Botón de Instalación */
-        #btn-instalar-app { display: none; background-color: #10b981; color: white; border: none; padding: 15px 20px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); animation: latido 2s infinite; }
-        @keyframes latido { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -135,6 +143,7 @@
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
+                
                 <div class="logo-container">
                     <div class="logo-wrapper">
                         <img id="logo-img" src="" alt="Logo SubliCosturas">
@@ -146,14 +155,14 @@
                     </div>
                 </div>
 
-                <button id="btn-instalar-app" onclick="instalarApp()">📲 Instalar SubliCosturas Pro en mi dispositivo</button>
-
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
                     <div class="dash-card bg-blue">
                         <p class="dash-title">Valor del Inventario</p>
                         <p class="dash-value" id="dash-valor-inv">Q 0.00</p>
+                        <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Capital físico</p>
                     </div>
+                    
                     <div class="dash-card bg-purple">
                         <p class="dash-title">Fondo: Productos</p>
                         <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
@@ -179,21 +188,239 @@
                         </div>
                     </div>
                 </div>
+
                 <div style="margin-top: 25px; text-align: center;">
-                    <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;">📂 Descargar Reporte (Excel)</button>
+                    <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: var(--shadow);">
+                        📂 Descargar Reporte Completo (Excel)
+                    </button>
+                </div>
+
+                <p style="font-size: 12px; color: var(--text-light); text-align: center; margin-top: 25px;">
+                    * Los gastos de mensajero/envío se restan automáticamente de la venta y no se guardan aquí, ya que ese dinero se le entrega al transportista.
+                </p>
+            </div>
+        </div>
+
+        <div id="sec-ingreso" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">1. Añadir a la lista de ingresos</h3>
+                
+                <div class="form-group" id="grupo-select-producto">
+                    <label>¿Qué estás ingresando?</label>
+                    <select id="inv-select" onchange="toggleNuevoProducto()">
+                        <option value="nuevo">➕ Crear un Producto Nuevo</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="grupo-nombre-producto">
+                    <label>Nombre del Nuevo Producto</label>
+                    <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
+                </div>
+                
+                <div class="form-group" id="grupo-min-producto">
+                    <label>Alerta de Stock Mínimo (Opcional)</label>
+                    <input type="number" id="inv-min" placeholder="Ej: 5" value="5">
+                    <p class="item-details" style="font-size:11px; margin-top:3px;">Te avisará en color rojo cuando el inventario llegue a esta cantidad.</p>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad (Piezas)</label><input type="number" id="inv-stock" placeholder="0"></div>
+                    <div class="form-group"><label>Costo Unitario Base (Q)</label><input type="number" id="inv-costo" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <div class="form-group"><label>Proveedor (Opcional)</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
+
+                <button class="btn-main" onclick="agregarAlCarritoIngreso()">👇 Añadir a la Lista Previa</button>
+            </div>
+
+            <div class="card cart-container">
+                <h3 class="cart-title">📝 Lista Previa de Ingresos</h3>
+                <div id="lista-ingresos-pendientes">
+                    <p class="item-details" style="text-align:center;">Lista vacía.</p>
+                </div>
+                
+                <h4 class="sub-title">2. Transporte Total (Opcional)</h4>
+                <div class="form-group">
+                    <label>Costo de Transporte/Envío global de este lote (Q)</label>
+                    <input type="number" id="ingreso-transporte-global" step="0.01" placeholder="0.00">
+                    <p class="item-details" style="font-size:11px; margin-top:5px;">*Se dividirá matemáticamente entre todas las piezas de la lista para sumar a tu costo real.</p>
+                </div>
+
+                <button class="btn-main btn-green" onclick="procesarIngresoMultiple()">✅ Confirmar y Guardar Todo en Inventario</button>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">Historial de Ingresos</h3>
+                <div id="lista-historial-ingresos"></div>
+            </div>
+        </div>
+
+        <div id="sec-inventario" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">Mi Inventario Actual</h3>
+                
+                <div class="form-group">
+                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 15px;">
+                </div>
+
+                <div id="lista-inventario"></div>
+            </div>
+        </div>
+
+        <div id="sec-ventas" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">1. Agregar al Carrito</h3>
+                
+                <div class="form-group" style="position: relative; z-index: 10;">
+                    <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
+                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza' o toca aquí..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
+                    <div id="sugerencias-ventas-box" class="sugerencias-box"></div>
+                    <input type="hidden" id="venta-producto">
+                </div>
+
+                <div class="form-group">
+                    <label>¿Cuál es su función en esta venta?</label>
+                    <select id="venta-rol" onchange="cambiarRolVenta()">
+                        <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
+                        <option value="material">✂️ MATERIAL USADO (Gasto interno, resta ganancia)</option>
+                    </select>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad a usar/vender</label><input type="number" id="venta-qty" value="1" min="1"></div>
+                    <div class="form-group" id="grupo-venta-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
+            </div>
+
+            <div class="card cart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; margin-bottom: 10px;">
+                    <h3 class="cart-title" style="border: none; padding: 0; margin: 0;">🛍️ Carrito de la Venta Actual</h3>
+                    <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
+                </div>
+
+                <div id="lista-carrito-ventas">
+                    <p class="item-details" style="text-align:center;">Carrito vacío.</p>
+                </div>
+                
+                <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <div class="cart-total" id="venta-total-preview">Total a Cobrar: Q 0.00</div>
+                <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">Historial de Ventas</h3>
+                <div id="lista-ventas"></div>
+            </div>
+        </div>
+
+        <div id="sec-cotizacion" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">1. Armar Cotización</h3>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es para cálculos. No descuenta tu inventario a menos que confirmes la venta.</p>
+                
+                <div class="form-group" style="position: relative; z-index: 10;">
+                    <label style="color: var(--primary-purple);">🔍 Busca y selecciona el artículo</label>
+                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. Escribe 'playera' o toca aquí..." oninput="renderSelectCotizacion()" onclick="renderSelectCotizacion(true)" class="autocomplete-input">
+                    <div id="sugerencias-cotiza-box" class="sugerencias-box"></div>
+                    <input type="hidden" id="cotiza-producto">
+                </div>
+
+                <div class="form-group">
+                    <label>¿Cuál es su función en esta cotización?</label>
+                    <select id="cotiza-rol" onchange="cambiarRolCotizacion()">
+                        <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
+                        <option value="material">✂️ MATERIAL USADO (Gasto interno)</option>
+                    </select>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group"><label>Cantidad a cotizar</label><input type="number" id="cotiza-qty" value="1" min="1"></div>
+                    <div class="form-group" id="grupo-cotiza-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <button class="btn-main" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
+            </div>
+
+            <div class="card cart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9d5ff; padding-bottom: 5px; margin-bottom: 10px;">
+                    <h3 class="cart-title" style="color: var(--primary-purple); border: none; padding: 0; margin: 0;">📄 Detalles de la Cotización</h3>
+                    <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
+                </div>
+                
+                <div id="lista-carrito-cotizacion">
+                    <p class="item-details" style="text-align:center;">Cotización vacía.</p>
+                </div>
+                
+                <h4 class="sub-title">2. Datos del Cliente (Opcional)</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" placeholder="Ej. Juan Pérez"></div>
+                    <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
+                </div>
+
+                <h4 class="sub-title">3. Gastos de Producción / Envío</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" placeholder="0.00"></div>
+                </div>
+
+                <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
+                
+                <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
+                    <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
+                    <button class="btn-main" style="background-color: var(--primary-blue); flex: 1; margin-top: 0; font-size: 13px;" onclick="generarImagenCotizacionActual()">🖼️ Generar Imagen</button>
+                    <button class="btn-main btn-green" style="flex: 1; margin-top: 0; font-size: 13px;" onclick="convertirCotizacionAVenta()">✅ Confirmar como Venta</button>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3 class="section-title">Historial de Cotizaciones</h3>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas más adelante.</p>
+                <div id="lista-historial-cotizaciones"></div>
+            </div>
+        </div>
+
+        <div id="sec-alertas" style="display: none;">
+            <div class="card">
+                <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Productos por Surtir</h3>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
+                
+                <div id="lista-alertas-surtir" style="margin-top: 15px;">
+                    <p class="item-details" style="text-align:center;">Cargando alertas...</p>
                 </div>
             </div>
         </div>
 
-        <div id="sec-ingreso" style="display: none;"></div>
-        <div id="sec-inventario" style="display: none;"></div>
-        <div id="sec-ventas" style="display: none;"></div>
-        <div id="sec-cotizacion" style="display: none;"></div>
-        <div id="sec-alertas" style="display: none;"></div>
+    </div>
 
+    <div id="modal-editar" class="modal-overlay">
+        <div class="modal-card">
+            <h3 class="modal-title">Editar Producto</h3>
+            <input type="hidden" id="edit-id">
+            
+            <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
+            <div class="grid-2">
+                <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock"></div>
+                <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min"></div>
+            </div>
+            <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01"></div>
+            <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
+
+            <div class="modal-btn-row">
+                <button class="btn-cancel" onclick="cerrarModalEditar()">Cancelar</button>
+                <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionInventario()">Guardar Cambios</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -204,48 +431,1092 @@
             projectId: "sublicosturas-app",
             storageBucket: "sublicosturas-app.firebasestorage.app",
             messagingSenderId: "672743665524",
-            appId: "1:672743665524:web:19af273c8d88b929c18621"
+            appId: "1:672743665524:web:19af273c8d88b929c18621",
+            measurementId: "G-EHE8KQVFEE"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc;
+
+        window.db = db;
+        window.setDoc = setDoc;
+        window.doc = doc;
+        window.getDoc = getDoc;
+
+        console.log("🔥 Firebase SubliCosturas Conectado");
     </script>
 
     <script>
-        // Lógica de Instalación (PWA)
-        let eventoInstalacion;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            eventoInstalacion = e;
-            document.getElementById('btn-instalar-app').style.display = 'block';
-        });
+        const KEY_INV = 'subli_inv_v10';
+        const KEY_VENTAS = 'subli_vent_v10';
+        const KEY_FONDOS = 'subli_fondos_v10';
+        const KEY_INGRESOS = 'subli_ingresos_v10';
+        const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
 
-        function instalarApp() {
-            if (eventoInstalacion) {
-                eventoInstalacion.prompt();
-                eventoInstalacion.userChoice.then((choice) => {
-                    if (choice.outcome === 'accepted') document.getElementById('btn-instalar-app').style.display = 'none';
-                    eventoInstalacion = null;
-                });
+        let inventario = [];
+        let ventas = [];
+        let historialIngresos = [];
+        let historialCotizaciones = [];
+        let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+        
+        let carritoIngresos = [];
+        let carritoVentas = [];
+        let carritoCotizacion = []; 
+
+        // ----- FUNCIÓN LOGIN -----
+        function verificarLogin() {
+            const pass = document.getElementById('login-pass').value;
+            if(pass === '1010') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+            } else {
+                alert('Contraseña incorrecta. Intente de nuevo.');
+                document.getElementById('login-pass').value = '';
             }
         }
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+        // Ocultar las listas si el usuario hace clic afuera de ellas
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#sec-ventas .form-group')) {
+                const boxV = document.getElementById('sugerencias-ventas-box');
+                if(boxV) boxV.style.display = 'none';
+            }
+            if (!e.target.closest('#sec-cotizacion .form-group')) {
+                const boxC = document.getElementById('sugerencias-cotiza-box');
+                if(boxC) boxC.style.display = 'none';
+            }
+        });
+
+        async function cargarDatos() {
+            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
+
+            if (window.db) {
+                try {
+                    const docRef = window.doc(window.db, "sistema", "datos_actuales");
+                    const docSnap = await window.getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        inventario = data.inventario || [];
+                        ventas = data.ventas || [];
+                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                        historialIngresos = data.historialIngresos || [];
+                        historialCotizaciones = data.historialCotizaciones || [];
+                        
+                        localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+                        localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+                        localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+                        localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+                        localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
+                        
+                        mostrarLogo();
+                        actualizarUI();
+                        return; 
+                    } 
+                } catch (e) {
+                    console.error("Fallo la conexión a Firebase.", e);
+                }
+            } 
+
+            try {
+                const dataInv = localStorage.getItem(KEY_INV);
+                if (dataInv) inventario = JSON.parse(dataInv) || [];
+                const dataVent = localStorage.getItem(KEY_VENTAS);
+                if (dataVent) ventas = JSON.parse(dataVent) || [];
+                const dataFondos = localStorage.getItem(KEY_FONDOS);
+                if (dataFondos) fondos = JSON.parse(dataFondos) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                const dataIngresos = localStorage.getItem(KEY_INGRESOS);
+                if (dataIngresos) historialIngresos = JSON.parse(dataIngresos) || [];
+                const dataCotiz = localStorage.getItem(KEY_COTIZ_HIST);
+                if (dataCotiz) historialCotizaciones = JSON.parse(dataCotiz) || [];
+            } catch (e) { 
+                inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
+            }
+            mostrarLogo();
+            actualizarUI();
+        }
+
+        function cambiarPestaña(pestaña) {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
+                document.getElementById('sec-' + p).style.display = 'none';
+                document.getElementById('tab-' + p).classList.remove('active');
+            });
+            document.getElementById('sec-' + pestaña).style.display = 'block';
+            document.getElementById('tab-' + pestaña).classList.add('active');
+            
+            if(pestaña === 'inicio') actualizarUI(); 
+            if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
+            if(pestaña === 'inventario') { renderInventario(); }
+            if(pestaña === 'cotizacion') { renderHistorialCotizaciones(); }
+            if(pestaña === 'alertas') { renderAlertas(); }
+        }
+
+        function cargarLogo(event) {
+            const file = event.target.files[0];
+            if(file){
+                const reader = new FileReader();
+                reader.onload = function(e){
+                    localStorage.setItem('subli_logo', e.target.result);
+                    mostrarLogo();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        function mostrarLogo() {
+            const logo = localStorage.getItem('subli_logo');
+            if(logo){
+                document.getElementById('logo-img').src = logo;
+                document.getElementById('logo-img').style.display = 'block';
+                document.getElementById('btn-edit-logo').style.display = 'flex';
+                document.getElementById('logo-upload-wrapper').style.display = 'none';
+            } else {
+                document.getElementById('logo-img').style.display = 'none';
+                document.getElementById('btn-edit-logo').style.display = 'none';
+                document.getElementById('logo-upload-wrapper').style.display = 'inline-block';
+            }
+        }
+
+        // ================= INGRESO =================
+        function toggleNuevoProducto() {
+            const val = document.getElementById('inv-select').value;
+            const esNuevo = val === 'nuevo';
+            document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
+            document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
+        }
+
+        function renderSelectIngreso() {
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            const select = document.getElementById('inv-select');
+            select.innerHTML = '<option value="nuevo">➕ Crear un Producto Nuevo</option>';
+            invOrdenado.forEach(p => { select.innerHTML += `<option value="${p.id}">Añadir stock a: ${p.nombre}</option>`; });
+        }
+
+        function agregarAlCarritoIngreso() {
+            const selectId = document.getElementById('inv-select').value;
+            const stock = parseInt(document.getElementById('inv-stock').value);
+            const costoBase = parseFloat(document.getElementById('inv-costo').value);
+            const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
+            if (isNaN(stock) || isNaN(costoBase) || stock <= 0) { alert("⚠️ Cantidad y Costo deben ser mayores a cero."); return; }
+            
+            let nombreProd = "";
+            let minStock = 5;
+
+            if (selectId === 'nuevo') {
+                nombreProd = document.getElementById('inv-nombre').value.trim();
+                minStock = parseInt(document.getElementById('inv-min').value);
+                if(isNaN(minStock)) minStock = 0;
+                if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
+            } else {
+                const prod = inventario.find(p => p.id == selectId);
+                nombreProd = prod ? prod.nombre : "Producto";
+                minStock = prod && prod.min !== undefined ? prod.min : 5;
+            }
+            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor });
+            
+            document.getElementById('inv-stock').value = '';
+            document.getElementById('inv-costo').value = '';
+            document.getElementById('inv-nombre').value = '';
+            if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
+            renderCarritoIngresos();
+        }
+
+        function borrarDelCarritoIngreso(tempId) {
+            carritoIngresos = carritoIngresos.filter(item => item.tempId !== tempId);
+            renderCarritoIngresos();
+        }
+
+        function renderCarritoIngresos() {
+            const contenedor = document.getElementById('lista-ingresos-pendientes');
+            if (carritoIngresos.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Lista vacía.</p>'; return; }
+            contenedor.innerHTML = '';
+            let totalPiezas = 0;
+            let costoTotalPreview = 0;
+
+            carritoIngresos.forEach(item => {
+                totalPiezas += item.stock;
+                costoTotalPreview += (item.stock * item.costoBase);
+                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+            });
+
+            contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
+                Total a Ingresar: <b>${totalPiezas} piezas</b><br>
+                Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b>
+            </div>`;
+        }
+
+        function procesarIngresoMultiple() {
+            if(carritoIngresos.length === 0) { alert("⚠️ No hay productos en la lista."); return; }
+            const transporteGlobal = parseFloat(document.getElementById('ingreso-transporte-global').value) || 0;
+            const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
+            const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
+            let registroHistorial = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
+            
+            let valorTotalIngresado = 0; 
+
+            carritoIngresos.forEach(item => {
+                const costoFinal = item.costoBase + transportePorPieza;
+                valorTotalIngresado += (item.stock * costoFinal); 
+
+                let idFinalAsignado;
+                if(item.isNew) {
+                    idFinalAsignado = Date.now() + Math.random();
+                    inventario.push({ id: idFinalAsignado, nombre: item.nombre, stock: item.stock, min: item.min !== undefined ? item.min : 5, costo: costoFinal, proveedor: item.proveedor });
+                } else {
+                    idFinalAsignado = item.idOriginal;
+                    const p = inventario.find(x => x.id == idFinalAsignado);
+                    if(p) {
+                        const valorViejo = p.stock * p.costo;
+                        const valorNuevo = item.stock * costoFinal;
+                        p.stock += item.stock;
+                        p.costo = (valorViejo + valorNuevo) / p.stock;
+                        if(item.proveedor !== "No especificado") p.proveedor = item.proveedor;
+                    }
+                }
+                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock });
+            });
+            historialIngresos.push(registroHistorial);
+            carritoIngresos = [];
+            document.getElementById('ingreso-transporte-global').value = '';
+            guardarDatos(); actualizarUI(); renderCarritoIngresos(); renderHistorialIngresos();
+            
+            alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${valorTotalIngresado.toFixed(2)}`);
+        }
+
+        function renderHistorialIngresos() {
+            const cont = document.getElementById('lista-historial-ingresos');
+            cont.innerHTML = '';
+            if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
+            [...historialIngresos].reverse().forEach(reg => {
+                const resumen = reg.items.map(i => `+${i.stock}x ${i.nombre}`).join(', ');
+                cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
             });
         }
 
-        // Función de Login
-        function verificarLogin() {
-            if(document.getElementById('login-pass').value === '1010') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                arrancarSistema();
-            } else { alert('Incorrecto'); }
+        function borrarIngreso(id) {
+            if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario.")) return;
+            const reg = historialIngresos.find(x => x.id === id);
+            if(reg) {
+                reg.items.forEach(item => { let p = inventario.find(inv => inv.id === item.idFinal); if(p) p.stock -= item.stock; });
+                historialIngresos = historialIngresos.filter(x => x.id !== id);
+                guardarDatos(); actualizarUI(); renderHistorialIngresos();
+            }
         }
 
-        // ... El resto de tus funciones de inventario, ventas y fondos se mantienen iguales ...
+        // ================= INVENTARIO =================
+        function abrirModalEditar(id) {
+            const prod = inventario.find(p => p.id === id);
+            if(!prod) return;
+            document.getElementById('edit-id').value = prod.id;
+            document.getElementById('edit-nombre').value = prod.nombre;
+            document.getElementById('edit-stock').value = prod.stock;
+            document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0;
+            document.getElementById('edit-costo').value = prod.costo.toFixed(2);
+            document.getElementById('edit-proveedor').value = prod.proveedor || '';
+            document.getElementById('modal-editar').style.display = 'flex';
+        }
+        function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
+        function guardarEdicionInventario() {
+            const id = parseFloat(document.getElementById('edit-id').value);
+            const nombre = document.getElementById('edit-nombre').value.trim();
+            const stock = parseInt(document.getElementById('edit-stock').value);
+            const min = parseInt(document.getElementById('edit-min').value) || 0;
+            const costo = parseFloat(document.getElementById('edit-costo').value);
+            const proveedor = document.getElementById('edit-proveedor').value.trim();
+            if(!nombre || isNaN(stock) || isNaN(costo)) { alert("Datos inválidos."); return; }
+            const p = inventario.find(x => x.id === id);
+            if(p) { p.nombre = nombre; p.stock = stock; p.min = min; p.costo = costo; p.proveedor = proveedor; guardarDatos(); actualizarUI(); cerrarModalEditar(); }
+        }
+        function borrarProducto(id) {
+            if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
+        }
+
+        function renderInventario() {
+            const contInv = document.getElementById('lista-inventario');
+            contInv.innerHTML = '';
+            const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
+            
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            
+            if(invFiltrado.length === 0) {
+                contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
+            }
+
+            invFiltrado.forEach(p => {
+                let minVal = p.min !== undefined ? p.min : 0;
+                let stockBajo = p.stock <= minVal;
+                let stockStyle = stockBajo ? 'color: var(--primary-red); font-weight: bold;' : '';
+                let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
+
+                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${p.stock}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
+            });
+        }
+
+        // ================= VENTA MÚLTIPLE =================
+        function renderSelectVentas(mostrarTodo = false) {
+            const input = document.getElementById('buscador-venta-producto');
+            const box = document.getElementById('sugerencias-ventas-box');
+            const hiddenId = document.getElementById('venta-producto');
+            
+            const textoBuscado = input.value.toLowerCase();
+            box.innerHTML = '';
+            
+            if(!mostrarTodo) hiddenId.value = ''; 
+            
+            if (textoBuscado.length === 0 && !mostrarTodo) {
+                box.style.display = 'none';
+                return;
+            }
+
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+
+            let hayResultados = false;
+            invFiltrado.forEach(p => { 
+                if(p.stock > 0) {
+                    hayResultados = true;
+                    const div = document.createElement('div');
+                    div.className = 'sugerencia-item';
+                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
+                    
+                    div.onclick = function() {
+                        input.value = p.nombre; 
+                        hiddenId.value = p.id;  
+                        box.style.display = 'none'; 
+                    };
+                    box.appendChild(div);
+                }
+            });
+
+            if(!hayResultados) {
+                box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Sin stock o no existe</div>';
+            }
+
+            box.style.display = 'block';
+        }
+
+        function cambiarRolVenta() {
+            const rol = document.getElementById('venta-rol').value;
+            if(rol === 'material') { document.getElementById('grupo-venta-precio').style.display = 'none'; document.getElementById('venta-precio').value = '0';
+            } else { document.getElementById('grupo-venta-precio').style.display = 'block'; document.getElementById('venta-precio').value = ''; }
+        }
+
+        function getStockDisponible(idProd) {
+            const prod = inventario.find(p => p.id == idProd);
+            if(!prod) return 0;
+            let qtyEnCarrito = carritoVentas.filter(item => item.idProd == idProd).reduce((sum, item) => sum + item.qty, 0);
+            return prod.stock - qtyEnCarrito;
+        }
+
+        function agregarAlCarritoVenta() {
+            const idProd = document.getElementById('venta-producto').value; 
+            const rol = document.getElementById('venta-rol').value; 
+            const qty = parseInt(document.getElementById('venta-qty').value);
+            const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
+            
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+                return; 
+            }
+            
+            const prod = inventario.find(p => p.id == idProd);
+            const stockLibre = getStockDisponible(idProd);
+            if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
+            
+            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            
+            document.getElementById('venta-qty').value = '1';
+            if(rol === 'principal') document.getElementById('venta-precio').value = '';
+            document.getElementById('buscador-venta-producto').value = ''; 
+            document.getElementById('venta-producto').value = ''; 
+            renderCarritoVentas();
+        }
+
+        function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); renderCarritoVentas(); }
+
+        function vaciarCarritoVentas() {
+            if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) {
+                carritoVentas = [];
+                renderCarritoVentas();
+            }
+        }
+        
+        function renderCarritoVentas() {
+            const contenedor = document.getElementById('lista-carrito-ventas');
+            let totalCobrar = 0; let totalCostoInterno = 0;
+            if (carritoVentas.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
+            } else {
+                contenedor.innerHTML = '';
+                carritoVentas.forEach(item => {
+                    const subtotalCobrado = item.qty * item.precioCobrado;
+                    const subtotalCosto = item.qty * item.costoBase;
+                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const esPrincipal = item.rol === 'principal';
+                    const icon = esPrincipal ? '🏷️' : '✂️';
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                });
+            }
+            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
+        }
+
+        function procesarVentaMultiple() {
+            if(carritoVentas.length === 0) { alert("⚠️ El carrito está vacío."); return; }
+            const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
+            let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
+            carritoVentas.forEach(item => {
+                const p = inventario.find(x => x.id == item.idProd);
+                if(p) p.stock -= item.qty;
+                ingresoTotal += (item.qty * item.precioCobrado);
+                costosProductos += (item.qty * item.costoBase); 
+                itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
+            });
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            const gananciaNeta = ingresoTotal - totalCostosOperativos;
+            fondos.costoProducto += costosProductos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta;
+            ventas.push({ id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, ganancia: gananciaNeta, detalleItems: [...carritoVentas] });
+            
+            carritoVentas = []; 
+            document.getElementById('venta-tinta').value = ''; 
+            document.getElementById('venta-envio').value = '';
+            document.getElementById('buscador-venta-producto').value = '';
+            document.getElementById('venta-producto').value = '';
+            
+            renderCarritoVentas(); guardarDatos(); actualizarUI();
+            alert("💰 ¡Venta procesada con éxito!");
+        }
+
+        function borrarVenta(id) {
+            const v = ventas.find(x => x.id === id);
+            if(!v) return;
+            if(confirm("¿Deshacer venta? Los artículos regresarán al inventario.")) {
+                v.detalleItems.forEach(item => { const p = inventario.find(x => x.id == item.idProd); if(p) p.stock += item.qty; });
+                fondos.costoProducto -= v.costosProductos; fondos.costoLuzTinta -= v.costoTinta; fondos.gananciaLibre -= v.ganancia; 
+                ventas = ventas.filter(x => x.id !== id);
+                guardarDatos(); actualizarUI();
+            }
+        }
+
+        // ================= COTIZACIÓN =================
+        function renderSelectCotizacion(mostrarTodo = false) {
+            const input = document.getElementById('buscador-cotiza-producto');
+            const box = document.getElementById('sugerencias-cotiza-box');
+            const hiddenId = document.getElementById('cotiza-producto');
+            
+            const textoBuscado = input.value.toLowerCase();
+            box.innerHTML = '';
+            
+            if(!mostrarTodo) hiddenId.value = '';
+            
+            if (textoBuscado.length === 0 && !mostrarTodo) {
+                box.style.display = 'none';
+                return;
+            }
+
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+
+            let hayResultados = false;
+            invFiltrado.forEach(p => { 
+                hayResultados = true;
+                const div = document.createElement('div');
+                div.className = 'sugerencia-item';
+                div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
+                
+                div.onclick = function() {
+                    input.value = p.nombre; 
+                    hiddenId.value = p.id;  
+                    box.style.display = 'none'; 
+                };
+                box.appendChild(div);
+            });
+
+            if(!hayResultados) {
+                box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Producto no encontrado</div>';
+            }
+
+            box.style.display = 'block';
+        }
+
+        function cambiarRolCotizacion() {
+            const rol = document.getElementById('cotiza-rol').value;
+            if(rol === 'material') { document.getElementById('grupo-cotiza-precio').style.display = 'none'; document.getElementById('cotiza-precio').value = '0';
+            } else { document.getElementById('grupo-cotiza-precio').style.display = 'block'; document.getElementById('cotiza-precio').value = ''; }
+        }
+
+        function agregarAlCarritoCotizacion() {
+            const idProd = document.getElementById('cotiza-producto').value;
+            const rol = document.getElementById('cotiza-rol').value; 
+            const qty = parseInt(document.getElementById('cotiza-qty').value);
+            const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
+            
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+                return; 
+            }
+            const prod = inventario.find(p => p.id == idProd);
+            
+            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            
+            document.getElementById('cotiza-qty').value = '1';
+            if(rol === 'principal') document.getElementById('cotiza-precio').value = '';
+            document.getElementById('buscador-cotiza-producto').value = '';
+            document.getElementById('cotiza-producto').value = '';
+            renderCarritoCotizacion();
+        }
+
+        function borrarDelCarritoCotizacion(tempId) { 
+            carritoCotizacion = carritoCotizacion.filter(item => item.tempId !== tempId); 
+            renderCarritoCotizacion(); 
+        }
+
+        function vaciarCarritoCotizacion() {
+            if(confirm("¿Estás seguro de vaciar toda la cotización?")) {
+                carritoCotizacion = [];
+                renderCarritoCotizacion();
+            }
+        }
+
+        function renderCarritoCotizacion() {
+            const contenedor = document.getElementById('lista-carrito-cotizacion');
+            let totalCobrar = 0; let totalCostoInterno = 0;
+            if (carritoCotizacion.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
+            } else {
+                contenedor.innerHTML = '';
+                carritoCotizacion.forEach(item => {
+                    const subtotalCobrado = item.qty * item.precioCobrado;
+                    const subtotalCosto = item.qty * item.costoBase;
+                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const esPrincipal = item.rol === 'principal';
+                    const icon = esPrincipal ? '🏷️' : '✂️';
+                    
+                    const prod = inventario.find(x => x.id == item.idProd);
+                    const stockActual = prod ? prod.stock : 0;
+                    const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
+
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                });
+            }
+            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
+        }
+
+        function procesarCotizacion() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            
+            let ingresoTotal = 0; 
+            let costosProductos = 0; 
+            let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
+            
+            carritoCotizacion.forEach(item => {
+                ingresoTotal += (item.qty * item.precioCobrado);
+                costosProductos += (item.qty * item.costoBase); 
+                resumen += `- ${item.qty}x ${item.nombre} ${item.rol === 'material' ? '(Gasto Interno)' : `(Q${item.precioCobrado.toFixed(2)} c/u)`}\n`;
+            });
+            
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            const gananciaNeta = ingresoTotal - totalCostosOperativos;
+
+            resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
+            resumen += `--------------------------------------\n`;
+            resumen += `📦 Costos de Materiales: Q ${costosProductos.toFixed(2)}\n`;
+            resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
+            resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
+            resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
+            resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
+
+            // GUARDAR EN HISTORIAL
+            historialCotizaciones.push({
+                id: Date.now(),
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                detalleItems: [...carritoCotizacion],
+                costoTinta: costoTinta,
+                costoEnvio: costoEnvio,
+                ingresoTotal: ingresoTotal,
+                costosProductos: costosProductos,
+                gananciaNeta: gananciaNeta
+            });
+
+            guardarDatos();
+            renderHistorialCotizaciones();
+            alert(resumen);
+        }
+
+        // FUNCION PARA AJUSTAR TEXTO
+        function wrapTextCotizacion(context, text, x, y, maxWidth, lineHeight) {
+            var words = text.split(' ');
+            var line = '';
+            var count = 0;
+            for(var n = 0; n < words.length; n++) {
+                var testLine = line + words[n] + ' ';
+                var metrics = context.measureText(testLine);
+                var testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                    count++;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+            return count + 1;
+        }
+
+        // --- ACTUALIZACIÓN DE IMAGEN PARA ALTA DEFINICIÓN (HD) Y LOGO ---
+        function generarImagenCotizacionActual() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            
+            const principales = carritoCotizacion.filter(item => item.rol === 'principal');
+            if(principales.length === 0) { alert("No hay productos principales para cobrarle al cliente en esta cotización."); return; }
+
+            // Recoger los datos del cliente
+            let clienteNombre = document.getElementById('cotiza-nombre').value.trim();
+            let clienteNit = document.getElementById('cotiza-nit').value.trim();
+            if(clienteNit === '') clienteNit = 'C/F';
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // PRE-CALCULAR ALTURA DINÁMICA
+            ctx.font = '18px Arial';
+            let alturaExtra = 0;
+            principales.forEach(item => {
+                let textWidth = ctx.measureText(item.nombre).width;
+                let lineas = Math.max(1, Math.ceil(textWidth / 340));
+                alturaExtra += (lineas * 22) + 20; 
+            });
+
+            // Medidas base (se subió a 350 para acomodar los datos del cliente)
+            const widthBase = 600;
+            const heightBase = 350 + alturaExtra; 
+            
+            // MULTIPLICAR RESOLUCIÓN POR 2 PARA EVITAR BORROSO (HD)
+            const scale = 2;
+            canvas.width = widthBase * scale;
+            canvas.height = heightBase * scale;
+            
+            // Escalar el contexto interno
+            ctx.scale(scale, scale);
+
+            // Fondo
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, widthBase, heightBase);
+
+            const logoSrc = localStorage.getItem('subli_logo');
+            let img = new Image();
+            img.onload = function() {
+                // Ajustar proporción del logo sin estirar
+                let maxWidth = 100;
+                let maxHeight = 100;
+                let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+                let newWidth = img.width * ratio;
+                let newHeight = img.height * ratio;
+                
+                // Centrarlo si es necesario
+                let offsetY = 20 + (maxHeight - newHeight) / 2;
+                
+                ctx.drawImage(img, 30, offsetY, newWidth, newHeight);
+                dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit);
+            };
+            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); };
+            
+            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); }
+        }
+
+        // --- DIBUJO DEL TEXTO CON LOS DATOS DEL CLIENTE ---
+        function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit) {
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 26px Arial';
+            ctx.fillText('COTIZACIÓN - SUBLICOSTURAS', 150, 50);
+            
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#6b7280';
+            ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 75);
+
+            // Inserción de Datos del Cliente
+            ctx.fillStyle = '#374151';
+            let offsetX = 150;
+            let offsetY = 100;
+            
+            if(nombre !== '') {
+                ctx.fillText('Cliente: ' + nombre, offsetX, offsetY);
+                offsetY += 20;
+            }
+            ctx.fillText('NIT: ' + nit, offsetX, offsetY);
+
+            // Tabla
+            let y = 170;
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('Cant.', 40, y);
+            ctx.fillText('Descripción del Producto', 120, y);
+            ctx.fillText('Precio', 480, y);
+            
+            ctx.beginPath(); 
+            ctx.moveTo(30, y + 15); 
+            ctx.lineTo(570, y + 15); 
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            y += 45;
+            ctx.font = '18px Arial';
+            let total = 0;
+
+            principales.forEach(item => {
+                ctx.fillStyle = '#374151';
+                ctx.fillText(item.qty + 'x', 45, y);
+                
+                let sub = item.qty * item.precioCobrado;
+                ctx.fillText('Q ' + sub.toFixed(2), 480, y);
+                total += sub;
+
+                ctx.fillStyle = '#1f2937';
+                let lineasUsadas = wrapTextCotizacion(ctx, item.nombre, 120, y, 340, 22);
+                
+                y += (lineasUsadas * 22) + 20;
+            });
+
+            ctx.beginPath(); 
+            ctx.moveTo(30, y - 10); 
+            ctx.lineTo(570, y - 10); 
+            ctx.stroke();
+
+            y += 30;
+            ctx.font = 'bold 22px Arial';
+            ctx.fillStyle = '#2563eb';
+            ctx.fillText('TOTAL:', 380, y);
+            ctx.fillText('Q ' + total.toFixed(2), 480, y);
+
+            // Descargar la imagen automáticamente
+            const link = document.createElement('a');
+            link.download = `Cotizacion_SubliCosturas_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function renderHistorialCotizaciones() {
+            const cont = document.getElementById('lista-historial-cotizaciones');
+            cont.innerHTML = '';
+            if(historialCotizaciones.length === 0) { 
+                cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas.</p>'; 
+                return; 
+            }
+
+            [...historialCotizaciones].reverse().forEach(cot => {
+                const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', ');
+                cont.innerHTML += `
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen}</p>
+                        <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
+                    </div>
+                    <div class="item-details" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <div>
+                            <span style="display: block; margin-bottom: 4px;">📅 ${cot.fecha}</span>
+                            <span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${cot.ingresoTotal.toFixed(2)}</span>
+                        </div>
+                        <button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function borrarHistorialCotizacion(id) {
+            if(confirm("¿Eliminar esta cotización del historial?")) {
+                historialCotizaciones = historialCotizaciones.filter(c => c.id !== id);
+                guardarDatos();
+                renderHistorialCotizaciones();
+            }
+        }
+
+        function venderCotizacionPasada(id) {
+            const cot = historialCotizaciones.find(c => c.id === id);
+            if(!cot) return;
+            
+            // Verificar stock antes de vender
+            for (let item of cot.detalleItems) {
+                const prod = inventario.find(p => p.id == item.idProd);
+                if (!prod || prod.stock < item.qty) {
+                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nSurte el inventario antes de confirmar esta venta.`);
+                    return;
+                }
+            }
+
+            if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
+
+            // Restar stock
+            cot.detalleItems.forEach(item => {
+                const p = inventario.find(x => x.id == item.idProd);
+                if(p) p.stock -= item.qty; 
+            });
+
+            fondos.costoProducto += cot.costosProductos; 
+            fondos.costoLuzTinta += cot.costoTinta; 
+            fondos.gananciaLibre += cot.gananciaNeta;
+            
+            ventas.push({ 
+                id: Date.now(), 
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
+                ingresoTotal: cot.ingresoTotal, 
+                costosProductos: cot.costosProductos, 
+                costoTinta: cot.costoTinta, 
+                costoEnvio: cot.costoEnvio, 
+                ganancia: cot.gananciaNeta, 
+                detalleItems: [...cot.detalleItems] 
+            });
+            
+            // Opcional: Eliminar la cotización del historial una vez vendida para no duplicar por error
+            historialCotizaciones = historialCotizaciones.filter(c => c.id !== id);
+
+            guardarDatos(); 
+            actualizarUI();
+            
+            alert("✅ ¡Venta registrada con éxito desde el historial!");
+            cambiarPestaña('ventas');
+        }
+
+        function convertirCotizacionAVenta() {
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            
+            for (let item of carritoCotizacion) {
+                const prod = inventario.find(p => p.id == item.idProd);
+                if (!prod || prod.stock < item.qty) {
+                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nAjusta las cantidades o surte el inventario antes de confirmar la venta.`);
+                    return;
+                }
+            }
+
+            if(!confirm("¿Seguro que deseas convertir esta cotización en una venta real? Se descontará de tu inventario.")) return;
+
+            const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            
+            let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
+            
+            carritoCotizacion.forEach(item => {
+                const p = inventario.find(x => x.id == item.idProd);
+                if(p) p.stock -= item.qty; 
+                
+                ingresoTotal += (item.qty * item.precioCobrado);
+                costosProductos += (item.qty * item.costoBase); 
+                itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
+            });
+            
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            const gananciaNeta = ingresoTotal - totalCostosOperativos;
+            
+            fondos.costoProducto += costosProductos; 
+            fondos.costoLuzTinta += costoTinta; 
+            fondos.gananciaLibre += gananciaNeta;
+            
+            ventas.push({ 
+                id: Date.now(), 
+                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                resumenItems: itemsResumen.join(' + '), 
+                ingresoTotal: ingresoTotal, 
+                costosProductos: costosProductos, 
+                costoTinta: costoTinta, 
+                costoEnvio: costoEnvio, 
+                ganancia: gananciaNeta, 
+                detalleItems: [...carritoCotizacion] 
+            });
+            
+            carritoCotizacion = []; 
+            document.getElementById('cotiza-tinta').value = ''; 
+            document.getElementById('cotiza-envio').value = '';
+            document.getElementById('buscador-cotiza-producto').value = '';
+            document.getElementById('cotiza-producto').value = '';
+            
+            renderCarritoCotizacion(); 
+            guardarDatos(); 
+            actualizarUI();
+            
+            alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado.");
+            cambiarPestaña('ventas');
+        }
+
+        // ================= PESTAÑA ALERTAS / POR SURTIR =================
+        function renderAlertas() {
+            const contAlertas = document.getElementById('lista-alertas-surtir');
+            contAlertas.innerHTML = '';
+            
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let productosBajos = invOrdenado.filter(p => p.stock <= (p.min || 0));
+            
+            if(productosBajos.length === 0) {
+                contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>';
+                return;
+            }
+
+            productosBajos.forEach(p => {
+                contAlertas.innerHTML += `
+                <div class="item-row" style="background-color: #fef2f2; border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #fecaca; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                        <span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span>
+                        <span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span>
+                        <span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "No especificado"}</span>
+                        <span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // --- RETIROS MODIFICADOS ---
+        function retirarCostoProducto() { 
+            let val = parseFloat(document.getElementById('ret-prod').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.costoProducto) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " para surtir?")) { 
+                fondos.costoProducto -= val; document.getElementById('ret-prod').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
+        function retirarCostoLuz() { 
+            let val = parseFloat(document.getElementById('ret-luz').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.costoLuzTinta) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " para pagos de luz/tinta?")) { 
+                fondos.costoLuzTinta -= val; document.getElementById('ret-luz').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
+        function retirarGanancia() { 
+            let val = parseFloat(document.getElementById('ret-ganancia').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > fondos.gananciaLibre) return alert("El monto a retirar supera el fondo disponible");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " de la ganancia libre?")) { 
+                fondos.gananciaLibre -= val; document.getElementById('ret-ganancia').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
+
+        function generarReporteExcel() {
+            const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
+            const vent = JSON.parse(localStorage.getItem(KEY_VENTAS)) || [];
+            const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+            let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+
+            const libro = XLSX.utils.book_new();
+
+            const dataResumen = [
+                { "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) },
+                { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) },
+                { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) },
+                { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }
+            ];
+            const hojaResumen = XLSX.utils.json_to_sheet(dataResumen);
+            XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
+
+            if (inv.length > 0) {
+                const dataInv = inv.map(p => ({
+                    "Nombre del Producto": p.nombre,
+                    "Existencias (Stock)": p.stock,
+                    "Alerta Mínima": p.min !== undefined ? p.min : 0,
+                    "Costo Unitario (Q)": p.costo.toFixed(2),
+                    "Proveedor": p.proveedor || "No especificado",
+                    "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2)
+                }));
+                const hojaInv = XLSX.utils.json_to_sheet(dataInv);
+                XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario");
+            }
+
+            if (vent.length > 0) {
+                const dataVent = vent.map(v => ({
+                    "Fecha y Hora": v.fecha,
+                    "Detalle de Artículos": v.resumenItems,
+                    "Total Cobrado (Q)": v.ingresoTotal.toFixed(2),
+                    "Costo de Materiales (Q)": v.costosProductos.toFixed(2),
+                    "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2),
+                    "Pago Mensajero (Q)": v.costoEnvio.toFixed(2),
+                    "Ganancia Neta (Q)": v.ganancia.toFixed(2)
+                }));
+                const hojaVent = XLSX.utils.json_to_sheet(dataVent);
+                XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas");
+            }
+
+            const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+            XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
+        }
+
+        async function guardarDatos() {
+            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
+
+            if(window.db) {
+                try {
+                    await setDoc(doc(window.db, "sistema", "datos_actuales"), {
+                        inventario: inventario,
+                        ventas: ventas,
+                        fondos: fondos,
+                        historialIngresos: historialIngresos,
+                        historialCotizaciones: historialCotizaciones,
+                        ultimaActualizacion: new Date()
+                    });
+                    console.log("☁️ Nube de SubliCosturas actualizada");
+                } catch (e) {
+                    console.error("Error sincronizando nube:", e);
+                }
+            }
+        }
+
+        function actualizarUI() {
+            let valorInventario = inventario.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+            document.getElementById('dash-valor-inv').innerText = 'Q ' + valorInventario.toFixed(2);
+            document.getElementById('dash-costo-producto').innerText = 'Q ' + fondos.costoProducto.toFixed(2);
+            document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
+            document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
+            
+            renderInventario();
+
+            const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
+            [...ventas].reverse().forEach(v => {
+                contVentas.innerHTML += `
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems}</p>
+                        <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
+                    </div>
+                    <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                        <span>📅 ${v.fecha}</span>
+                        <span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span>
+                        <span class="cost-text">📦 <b>Costo Mat.:</b> Q${v.costosProductos.toFixed(2)}</span>
+                        <span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span>
+                        <span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>
+                        <span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 5px;">
+                            Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}
+                        </span>
+                    </div>
+                </div>`;
+            });
+            renderSelectIngreso(); 
+            renderHistorialCotizaciones();
+            
+            if (document.getElementById('tab-alertas').classList.contains('active')) {
+                renderAlertas();
+            }
+        }
+
+        let intentosConexion = 0;
+        function arrancarSistema() {
+            if (window.db) {
+                cargarDatos();
+            } else if (intentosConexion > 6) { 
+                cargarDatos(); 
+            } else {
+                intentosConexion++;
+                setTimeout(arrancarSistema, 500); 
+            }
+        }
+
+        arrancarSistema();
     </script>
 </body>
 </html>
