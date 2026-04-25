@@ -692,6 +692,7 @@
             cont.innerHTML = '';
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
             [...historialIngresos].reverse().forEach(reg => {
+                if (reg.anulada) return; // ✨ SALTA LOS INGRESOS ANULADOS
                 const resumen = reg.items.map(i => `+${i.stock}x ${i.nombre}`).join(', ');
                 cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
             });
@@ -700,7 +701,7 @@
         // ----- PARCHE 2: MATEMÁTICA INVERSA DEL COSTO -----
         function borrarIngreso(id) {
             const reg = historialIngresos.find(x => x.id === id);
-            if(reg) {
+            if(reg && !reg.anulada) {
                 for (let item of reg.items) {
                     let p = inventario.find(inv => inv.id === item.idFinal);
                     if (p && p.stock < item.stock) {
@@ -732,7 +733,7 @@
                     }
                 });
                 
-                historialIngresos = historialIngresos.filter(x => x.id !== id);
+                reg.anulada = true; // ✨ MARCAMOS EL INGRESO COMO ANULADO
                 guardarDatos(); 
                 actualizarUI(); 
                 renderHistorialIngresos();
@@ -926,7 +927,7 @@
         // ----- EL PARCHE DEL PRODUCTO FANTASMA -----
         function borrarVenta(id) {
             const v = ventas.find(x => x.id === id);
-            if(!v) return;
+            if(!v || v.anulada) return; // Evita anular dos veces
             if(confirm("¿Deshacer venta? Los artículos regresarán al inventario.")) {
                 v.detalleItems.forEach(item => { 
                     const p = inventario.find(x => x.id == item.idProd); 
@@ -947,7 +948,9 @@
                 fondos.costoProducto -= v.costosProductos; 
                 fondos.costoLuzTinta -= v.costoTinta; 
                 fondos.gananciaLibre -= v.ganancia; 
-                ventas = ventas.filter(x => x.id !== id);
+                
+                v.anulada = true; // ✨ MARCAMOS LA VENTA COMO ANULADA
+                
                 guardarDatos(); actualizarUI();
             }
         }
@@ -1310,7 +1313,8 @@
                 resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
                 ingresoTotal: cot.ingresoTotal, 
                 costosProductos: cot.costosProductos, 
-                costoTinta: costoTinta, 
+                // ✨ AQUÍ SE CORRIGIÓ EL ERROR CRÍTICO QUE HABÍA REGRESADO
+                costoTinta: cot.costoTinta, 
                 costoEnvio: cot.costoEnvio, 
                 ganancia: cot.gananciaNeta, 
                 detalleItems: [...cot.detalleItems] 
@@ -1443,7 +1447,8 @@
 
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
-            const vent = JSON.parse(localStorage.getItem(KEY_VENTAS)) || [];
+            // ✨ EXCLUIMOS VENTAS ANULADAS DEL REPORTE DE EXCEL
+            const vent = (JSON.parse(localStorage.getItem(KEY_VENTAS)) || []).filter(v => !v.anulada);
             const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
             let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
 
@@ -1513,13 +1518,77 @@
                         const nubeVentas = dataNube.ventas || [];
                         const nubeIngresos = dataNube.historialIngresos || [];
 
-                        // Si hay ventas o ingresos en la nube que no tienes tú (porque se hicieron en otro dispositivo), las agregamos
+                        // ✨ NUEVA LÓGICA DE SINCRONIZACIÓN (VENTAS)
                         nubeVentas.forEach(nv => {
-                            if (!ventas.find(v => v.id === nv.id)) ventas.push(nv);
+                            let localVenta = ventas.find(v => v.id === nv.id);
+                            
+                            if (!localVenta) {
+                                // Venta nueva de otro dispositivo. Se agrega y se hace matemática si no está anulada.
+                                ventas.push(nv);
+                                if (!nv.anulada) {
+                                    nv.detalleItems.forEach(item => {
+                                        let p = inventario.find(x => x.id == item.idProd);
+                                        if(p) p.stock -= item.qty;
+                                    });
+                                    fondos.costoProducto += nv.costosProductos;
+                                    fondos.costoLuzTinta += nv.costoTinta;
+                                    fondos.gananciaLibre += nv.ganancia;
+                                }
+                            } else if (nv.anulada && !localVenta.anulada) {
+                                // Alguien la anuló en otro dispositivo. Devolvemos el inventario localmente.
+                                localVenta.anulada = true;
+                                localVenta.detalleItems.forEach(item => {
+                                    let p = inventario.find(x => x.id == item.idProd);
+                                    if(p) p.stock += item.qty;
+                                });
+                                fondos.costoProducto -= localVenta.costosProductos;
+                                fondos.costoLuzTinta -= localVenta.costoTinta;
+                                fondos.gananciaLibre -= localVenta.ganancia;
+                            }
                         });
                         
+                        // ✨ NUEVA LÓGICA DE SINCRONIZACIÓN (INGRESOS)
                         nubeIngresos.forEach(ni => {
-                            if (!historialIngresos.find(i => i.id === ni.id)) historialIngresos.push(ni);
+                            let localIngreso = historialIngresos.find(i => i.id === ni.id);
+                            
+                            if (!localIngreso) {
+                                // Ingreso nuevo de otro dispositivo.
+                                historialIngresos.push(ni);
+                                if (!ni.anulada) {
+                                    ni.items.forEach(item => {
+                                        let p = inventario.find(x => x.id == item.idFinal);
+                                        if(p) {
+                                            const valorViejo = p.stock * p.costo;
+                                            const valorNuevo = item.stock * item.costoIngresado;
+                                            p.stock += item.stock;
+                                            p.costo = (valorViejo + valorNuevo) / p.stock;
+                                        } else {
+                                            inventario.push({
+                                                id: item.idFinal, nombre: item.nombre, stock: item.stock,
+                                                min: item.min !== undefined ? item.min : 5, costo: item.costoIngresado,
+                                                proveedor: "Sincronizado de la nube"
+                                            });
+                                        }
+                                    });
+                                }
+                            } else if (ni.anulada && !localIngreso.anulada) {
+                                // Alguien lo anuló en otro dispositivo. Descontamos el inventario localmente.
+                                localIngreso.anulada = true;
+                                ni.items.forEach(item => {
+                                    let p = inventario.find(inv => inv.id === item.idFinal);
+                                    if(p) {
+                                        let valorActualTotal = p.stock * p.costo;
+                                        let valorIngresoAnulado = item.stock * item.costoIngresado;
+                                        p.stock -= item.stock;
+                                        if (p.stock > 0) {
+                                            p.costo = (valorActualTotal - valorIngresoAnulado) / p.stock;
+                                            if (p.costo < 0) p.costo = 0;
+                                        } else {
+                                            p.costo = 0;
+                                        }
+                                    }
+                                });
+                            }
                         });
 
                         // Reordenamos para que queden cronológicas
@@ -1553,6 +1622,7 @@
 
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
+                if (v.anulada) return; // ✨ SALTA LAS VENTAS ANULADAS
                 contVentas.innerHTML += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
