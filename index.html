@@ -441,6 +441,7 @@
         let historialIngresos = [];
         let historialCotizaciones = [];
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+        let datosCargadosDeLaNube = false; // <-- AÑADIDO (Seguro contra sobrescritura)
         
         let carritoIngresos = [];
         let carritoVentas = [];
@@ -485,6 +486,8 @@
                         fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
                         historialIngresos = data.historialIngresos || [];
                         historialCotizaciones = data.historialCotizaciones || [];
+                        
+                        datosCargadosDeLaNube = true; // <-- AÑADIDO (Confirma conexión exitosa)
                         
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
                         localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -676,12 +679,29 @@
         }
 
         function borrarIngreso(id) {
-            if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario.")) return;
             const reg = historialIngresos.find(x => x.id === id);
             if(reg) {
-                reg.items.forEach(item => { let p = inventario.find(inv => inv.id === item.idFinal); if(p) p.stock -= item.stock; });
+                // CANDADO DE SEGURIDAD: Validar si hay stock suficiente antes de restar
+                for (let item of reg.items) {
+                    let p = inventario.find(inv => inv.id === item.idFinal);
+                    if (p && p.stock < item.stock) {
+                        alert(`❌ ERROR: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}". Si lo anulas ahora, tu inventario quedaría en números negativos.`);
+                        return; // Corta la función y no borra nada
+                    }
+                }
+
+                if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario.")) return;
+                
+                // Si pasa la prueba, resta el inventario
+                reg.items.forEach(item => { 
+                    let p = inventario.find(inv => inv.id === item.idFinal); 
+                    if(p) p.stock -= item.stock; 
+                });
+                
                 historialIngresos = historialIngresos.filter(x => x.id !== id);
-                guardarDatos(); actualizarUI(); renderHistorialIngresos();
+                guardarDatos(); 
+                actualizarUI(); 
+                renderHistorialIngresos();
             }
         }
 
@@ -1247,7 +1267,7 @@
                 resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
                 ingresoTotal: cot.ingresoTotal, 
                 costosProductos: cot.costosProductos, 
-                costoTinta: cot.costoTinta, 
+                costoTinta: costoTinta, 
                 costoEnvio: cot.costoEnvio, 
                 ganancia: cot.gananciaNeta, 
                 detalleItems: [...cot.detalleItems] 
@@ -1434,6 +1454,12 @@
             localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
 
             if(window.db) {
+                // CANDADO DE SEGURIDAD: No sobrescribir la nube si solo cargamos datos locales
+                if (!datosCargadosDeLaNube && inventario.length > 0) {
+                    console.warn("⚠️ Sin conexión inicial. Se guardó localmente para evitar borrar la nube.");
+                    return; 
+                }
+
                 try {
                     await setDoc(doc(window.db, "sistema", "datos_actuales"), {
                         inventario: inventario,
