@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="logo.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -46,6 +47,28 @@
         .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
         .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
+
+        /* Botón Instalar App (NUEVO) */
+        #btn-instalar-app {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            display: none; /* Oculto por defecto, se muestra si se puede instalar */
+            animation: latido 2s infinite;
+        }
+        @keyframes latido {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
 
         /* Dashboard */
         .dash-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
@@ -143,6 +166,8 @@
                         <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
                     </div>
                 </div>
+
+                <button id="btn-instalar-app">📲 Instalar App en este dispositivo</button>
 
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
@@ -437,17 +462,46 @@
 
     <script>
         // ==========================================
-        // REGISTRO DEL SERVICE WORKER (PWA)
+        // LÓGICA DE INSTALACIÓN PWA (NUEVA)
         // ==========================================
+        let deferredPrompt;
+        const installBtn = document.getElementById('btn-instalar-app');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Evita que Chrome muestre el prompt automáticamente
+            e.preventDefault();
+            // Guarda el evento para usarlo luego
+            deferredPrompt = e;
+            // Muestra nuestro botón gigante
+            if(installBtn) installBtn.style.display = 'block';
+        });
+
+        if(installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    // Muestra el prompt de instalación nativo
+                    deferredPrompt.prompt();
+                    // Espera a que el usuario responda
+                    const { outcome } = await deferredPrompt.userChoice;
+                    // Limpiamos la variable
+                    deferredPrompt = null;
+                    // Escondemos el botón
+                    installBtn.style.display = 'none';
+                }
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            // Si ya se instaló, esconder el botón
+            if(installBtn) installBtn.style.display = 'none';
+        });
+
+        // REGISTRO DEL SERVICE WORKER (Vital para que Chrome permita instalar)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('✅ App instalable lista (ServiceWorker registrado).');
-                    })
-                    .catch(error => {
-                        console.log('⚠️ Error registrando la App:', error);
-                    });
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registrado correctamente');
+                }).catch(err => console.log('Error registrando SW', err));
             });
         }
         // ==========================================
