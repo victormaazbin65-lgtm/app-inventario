@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="logo.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -433,6 +436,22 @@
     </script>
 
     <script>
+        // ==========================================
+        // REGISTRO DEL SERVICE WORKER (PWA)
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('✅ App instalable lista (ServiceWorker registrado).');
+                    })
+                    .catch(error => {
+                        console.log('⚠️ Error registrando la App:', error);
+                    });
+            });
+        }
+        // ==========================================
+
         const KEY_INV = 'subli_inv_v10';
         const KEY_VENTAS = 'subli_vent_v10';
         const KEY_FONDOS = 'subli_fondos_v10';
@@ -1396,7 +1415,7 @@
                 { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }
             ];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen);
-            XLS.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
+            XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
             if (inv.length > 0) {
                 const dataInv = inv.map(p => ({
@@ -1503,14 +1522,6 @@
         }
 
         arrancarSistema();
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('App lista para instalarse.', reg))
-                    .catch(err => console.log('Error en la app.', err));
-            });
-        }
     </script>
 </body>
 </html>
