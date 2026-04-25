@@ -441,16 +441,26 @@
         let historialIngresos = [];
         let historialCotizaciones = [];
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
-        let datosCargadosDeLaNube = false; // <-- AÑADIDO (Seguro contra sobrescritura)
+        let datosCargadosDeLaNube = false; 
         
         let carritoIngresos = [];
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        // ----- FUNCIÓN LOGIN -----
-        function verificarLogin() {
+        // ----- PARCHE 4: FUNCIÓN LOGIN CON HASH -----
+        async function encriptar(texto) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(texto);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
-            if(pass === '1010') {
+            const hash = await encriptar(pass);
+            // La huella digital corresponde a "1010"
+            if(hash === '11e3b6d2c4623101c5cc832c3bb6b6ec863ab7cc11b2259160cc124a9a08e7c8') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
             } else {
@@ -487,7 +497,7 @@
                         historialIngresos = data.historialIngresos || [];
                         historialCotizaciones = data.historialCotizaciones || [];
                         
-                        datosCargadosDeLaNube = true; // <-- AÑADIDO (Confirma conexión exitosa)
+                        datosCargadosDeLaNube = true; 
                         
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
                         localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -537,17 +547,31 @@
             if(pestaña === 'alertas') { renderAlertas(); }
         }
 
+        // ----- PARCHE 1: COMPRESIÓN DEL LOGO -----
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
                 const reader = new FileReader();
                 reader.onload = function(e){
-                    localStorage.setItem('subli_logo', e.target.result);
-                    mostrarLogo();
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 300; 
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        localStorage.setItem('subli_logo', dataUrl);
+                        mostrarLogo();
+                    }
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
+
         function mostrarLogo() {
             const logo = localStorage.getItem('subli_logo');
             if(logo){
@@ -658,7 +682,8 @@
                         if(item.proveedor !== "No especificado") p.proveedor = item.proveedor;
                     }
                 }
-                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock });
+                // PARCHE 2: Guardar el costo exacto al que ingresó
+                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal });
             });
             historialIngresos.push(registroHistorial);
             carritoIngresos = [];
@@ -678,24 +703,39 @@
             });
         }
 
+        // ----- PARCHE 2: MATEMÁTICA INVERSA DEL COSTO -----
         function borrarIngreso(id) {
             const reg = historialIngresos.find(x => x.id === id);
             if(reg) {
-                // CANDADO DE SEGURIDAD: Validar si hay stock suficiente antes de restar
                 for (let item of reg.items) {
                     let p = inventario.find(inv => inv.id === item.idFinal);
                     if (p && p.stock < item.stock) {
                         alert(`❌ ERROR: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}". Si lo anulas ahora, tu inventario quedaría en números negativos.`);
-                        return; // Corta la función y no borra nada
+                        return; 
                     }
                 }
 
-                if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario.")) return;
+                if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario y se ajustará el costo promedio.")) return;
                 
-                // Si pasa la prueba, resta el inventario
                 reg.items.forEach(item => { 
                     let p = inventario.find(inv => inv.id === item.idFinal); 
-                    if(p) p.stock -= item.stock; 
+                    if(p) {
+                        if (item.costoIngresado !== undefined) {
+                            let valorActualTotal = p.stock * p.costo;
+                            let valorIngresoAnulado = item.stock * item.costoIngresado;
+                            p.stock -= item.stock;
+                            
+                            if (p.stock > 0) {
+                                p.costo = (valorActualTotal - valorIngresoAnulado) / p.stock;
+                                if (p.costo < 0) p.costo = 0; 
+                            } else {
+                                p.costo = 0;
+                            }
+                        } else {
+                            // Para ingresos viejos que no tenían el costo guardado
+                            p.stock -= item.stock; 
+                        }
+                    }
                 });
                 
                 historialIngresos = historialIngresos.filter(x => x.id !== id);
@@ -889,12 +929,30 @@
             alert("💰 ¡Venta procesada con éxito!");
         }
 
+        // ----- EL PARCHE DEL PRODUCTO FANTASMA -----
         function borrarVenta(id) {
             const v = ventas.find(x => x.id === id);
             if(!v) return;
             if(confirm("¿Deshacer venta? Los artículos regresarán al inventario.")) {
-                v.detalleItems.forEach(item => { const p = inventario.find(x => x.id == item.idProd); if(p) p.stock += item.qty; });
-                fondos.costoProducto -= v.costosProductos; fondos.costoLuzTinta -= v.costoTinta; fondos.gananciaLibre -= v.ganancia; 
+                v.detalleItems.forEach(item => { 
+                    const p = inventario.find(x => x.id == item.idProd); 
+                    if(p) { 
+                        p.stock += item.qty; 
+                    } else {
+                        // Resucita el producto si lo habías borrado del catálogo
+                        inventario.push({
+                            id: item.idProd,
+                            nombre: item.nombre + " (Devuelto)",
+                            stock: item.qty,
+                            costo: item.costoBase,
+                            min: 0,
+                            proveedor: "Recuperado de venta anulada"
+                        });
+                    }
+                });
+                fondos.costoProducto -= v.costosProductos; 
+                fondos.costoLuzTinta -= v.costoTinta; 
+                fondos.gananciaLibre -= v.ganancia; 
                 ventas = ventas.filter(x => x.id !== id);
                 guardarDatos(); actualizarUI();
             }
@@ -1068,7 +1126,6 @@
             return count + 1;
         }
 
-        // --- ACTUALIZACIÓN DE IMAGEN PARA ALTA DEFINICIÓN (HD) Y LOGO ---
         function generarImagenCotizacionActual() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             
@@ -1092,33 +1149,26 @@
                 alturaExtra += (lineas * 22) + 20; 
             });
 
-            // Medidas base (se subió a 350 para acomodar los datos del cliente)
             const widthBase = 600;
             const heightBase = 350 + alturaExtra; 
             
-            // MULTIPLICAR RESOLUCIÓN POR 2 PARA EVITAR BORROSO (HD)
             const scale = 2;
             canvas.width = widthBase * scale;
             canvas.height = heightBase * scale;
             
-            // Escalar el contexto interno
             ctx.scale(scale, scale);
 
-            // Fondo
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, widthBase, heightBase);
 
             const logoSrc = localStorage.getItem('subli_logo');
             let img = new Image();
             img.onload = function() {
-                // Ajustar proporción del logo sin estirar
                 let maxWidth = 100;
                 let maxHeight = 100;
                 let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
                 let newWidth = img.width * ratio;
                 let newHeight = img.height * ratio;
-                
-                // Centrarlo si es necesario
                 let offsetY = 20 + (maxHeight - newHeight) / 2;
                 
                 ctx.drawImage(img, 30, offsetY, newWidth, newHeight);
@@ -1129,7 +1179,6 @@
             if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); }
         }
 
-        // --- DIBUJO DEL TEXTO CON LOS DATOS DEL CLIENTE ---
         function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit) {
             ctx.fillStyle = '#1f2937';
             ctx.font = 'bold 26px Arial';
@@ -1446,6 +1495,7 @@
             XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
+        // ----- PARCHE 3: MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
         async function guardarDatos() {
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -1454,14 +1504,36 @@
             localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
 
             if(window.db) {
-                // CANDADO DE SEGURIDAD: No sobrescribir la nube si solo cargamos datos locales
                 if (!datosCargadosDeLaNube && inventario.length > 0) {
                     console.warn("⚠️ Sin conexión inicial. Se guardó localmente para evitar borrar la nube.");
                     return; 
                 }
 
                 try {
-                    await setDoc(doc(window.db, "sistema", "datos_actuales"), {
+                    // Descargamos lo que hay en la nube justo antes de guardar
+                    const docRef = window.doc(window.db, "sistema", "datos_actuales");
+                    const docSnap = await window.getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const dataNube = docSnap.data();
+                        const nubeVentas = dataNube.ventas || [];
+                        const nubeIngresos = dataNube.historialIngresos || [];
+
+                        // Si hay ventas o ingresos en la nube que no tienes tú (porque se hicieron en otro dispositivo), las agregamos
+                        nubeVentas.forEach(nv => {
+                            if (!ventas.find(v => v.id === nv.id)) ventas.push(nv);
+                        });
+                        
+                        nubeIngresos.forEach(ni => {
+                            if (!historialIngresos.find(i => i.id === ni.id)) historialIngresos.push(ni);
+                        });
+
+                        // Reordenamos para que queden cronológicas
+                        ventas.sort((a, b) => a.id - b.id);
+                        historialIngresos.sort((a, b) => a.id - b.id);
+                    }
+
+                    await window.setDoc(docRef, {
                         inventario: inventario,
                         ventas: ventas,
                         fondos: fondos,
@@ -1469,7 +1541,7 @@
                         historialCotizaciones: historialCotizaciones,
                         ultimaActualizacion: new Date()
                     });
-                    console.log("☁️ Nube de SubliCosturas actualizada");
+                    console.log("☁️ Nube de SubliCosturas actualizada sin perder datos de otros dispositivos");
                 } catch (e) {
                     console.error("Error sincronizando nube:", e);
                 }
