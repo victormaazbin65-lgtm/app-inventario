@@ -208,7 +208,14 @@
                 
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad (Piezas)</label><input type="number" id="inv-stock" min="0" placeholder="0"></div>
-                    <div class="form-group"><label>Costo Unitario Base (Q)</label><input type="number" id="inv-costo" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group">
+                        <label>¿Cómo ingresarás el costo?</label>
+                        <select id="inv-tipo-costo" onchange="cambiarLabelCosto()" style="margin-bottom: 5px; padding: 6px; font-size: 12px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px;">
+                            <option value="unitario">Por Unidad (c/u)</option>
+                            <option value="total">Total del Grupo</option>
+                        </select>
+                        <input type="number" id="inv-costo" step="0.01" min="0" placeholder="Q por pieza">
+                    </div>
                 </div>
 
                 <div class="form-group"><label>Proveedor (Opcional)</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
@@ -364,7 +371,7 @@
             
             <div class="card" style="margin-top: 20px;">
                 <h3 class="section-title">Historial de Cotizaciones</h3>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas más adelante.</p>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas o editarlas más adelante.</p>
                 <div id="lista-historial-cotizaciones"></div>
             </div>
         </div>
@@ -459,7 +466,6 @@
             }
         }
 
-        // Ocultar las listas si el usuario hace clic afuera de ellas
         document.addEventListener('click', function(e) {
             if (!e.target.closest('#sec-ventas .form-group')) {
                 const boxV = document.getElementById('sugerencias-ventas-box');
@@ -541,7 +547,7 @@
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
-                if(file.size > 2 * 1024 * 1024) { // PROTECCIÓN DE 2MB
+                if(file.size > 2 * 1024 * 1024) { 
                     alert("⚠️ La imagen es demasiado grande. Por favor, selecciona una imagen de máximo 2MB para evitar lentitud en el sistema.");
                     event.target.value = '';
                     return;
@@ -597,15 +603,33 @@
             invOrdenado.forEach(p => { select.innerHTML += `<option value="${p.id}">Añadir stock a: ${p.nombre}</option>`; });
         }
 
+        function cambiarLabelCosto() {
+            const tipo = document.getElementById('inv-tipo-costo').value;
+            const inputCosto = document.getElementById('inv-costo');
+            if(tipo === 'unitario') {
+                inputCosto.placeholder = "Q por pieza";
+            } else {
+                inputCosto.placeholder = "Q costo total del lote";
+            }
+        }
+
         function agregarAlCarritoIngreso() {
             const selectId = document.getElementById('inv-select').value;
             const stock = parseInt(document.getElementById('inv-stock').value);
-            const costoBase = parseFloat(document.getElementById('inv-costo').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
             
-            // VALIDACIÓN CONTRA NÚMEROS NEGATIVOS
-            if (isNaN(stock) || isNaN(costoBase) || stock <= 0 || costoBase < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
+            const tipoCosto = document.getElementById('inv-tipo-costo').value;
+            const costoIngresado = parseFloat(document.getElementById('inv-costo').value);
             
+            if (isNaN(stock) || isNaN(costoIngresado) || stock <= 0 || costoIngresado < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
+            
+            let costoBase = 0;
+            if (tipoCosto === 'total') {
+                costoBase = costoIngresado / stock;
+            } else {
+                costoBase = costoIngresado;
+            }
+
             let nombreProd = "";
             let minStock = 5;
 
@@ -782,7 +806,7 @@
                 p.min = min; 
                 p.costo = costo; 
                 p.proveedor = proveedor; 
-                p.lastModified = Date.now(); // SELLO DE TIEMPO PARA EVITAR PERDIDA DE EDICION
+                p.lastModified = Date.now(); 
                 guardarDatos(); 
                 actualizarUI(); 
                 cerrarModalEditar(); 
@@ -1135,6 +1159,12 @@
                 eliminada: false
             });
 
+            // LIMPIAR CARRITO DESPUÉS DE GUARDAR
+            carritoCotizacion = [];
+            document.getElementById('cotiza-tinta').value = '';
+            document.getElementById('cotiza-envio').value = '';
+            renderCarritoCotizacion();
+
             guardarDatos();
             renderHistorialCotizaciones();
             alert(resumen);
@@ -1162,7 +1192,7 @@
         }
 
         function generarImagenCotizacionActual() {
-            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
+            if(carritoCotizacion.length === 0) { alert("⚠️ La cotización actual está vacía. Debes añadir artículos al carrito de cotización primero."); return; }
             
             const principales = carritoCotizacion.filter(item => item.rol === 'principal');
             if(principales.length === 0) { alert("No hay productos principales para cobrarle al cliente en esta cotización."); return; }
@@ -1300,7 +1330,10 @@
                             <span style="display: block; margin-bottom: 4px;">📅 ${cot.fecha}</span>
                             <span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${cot.ingresoTotal.toFixed(2)}</span>
                         </div>
-                        <button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button onclick="editarCotizacionPasada(${cot.id})" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button>
+                            <button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button>
+                        </div>
                     </div>
                 </div>`;
             });
@@ -1308,6 +1341,34 @@
             if(!hayVisibles) {
                 cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas.</p>';
             }
+        }
+
+        // --- NUEVO: FUNCIÓN PARA EDITAR COTIZACIÓN DEL HISTORIAL ---
+        function editarCotizacionPasada(id) {
+            const cot = historialCotizaciones.find(c => c.id === id);
+            if(!cot) return;
+
+            if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial para que puedas guardarla con los nuevos cambios.")) return;
+
+            // Pasar los artículos al carrito actual
+            carritoCotizacion = [...cot.detalleItems];
+            
+            // Pasar los gastos extras a las casillas
+            document.getElementById('cotiza-tinta').value = cot.costoTinta > 0 ? cot.costoTinta : '';
+            document.getElementById('cotiza-envio').value = cot.costoEnvio > 0 ? cot.costoEnvio : '';
+
+            // Eliminar la vieja del historial
+            cot.eliminada = true;
+            
+            // Guardar, renderizar y llevar a la vista de carrito
+            guardarDatos();
+            renderCarritoCotizacion();
+            renderHistorialCotizaciones();
+            
+            // Subir al tope de la página
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            alert("✏️ Cotización cargada. Puedes agregar, cambiar o quitar productos del carrito y luego presionar 'Resumen Info' para guardarla nuevamente.");
         }
 
         function borrarHistorialCotizacion(id) {
@@ -1471,7 +1532,6 @@
             });
         }
 
-        // --- RETIROS MODIFICADOS (Evitar Negativos) ---
         function retirarCostoProducto() { 
             let val = parseFloat(document.getElementById('ret-prod').value);
             if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
@@ -1545,7 +1605,6 @@
             XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
-        // ----- MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
         async function guardarDatos() {
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -1570,7 +1629,6 @@
                         const nubeCotizaciones = dataNube.historialCotizaciones || [];
                         const nubeInv = dataNube.inventario || [];
 
-                        // 1. SINCRONIZACION DE INVENTARIO (PROTEGIENDO EDICIONES)
                         nubeInv.forEach(pNube => {
                             let pLocal = inventario.find(p => p.id === pNube.id);
                             if (!pLocal) {
@@ -1586,10 +1644,8 @@
                             }
                         });
 
-                        // 2. LÓGICA DE SINCRONIZACIÓN (VENTAS)
                         nubeVentas.forEach(nv => {
                             let localVenta = ventas.find(v => v.id === nv.id);
-                            
                             if (!localVenta) {
                                 ventas.push(nv);
                                 if (!nv.anulada) {
@@ -1613,10 +1669,8 @@
                             }
                         });
                         
-                        // 3. LÓGICA DE SINCRONIZACIÓN (INGRESOS)
                         nubeIngresos.forEach(ni => {
                             let localIngreso = historialIngresos.find(i => i.id === ni.id);
-                            
                             if (!localIngreso) {
                                 historialIngresos.push(ni);
                                 if (!ni.anulada) {
@@ -1655,7 +1709,6 @@
                             }
                         });
 
-                        // 4. LÓGICA DE SINCRONIZACIÓN (COTIZACIONES ZOMBIS)
                         nubeCotizaciones.forEach(nc => {
                             let localCot = historialCotizaciones.find(c => c.id === nc.id);
                             if (!localCot) {
@@ -1696,7 +1749,7 @@
 
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
-                if (v.anulada) return; // SALTA LAS VENTAS ANULADAS
+                if (v.anulada) return; 
                 contVentas.innerHTML += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
@@ -1735,7 +1788,6 @@
             }
         }
 
-        // === RESTAURADO: Esta línea asegura que tus datos se carguen inmediatamente y no se "pierdan" ===
         arrancarSistema();
     </script>
 </body>
