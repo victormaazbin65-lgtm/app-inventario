@@ -447,14 +447,12 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        // ----- FUNCIÓN LOGIN BLINDADA -----
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
             
             if(btoa(pass) === 'MTAxMA==') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
-                arrancarSistema(); // AHORA LOS DATOS SOLO SE DESCARGAN SI LA CONTRASEÑA ES CORRECTA
             } else {
                 alert('Contraseña incorrecta. Intente de nuevo.');
                 document.getElementById('login-pass').value = '';
@@ -774,6 +772,7 @@
             const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
+            
             if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
             const p = inventario.find(x => x.id === id);
@@ -1472,7 +1471,7 @@
             });
         }
 
-        // --- RETIROS MODIFICADOS ---
+        // --- RETIROS MODIFICADOS (Evitar Negativos) ---
         function retirarCostoProducto() { 
             let val = parseFloat(document.getElementById('ret-prod').value);
             if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
@@ -1724,7 +1723,20 @@
             }
         }
 
-        // NO LLAMAR arrancarSistema() AQUÍ, SOLO SE LLAMA DESPUÉS DEL LOGIN EXITOSO
+        let intentosConexion = 0;
+        function arrancarSistema() {
+            if (window.db) {
+                cargarDatos();
+            } else if (intentosConexion > 6) { 
+                cargarDatos(); 
+            } else {
+                intentosConexion++;
+                setTimeout(arrancarSistema, 500); 
+            }
+        }
+
+        // === RESTAURADO: Esta línea asegura que tus datos se carguen inmediatamente y no se "pierdan" ===
+        arrancarSistema();
     </script>
 </body>
 </html>
