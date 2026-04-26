@@ -451,9 +451,6 @@
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
             
-            // btoa() convierte el texto a formato Base64. 
-            // "MTAxMA==" es exactamente la palabra "1010" oculta en este formato.
-            // De esta forma, nadie lee tu clave a simple vista al inspeccionar tu código.
             if(btoa(pass) === 'MTAxMA==') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
@@ -541,7 +538,7 @@
             if(pestaña === 'alertas') { renderAlertas(); }
         }
 
-        // ----- PARCHE 1: COMPRESIÓN DEL LOGO -----
+        // ----- COMPRESIÓN DEL LOGO -----
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
@@ -663,7 +660,8 @@
 
                 let idFinalAsignado;
                 if(item.isNew) {
-                    idFinalAsignado = Date.now() + Math.random();
+                    // Generación segura de ID sin decimales largos
+                    idFinalAsignado = Math.floor(Date.now() + Math.random() * 1000);
                     inventario.push({ id: idFinalAsignado, nombre: item.nombre, stock: item.stock, min: item.min !== undefined ? item.min : 5, costo: costoFinal, proveedor: item.proveedor });
                 } else {
                     idFinalAsignado = item.idOriginal;
@@ -676,7 +674,7 @@
                         if(item.proveedor !== "No especificado") p.proveedor = item.proveedor;
                     }
                 }
-                // PARCHE 2: Guardar el costo exacto al que ingresó
+                // Guardar el costo exacto al que ingresó
                 registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal });
             });
             historialIngresos.push(registroHistorial);
@@ -692,13 +690,13 @@
             cont.innerHTML = '';
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
             [...historialIngresos].reverse().forEach(reg => {
-                if (reg.anulada) return; // ✨ SALTA LOS INGRESOS ANULADOS
+                if (reg.anulada) return; // SALTA LOS INGRESOS ANULADOS
                 const resumen = reg.items.map(i => `+${i.stock}x ${i.nombre}`).join(', ');
                 cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
             });
         }
 
-        // ----- PARCHE 2: MATEMÁTICA INVERSA DEL COSTO -----
+        // ----- MATEMÁTICA INVERSA DEL COSTO -----
         function borrarIngreso(id) {
             const reg = historialIngresos.find(x => x.id === id);
             if(reg && !reg.anulada) {
@@ -733,7 +731,7 @@
                     }
                 });
                 
-                reg.anulada = true; // ✨ MARCAMOS EL INGRESO COMO ANULADO
+                reg.anulada = true; // MARCAMOS EL INGRESO COMO ANULADO
                 guardarDatos(); 
                 actualizarUI(); 
                 renderHistorialIngresos();
@@ -949,7 +947,7 @@
                 fondos.costoLuzTinta -= v.costoTinta; 
                 fondos.gananciaLibre -= v.ganancia; 
                 
-                v.anulada = true; // ✨ MARCAMOS LA VENTA COMO ANULADA
+                v.anulada = true; // MARCAMOS LA VENTA COMO ANULADA
                 
                 guardarDatos(); actualizarUI();
             }
@@ -1313,14 +1311,13 @@
                 resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
                 ingresoTotal: cot.ingresoTotal, 
                 costosProductos: cot.costosProductos, 
-                // ✨ AQUÍ SE CORRIGIÓ EL ERROR CRÍTICO QUE HABÍA REGRESADO
                 costoTinta: cot.costoTinta, 
                 costoEnvio: cot.costoEnvio, 
                 ganancia: cot.gananciaNeta, 
                 detalleItems: [...cot.detalleItems] 
             });
             
-            // Opcional: Eliminar la cotización del historial una vez vendida para no duplicar por error
+            // Eliminar la cotización del historial una vez vendida para no duplicar por error
             historialCotizaciones = historialCotizaciones.filter(c => c.id !== id);
 
             guardarDatos(); 
@@ -1447,7 +1444,6 @@
 
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
-            // ✨ EXCLUIMOS VENTAS ANULADAS DEL REPORTE DE EXCEL
             const vent = (JSON.parse(localStorage.getItem(KEY_VENTAS)) || []).filter(v => !v.anulada);
             const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
             let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
@@ -1494,7 +1490,7 @@
             XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
-        // ----- PARCHE 3: MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
+        // ----- MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
         async function guardarDatos() {
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
@@ -1503,8 +1499,9 @@
             localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
 
             if(window.db) {
-                if (!datosCargadosDeLaNube && inventario.length > 0) {
-                    console.warn("⚠️ Sin conexión inicial. Se guardó localmente para evitar borrar la nube.");
+                // Validación estricta para evitar sobrescribir la nube si falla el internet al cargar
+                if (!datosCargadosDeLaNube) {
+                    console.warn("⚠️ Los datos iniciales de la nube no se han cargado. Se bloquea el guardado en Firebase para no sobrescribir y perder datos.");
                     return; 
                 }
 
@@ -1518,7 +1515,7 @@
                         const nubeVentas = dataNube.ventas || [];
                         const nubeIngresos = dataNube.historialIngresos || [];
 
-                        // ✨ NUEVA LÓGICA DE SINCRONIZACIÓN (VENTAS)
+                        // LÓGICA DE SINCRONIZACIÓN (VENTAS)
                         nubeVentas.forEach(nv => {
                             let localVenta = ventas.find(v => v.id === nv.id);
                             
@@ -1547,7 +1544,7 @@
                             }
                         });
                         
-                        // ✨ NUEVA LÓGICA DE SINCRONIZACIÓN (INGRESOS)
+                        // LÓGICA DE SINCRONIZACIÓN (INGRESOS)
                         nubeIngresos.forEach(ni => {
                             let localIngreso = historialIngresos.find(i => i.id === ni.id);
                             
@@ -1622,7 +1619,7 @@
 
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
-                if (v.anulada) return; // ✨ SALTA LAS VENTAS ANULADAS
+                if (v.anulada) return; // SALTA LAS VENTAS ANULADAS
                 contVentas.innerHTML += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
