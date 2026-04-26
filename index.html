@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubliCosturas - Sistema Pro</title>
+    <title>Sublicosturas - Sistema Pro</title>
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -107,7 +107,7 @@
 
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
-            <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
+            <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">Sublicosturas</h2>
             <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
             <input type="password" id="login-pass" placeholder="••••" style="margin-bottom: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; width: 80%; margin-left: auto; margin-right: auto; display: block;" onkeydown="if(event.key === 'Enter') verificarLogin()">
             <button class="btn-main" onclick="verificarLogin()" style="width: 80%;">Entrar al Sistema</button>
@@ -129,7 +129,7 @@
                 
                 <div class="logo-container">
                     <div class="logo-wrapper">
-                        <img id="logo-img" src="" alt="Logo SubliCosturas">
+                        <img id="logo-img" src="" alt="Logo Sublicosturas">
                         <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">✏️</button>
                     </div>
                     <div id="logo-upload-wrapper" class="file-input-wrapper">
@@ -426,7 +426,7 @@
         window.doc = doc;
         window.getDoc = getDoc;
 
-        console.log("🔥 Firebase SubliCosturas Conectado");
+        console.log("🔥 Firebase Sublicosturas Conectado");
     </script>
 
     <script>
@@ -1240,7 +1240,7 @@
 
             // Descargar la imagen automáticamente
             const link = document.createElement('a');
-            link.download = `Cotizacion_SubliCosturas_${Date.now()}.png`;
+            link.download = `Cotizacion_Sublicosturas_${Date.now()}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         }
@@ -1487,7 +1487,7 @@
             }
 
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
-            XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
+            XLSX.writeFile(libro, `Sublicosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
         // ----- MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
@@ -1601,7 +1601,7 @@
                         historialCotizaciones: historialCotizaciones,
                         ultimaActualizacion: new Date()
                     });
-                    console.log("☁️ Nube de SubliCosturas actualizada sin perder datos de otros dispositivos");
+                    console.log("☁️ Nube de Sublicosturas actualizada sin perder datos de otros dispositivos");
                 } catch (e) {
                     console.error("Error sincronizando nube:", e);
                 }
