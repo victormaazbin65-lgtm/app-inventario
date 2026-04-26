@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sublicosturas - Sistema Pro</title>
+    <title>SubliCosturas - Sistema Pro</title>
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -107,7 +107,7 @@
 
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
-            <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">Sublicosturas</h2>
+            <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
             <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
             <input type="password" id="login-pass" placeholder="••••" style="margin-bottom: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; width: 80%; margin-left: auto; margin-right: auto; display: block;" onkeydown="if(event.key === 'Enter') verificarLogin()">
             <button class="btn-main" onclick="verificarLogin()" style="width: 80%;">Entrar al Sistema</button>
@@ -129,7 +129,7 @@
                 
                 <div class="logo-container">
                     <div class="logo-wrapper">
-                        <img id="logo-img" src="" alt="Logo Sublicosturas">
+                        <img id="logo-img" src="" alt="Logo SubliCosturas">
                         <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">✏️</button>
                     </div>
                     <div id="logo-upload-wrapper" class="file-input-wrapper">
@@ -150,7 +150,7 @@
                         <p class="dash-title">Fondo: Productos</p>
                         <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-prod" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-prod" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoProducto()">Retirar</button>
                         </div>
                     </div>
@@ -158,7 +158,7 @@
                         <p class="dash-title">Fondo: Luz y Tinta</p>
                         <p class="dash-value" id="dash-costo-luz">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-luz" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-luz" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoLuz()">Retirar</button>
                         </div>
                     </div>
@@ -166,7 +166,7 @@
                         <p class="dash-title">Ganancia Libre</p>
                         <p class="dash-value" id="dash-ganancia">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-ganancia" step="0.01" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-ganancia" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button>
                         </div>
                     </div>
@@ -202,13 +202,13 @@
                 
                 <div class="form-group" id="grupo-min-producto">
                     <label>Alerta de Stock Mínimo (Opcional)</label>
-                    <input type="number" id="inv-min" placeholder="Ej: 5" value="5">
+                    <input type="number" id="inv-min" min="0" placeholder="Ej: 5" value="5">
                     <p class="item-details" style="font-size:11px; margin-top:3px;">Te avisará en color rojo cuando el inventario llegue a esta cantidad.</p>
                 </div>
                 
                 <div class="grid-2">
-                    <div class="form-group"><label>Cantidad (Piezas)</label><input type="number" id="inv-stock" placeholder="0"></div>
-                    <div class="form-group"><label>Costo Unitario Base (Q)</label><input type="number" id="inv-costo" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Cantidad (Piezas)</label><input type="number" id="inv-stock" min="0" placeholder="0"></div>
+                    <div class="form-group"><label>Costo Unitario Base (Q)</label><input type="number" id="inv-costo" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <div class="form-group"><label>Proveedor (Opcional)</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
@@ -225,7 +225,7 @@
                 <h4 class="sub-title">2. Transporte Total (Opcional)</h4>
                 <div class="form-group">
                     <label>Costo de Transporte/Envío global de este lote (Q)</label>
-                    <input type="number" id="ingreso-transporte-global" step="0.01" placeholder="0.00">
+                    <input type="number" id="ingreso-transporte-global" step="0.01" min="0" placeholder="0.00">
                     <p class="item-details" style="font-size:11px; margin-top:5px;">*Se dividirá matemáticamente entre todas las piezas de la lista para sumar a tu costo real.</p>
                 </div>
 
@@ -271,7 +271,7 @@
 
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a usar/vender</label><input type="number" id="venta-qty" value="1" min="1"></div>
-                    <div class="form-group" id="grupo-venta-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group" id="grupo-venta-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
@@ -289,8 +289,8 @@
                 
                 <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" placeholder="0.00"></div>
-                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <div class="cart-total" id="venta-total-preview">Total a Cobrar: Q 0.00</div>
@@ -325,7 +325,7 @@
 
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a cotizar</label><input type="number" id="cotiza-qty" value="1" min="1"></div>
-                    <div class="form-group" id="grupo-cotiza-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group" id="grupo-cotiza-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <button class="btn-main" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
@@ -349,8 +349,8 @@
 
                 <h4 class="sub-title">3. Gastos de Producción / Envío</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" placeholder="0.00"></div>
-                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
@@ -389,10 +389,10 @@
             
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
             <div class="grid-2">
-                <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock"></div>
-                <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min"></div>
+                <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
+                <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min" min="0"></div>
             </div>
-            <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01"></div>
+            <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01" min="0"></div>
             <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
 
             <div class="modal-btn-row">
@@ -426,7 +426,7 @@
         window.doc = doc;
         window.getDoc = getDoc;
 
-        console.log("🔥 Firebase Sublicosturas Conectado");
+        console.log("🔥 Firebase SubliCosturas Conectado");
     </script>
 
     <script>
@@ -447,13 +447,14 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        // ----- FUNCIÓN LOGIN CORREGIDA -----
+        // ----- FUNCIÓN LOGIN BLINDADA -----
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
             
             if(btoa(pass) === 'MTAxMA==') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
+                arrancarSistema(); // AHORA LOS DATOS SOLO SE DESCARGAN SI LA CONTRASEÑA ES CORRECTA
             } else {
                 alert('Contraseña incorrecta. Intente de nuevo.');
                 document.getElementById('login-pass').value = '';
@@ -538,10 +539,16 @@
             if(pestaña === 'alertas') { renderAlertas(); }
         }
 
-        // ----- COMPRESIÓN DEL LOGO -----
+        // ----- COMPRESIÓN Y LÍMITE DEL LOGO -----
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
+                if(file.size > 2 * 1024 * 1024) { // PROTECCIÓN DE 2MB
+                    alert("⚠️ La imagen es demasiado grande. Por favor, selecciona una imagen de máximo 2MB para evitar lentitud en el sistema.");
+                    event.target.value = '';
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = function(e){
                     const img = new Image();
@@ -597,7 +604,9 @@
             const stock = parseInt(document.getElementById('inv-stock').value);
             const costoBase = parseFloat(document.getElementById('inv-costo').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
-            if (isNaN(stock) || isNaN(costoBase) || stock <= 0) { alert("⚠️ Cantidad y Costo deben ser mayores a cero."); return; }
+            
+            // VALIDACIÓN CONTRA NÚMEROS NEGATIVOS
+            if (isNaN(stock) || isNaN(costoBase) || stock <= 0 || costoBase < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
             
             let nombreProd = "";
             let minStock = 5;
@@ -605,7 +614,7 @@
             if (selectId === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
                 minStock = parseInt(document.getElementById('inv-min').value);
-                if(isNaN(minStock)) minStock = 0;
+                if(isNaN(minStock) || minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
             } else {
                 const prod = inventario.find(p => p.id == selectId);
@@ -648,6 +657,9 @@
         function procesarIngresoMultiple() {
             if(carritoIngresos.length === 0) { alert("⚠️ No hay productos en la lista."); return; }
             const transporteGlobal = parseFloat(document.getElementById('ingreso-transporte-global').value) || 0;
+            
+            if (transporteGlobal < 0) { alert("⚠️ El transporte no puede ser un número negativo."); return; }
+
             const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
             const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
             let registroHistorial = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
@@ -762,7 +774,8 @@
             const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
-            if(!nombre || isNaN(stock) || isNaN(costo)) { alert("Datos inválidos."); return; }
+            if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
+            
             const p = inventario.find(x => x.id === id);
             if(p) { 
                 p.nombre = nombre; 
@@ -864,8 +877,8 @@
             const qty = parseInt(document.getElementById('venta-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
-                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado) || precioCobrado < 0) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
             }
             
@@ -913,6 +926,9 @@
             if(carritoVentas.length === 0) { alert("⚠️ El carrito está vacío."); return; }
             const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
+            
+            if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
+
             let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
             carritoVentas.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
@@ -1029,8 +1045,8 @@
             const qty = parseInt(document.getElementById('cotiza-qty').value);
             const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado)) { 
-                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto en la lista desplegable."); 
+            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado) || precioCobrado < 0) { 
+                alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
             }
             const prod = inventario.find(p => p.id == idProd);
@@ -1083,6 +1099,8 @@
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+
+            if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
             
             let ingresoTotal = 0; 
             let costosProductos = 0; 
@@ -1258,7 +1276,7 @@
             ctx.fillText('Q ' + total.toFixed(2), 480, y);
 
             const link = document.createElement('a');
-            link.download = `Cotizacion_Sublicosturas_${Date.now()}.png`;
+            link.download = `Cotizacion_SubliCosturas_${Date.now()}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         }
@@ -1372,6 +1390,8 @@
 
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+
+            if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
             
             let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
             
@@ -1523,7 +1543,7 @@
             }
 
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
-            XLSX.writeFile(libro, `Sublicosturas_Reporte_Completo_${fecha}.xlsx`);
+            XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
         // ----- MINI-SINCRONIZACIÓN PARA EVITAR SOBRESCRITURAS -----
@@ -1659,7 +1679,7 @@
                         historialCotizaciones: historialCotizaciones,
                         ultimaActualizacion: new Date()
                     });
-                    console.log("☁️ Nube de Sublicosturas actualizada y fusionada con éxito");
+                    console.log("☁️ Nube de SubliCosturas actualizada y fusionada con éxito");
                 } catch (e) {
                     console.error("Error sincronizando nube:", e);
                 }
@@ -1704,19 +1724,7 @@
             }
         }
 
-        let intentosConexion = 0;
-        function arrancarSistema() {
-            if (window.db) {
-                cargarDatos();
-            } else if (intentosConexion > 6) { 
-                cargarDatos(); 
-            } else {
-                intentosConexion++;
-                setTimeout(arrancarSistema, 500); 
-            }
-        }
-
-        arrancarSistema();
+        // NO LLAMAR arrancarSistema() AQUÍ, SOLO SE LLAMA DESPUÉS DEL LOGIN EXITOSO
     </script>
 </body>
 </html>
