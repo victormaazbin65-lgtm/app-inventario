@@ -107,8 +107,7 @@
 </head>
 <body>
     <datalist id="lista-clientes"></datalist>
-
-    <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <datalist id="lista-categorias"></datalist> <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
             <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
             <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
@@ -204,29 +203,32 @@
             <div class="card">
                 <h3 class="section-title">1. Añadir a la lista de ingresos</h3>
                 
-                <div class="form-group" id="grupo-select-producto">
+                <div class="form-group" id="grupo-modo-ingreso">
                     <label>¿Qué estás ingresando?</label>
-                    <select id="inv-select" onchange="toggleNuevoProducto()">
+                    <select id="inv-modo" onchange="toggleModoIngreso()">
+                        <option value="existente">🔄 Producto Existente (Añadir Stock)</option>
                         <option value="nuevo">➕ Crear un Producto Nuevo</option>
                     </select>
                 </div>
 
-                <div class="form-group" id="grupo-nombre-producto">
+                <div class="form-group" id="grupo-buscador-ingreso" style="position: relative; z-index: 10;">
+                    <label style="color: var(--primary-green);">🔍 Busca el artículo a surtir</label>
+                    <input type="text" id="buscador-ingreso-producto" autocomplete="off" placeholder="Escribe o toca aquí..." oninput="renderSugerenciasIngreso()" onclick="renderSugerenciasIngreso(true)" class="autocomplete-input">
+                    <div id="sugerencias-ingreso-box" class="sugerencias-box"></div>
+                    <input type="hidden" id="ingreso-producto-id">
+                </div>
+
+                <div class="form-group" id="grupo-nombre-producto" style="display: none;">
                     <label>Nombre del Nuevo Producto</label>
                     <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
                 </div>
 
-                <div class="form-group" id="grupo-categoria-producto">
+                <div class="form-group" id="grupo-categoria-producto" style="display: none;">
                     <label>Categoría</label>
-                    <select id="inv-categoria">
-                        <option value="Textil">Textil (Playeras, Gorras)</option>
-                        <option value="Ceramica">Cerámica (Tazas, Pachones)</option>
-                        <option value="Insumos">Insumos (Tintas, Papel)</option>
-                        <option value="Otros" selected>Otros / Empaques</option>
-                    </select>
+                    <input type="text" id="inv-categoria" list="lista-categorias" placeholder="Escribe o selecciona una categoría..." autocomplete="off">
                 </div>
                 
-                <div class="form-group" id="grupo-min-producto">
+                <div class="form-group" id="grupo-min-producto" style="display: none;">
                     <label>Alerta de Stock Mínimo (Opcional)</label>
                     <input type="number" id="inv-min" min="0" placeholder="Ej: 5" value="5">
                     <p class="item-details" style="font-size:11px; margin-top:3px;">Te avisará en color rojo cuando el inventario llegue a esta cantidad.</p>
@@ -244,7 +246,12 @@
                     </div>
                 </div>
 
-                <div class="form-group"><label>Proveedor (Opcional)</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
+                <h4 class="sub-title" style="margin-top: 10px;">Datos de Compra (Opcional)</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Proveedor</label><input type="text" id="inv-proveedor" placeholder="¿Dónde se compró?"></div>
+                    <div class="form-group"><label>NIT del Proveedor</label><input type="text" id="inv-nit" placeholder="NIT"></div>
+                </div>
+                <div class="form-group"><label>No. de Factura</label><input type="text" id="inv-factura" placeholder="Ej: Serie A - 12345"></div>
 
                 <button class="btn-main" onclick="agregarAlCarritoIngreso()">👇 Añadir a la Lista Previa</button>
             </div>
@@ -279,10 +286,6 @@
                     <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 10px;">
                     <select id="filtro-categoria" onchange="renderInventario()" style="margin-bottom: 15px;">
                         <option value="todas">Todas las categorías</option>
-                        <option value="Textil">Textil</option>
-                        <option value="Ceramica">Cerámica</option>
-                        <option value="Insumos">Insumos</option>
-                        <option value="Otros">Otros</option>
                     </select>
                 </div>
 
@@ -450,12 +453,7 @@
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
             <div class="form-group">
                 <label>Categoría</label>
-                <select id="edit-categoria">
-                    <option value="Textil">Textil</option>
-                    <option value="Ceramica">Cerámica</option>
-                    <option value="Insumos">Insumos</option>
-                    <option value="Otros">Otros</option>
-                </select>
+                <input type="text" id="edit-categoria" list="lista-categorias" placeholder="Escribe o selecciona...">
             </div>
             <div class="grid-2">
                 <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
@@ -536,6 +534,10 @@
                 const boxC = document.getElementById('sugerencias-cotiza-box');
                 if(boxC) boxC.style.display = 'none';
             }
+            if (!e.target.closest('#sec-ingreso .form-group')) {
+                const boxI = document.getElementById('sugerencias-ingreso-box');
+                if(boxI) boxI.style.display = 'none';
+            }
         });
 
         async function cargarDatos() {
@@ -600,7 +602,7 @@
             document.getElementById('tab-' + pestaña).classList.add('active');
             
             if(pestaña === 'inicio') actualizarUI(); 
-            if(pestaña === 'ingreso') { renderSelectIngreso(); renderHistorialIngresos(); }
+            if(pestaña === 'ingreso') { renderHistorialIngresos(); }
             if(pestaña === 'inventario') { renderInventario(); }
             if(pestaña === 'cotizacion') { renderHistorialCotizaciones(); }
             if(pestaña === 'alertas') { renderAlertas(); }
@@ -651,19 +653,58 @@
         }
 
         // ================= INGRESO =================
-        function toggleNuevoProducto() {
-            const val = document.getElementById('inv-select').value;
+        function toggleModoIngreso() {
+            const val = document.getElementById('inv-modo').value;
             const esNuevo = val === 'nuevo';
+            document.getElementById('grupo-buscador-ingreso').style.display = esNuevo ? 'none' : 'block';
             document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-categoria-producto').style.display = esNuevo ? 'block' : 'none';
+            
+            // Limpiar valores al cambiar
+            document.getElementById('buscador-ingreso-producto').value = '';
+            document.getElementById('ingreso-producto-id').value = '';
+            document.getElementById('inv-nombre').value = '';
         }
 
-        function renderSelectIngreso() {
+        function renderSugerenciasIngreso(mostrarTodo = false) {
+            const input = document.getElementById('buscador-ingreso-producto');
+            const box = document.getElementById('sugerencias-ingreso-box');
+            const hiddenId = document.getElementById('ingreso-producto-id');
+            
+            const textoBuscado = input.value.toLowerCase();
+            box.innerHTML = '';
+            
+            if(!mostrarTodo) hiddenId.value = ''; 
+            
+            if (textoBuscado.length === 0 && !mostrarTodo) {
+                box.style.display = 'none';
+                return;
+            }
+
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            const select = document.getElementById('inv-select');
-            select.innerHTML = '<option value="nuevo">➕ Crear un Producto Nuevo</option>';
-            invOrdenado.forEach(p => { select.innerHTML += `<option value="${p.id}">Añadir stock a: ${p.nombre}</option>`; });
+            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+
+            let hayResultados = false;
+            invFiltrado.forEach(p => { 
+                hayResultados = true;
+                const div = document.createElement('div');
+                div.className = 'sugerencia-item';
+                div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${p.stock})</span>`;
+                
+                div.onclick = function() {
+                    input.value = p.nombre; 
+                    hiddenId.value = p.id;  
+                    box.style.display = 'none'; 
+                };
+                box.appendChild(div);
+            });
+
+            if(!hayResultados) {
+                box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">No existe, crea uno nuevo</div>';
+            }
+
+            box.style.display = 'block';
         }
 
         function cambiarLabelCosto() {
@@ -677,9 +718,12 @@
         }
 
         function agregarAlCarritoIngreso() {
-            const selectId = document.getElementById('inv-select').value;
+            const modo = document.getElementById('inv-modo').value;
             const stock = parseInt(document.getElementById('inv-stock').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
+            const nit = document.getElementById('inv-nit').value.trim() || '';
+            const factura = document.getElementById('inv-factura').value.trim() || '';
+            
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value);
             
@@ -689,24 +733,33 @@
             let nombreProd = "";
             let minStock = 5;
             let categoria = "Otros";
+            let selectId = null;
 
-            if (selectId === 'nuevo') {
+            if (modo === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
                 minStock = parseInt(document.getElementById('inv-min').value);
-                categoria = document.getElementById('inv-categoria').value;
+                categoria = document.getElementById('inv-categoria').value.trim() || "Otros";
                 if(isNaN(minStock) || minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
+                selectId = 'nuevo';
             } else {
-                const prod = inventario.find(p => p.id == selectId);
+                const idExistente = document.getElementById('ingreso-producto-id').value;
+                if(!idExistente) { alert("⚠️ Por favor, busca y selecciona un producto existente de la lista."); return; }
+                const prod = inventario.find(p => p.id == idExistente);
                 nombreProd = prod ? prod.nombre : "Producto";
                 minStock = prod && prod.min !== undefined ? prod.min : 5;
                 categoria = prod && prod.categoria ? prod.categoria : "Otros";
+                selectId = idExistente;
             }
-            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor, categoria: categoria });
+            
+            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor, nit: nit, factura: factura, categoria: categoria });
             
             document.getElementById('inv-stock').value = '';
             document.getElementById('inv-costo').value = '';
             document.getElementById('inv-nombre').value = '';
+            document.getElementById('buscador-ingreso-producto').value = '';
+            document.getElementById('ingreso-producto-id').value = '';
+            
             if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
             renderCarritoIngresos();
         }
@@ -726,7 +779,10 @@
             carritoIngresos.forEach(item => {
                 totalPiezas += item.stock;
                 costoTotalPreview += (item.stock * item.costoBase);
-                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u | Cat: ${item.categoria}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                let provText = item.proveedor !== 'No especificado' ? ` | Prov: ${item.proveedor}` : '';
+                let facText = item.factura ? ` | Fac: ${item.factura}` : '';
+                
+                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Q${item.costoBase.toFixed(2)} c/u${provText}${facText}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
 
             contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
@@ -771,11 +827,14 @@
                         if(item.proveedor !== "No especificado") p.proveedor = item.proveedor;
                     }
                 }
-                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal });
+                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura });
             });
             historialIngresos.push(registroHistorial);
             carritoIngresos = [];
             document.getElementById('ingreso-transporte-global').value = '';
+            document.getElementById('inv-proveedor').value = '';
+            document.getElementById('inv-nit').value = '';
+            document.getElementById('inv-factura').value = '';
             guardarDatos(); actualizarUI(); renderCarritoIngresos(); renderHistorialIngresos();
             
             alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${valorTotalIngresado.toFixed(2)}`);
@@ -787,7 +846,13 @@
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
             [...historialIngresos].reverse().forEach(reg => {
                 if (reg.anulada) return; 
-                const resumen = reg.items.map(i => `+${i.stock}x ${i.nombre}`).join(', ');
+                const resumen = reg.items.map(i => {
+                    let info = `+${i.stock}x ${i.nombre}`;
+                    if (i.proveedor && i.proveedor !== "No especificado") info += ` (${i.proveedor})`;
+                    if (i.factura) info += ` [Fac: ${i.factura}]`;
+                    if (i.nit) info += ` [NIT: ${i.nit}]`;
+                    return info;
+                }).join(', ');
                 cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
             });
         }
@@ -856,7 +921,7 @@
             const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
-            const categoria = document.getElementById('edit-categoria').value;
+            const categoria = document.getElementById('edit-categoria').value.trim() || 'Otros';
             
             if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
@@ -1831,7 +1896,7 @@
             }
         }
 
-        // --- NUEVAS FUNCIONES PARA GRÁFICO Y LISTA CLIENTES ---
+        // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
         function actualizarGraficoVentas() {
             if(!document.getElementById('graficoVentas')) return;
@@ -1868,6 +1933,40 @@
             clientesUnicos.forEach(c => { dl.innerHTML += `<option value="${c}">`; });
         }
 
+        function actualizarListaCategorias() {
+            const dl = document.getElementById('lista-categorias');
+            const filtro = document.getElementById('filtro-categoria');
+            if(!dl || !filtro) return;
+
+            const categoriasUnicas = new Set();
+            inventario.forEach(p => {
+                if(p.categoria && p.categoria !== "Otros" && p.categoria !== "") {
+                    categoriasUnicas.add(p.categoria);
+                }
+            });
+
+            dl.innerHTML = '<option value="Textil"><option value="Ceramica"><option value="Insumos"><option value="Otros">';
+            categoriasUnicas.forEach(c => {
+                if(c !== "Textil" && c !== "Ceramica" && c !== "Insumos" && c !== "Otros") {
+                    dl.innerHTML += `<option value="${c}">`;
+                }
+            });
+
+            let valActual = filtro.value;
+            filtro.innerHTML = '<option value="todas">Todas las categorías</option><option value="Textil">Textil</option><option value="Ceramica">Cerámica</option><option value="Insumos">Insumos</option><option value="Otros">Otros</option>';
+            categoriasUnicas.forEach(c => {
+                if(c !== "Textil" && c !== "Ceramica" && c !== "Insumos" && c !== "Otros") {
+                    filtro.innerHTML += `<option value="${c}">${c}</option>`;
+                }
+            });
+            
+            if([...filtro.options].some(o => o.value === valActual)) {
+                filtro.value = valActual;
+            } else {
+                filtro.value = 'todas';
+            }
+        }
+
         function actualizarUI() {
             let valorInventario = inventario.reduce((sum, p) => sum + (p.stock * p.costo), 0);
             document.getElementById('dash-valor-inv').innerText = 'Q ' + valorInventario.toFixed(2);
@@ -1876,6 +1975,7 @@
             document.getElementById('dash-fondo-impuestos').innerText = 'Q ' + (fondos.fondoImpuestos||0).toFixed(2);
             document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
             
+            actualizarListaCategorias();
             renderInventario();
             actualizarGraficoVentas();
             actualizarListaClientes();
@@ -1903,8 +2003,8 @@
                     </div>
                 </div>`;
             });
-            renderSelectIngreso(); 
             renderHistorialCotizaciones();
+            renderHistorialIngresos();
             
             if (document.getElementById('tab-alertas').classList.contains('active')) {
                 renderAlertas();
