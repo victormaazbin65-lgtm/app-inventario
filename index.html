@@ -107,7 +107,8 @@
 </head>
 <body>
     <datalist id="lista-clientes"></datalist>
-    <datalist id="lista-categorias"></datalist> <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+
+    <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
             <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
             <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
@@ -225,7 +226,9 @@
 
                 <div class="form-group" id="grupo-categoria-producto" style="display: none;">
                     <label>Categoría</label>
-                    <input type="text" id="inv-categoria" list="lista-categorias" placeholder="Escribe o selecciona una categoría..." autocomplete="off">
+                    <select id="inv-categoria" onchange="toggleNuevaCategoria('inv')">
+                        </select>
+                    <input type="text" id="inv-categoria-nueva" placeholder="Escribe el nombre de la nueva categoría..." style="display: none; margin-top: 8px;">
                 </div>
                 
                 <div class="form-group" id="grupo-min-producto" style="display: none;">
@@ -451,10 +454,14 @@
             <input type="hidden" id="edit-id">
             
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
+            
             <div class="form-group">
                 <label>Categoría</label>
-                <input type="text" id="edit-categoria" list="lista-categorias" placeholder="Escribe o selecciona...">
+                <select id="edit-categoria" onchange="toggleNuevaCategoria('edit')">
+                    </select>
+                <input type="text" id="edit-categoria-nueva" placeholder="Escribe el nombre de la nueva categoría..." style="display: none; margin-top: 8px;">
             </div>
+
             <div class="grid-2">
                 <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
                 <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min" min="0"></div>
@@ -539,6 +546,19 @@
                 if(boxI) boxI.style.display = 'none';
             }
         });
+
+        // ================= FUNCIÓN PARA MOSTRAR INPUT DE NUEVA CATEGORÍA =================
+        function toggleNuevaCategoria(prefix) {
+            const selectCat = document.getElementById(prefix + '-categoria');
+            const inputCatNueva = document.getElementById(prefix + '-categoria-nueva');
+            if (selectCat.value === 'nueva') {
+                inputCatNueva.style.display = 'block';
+                inputCatNueva.focus();
+            } else {
+                inputCatNueva.style.display = 'none';
+                inputCatNueva.value = '';
+            }
+        }
 
         async function cargarDatos() {
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
@@ -665,6 +685,15 @@
             document.getElementById('buscador-ingreso-producto').value = '';
             document.getElementById('ingreso-producto-id').value = '';
             document.getElementById('inv-nombre').value = '';
+            
+            // Ocultar caja de nueva categoría
+            if(document.getElementById('inv-categoria')) {
+                document.getElementById('inv-categoria').value = 'Otros';
+            }
+            if(document.getElementById('inv-categoria-nueva')) {
+                document.getElementById('inv-categoria-nueva').style.display = 'none';
+                document.getElementById('inv-categoria-nueva').value = '';
+            }
         }
 
         function renderSugerenciasIngreso(mostrarTodo = false) {
@@ -738,7 +767,14 @@
             if (modo === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
                 minStock = parseInt(document.getElementById('inv-min').value);
-                categoria = document.getElementById('inv-categoria').value.trim() || "Otros";
+                
+                let catElegida = document.getElementById('inv-categoria').value;
+                if (catElegida === 'nueva') {
+                    categoria = document.getElementById('inv-categoria-nueva').value.trim() || "Otros";
+                } else {
+                    categoria = catElegida;
+                }
+                
                 if(isNaN(minStock) || minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
                 selectId = 'nuevo';
@@ -761,6 +797,11 @@
             document.getElementById('ingreso-producto-id').value = '';
             
             if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
+            
+            document.getElementById('inv-categoria').value = 'Otros';
+            document.getElementById('inv-categoria-nueva').style.display = 'none';
+            document.getElementById('inv-categoria-nueva').value = '';
+            
             renderCarritoIngresos();
         }
 
@@ -903,13 +944,23 @@
         function abrirModalEditar(id) {
             const prod = inventario.find(p => p.id === id);
             if(!prod) return;
+            
+            actualizarListaCategorias(); // Asegurarnos de tener la lista fresca
+            
             document.getElementById('edit-id').value = prod.id;
             document.getElementById('edit-nombre').value = prod.nombre;
             document.getElementById('edit-stock').value = prod.stock;
             document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0;
             document.getElementById('edit-costo').value = prod.costo.toFixed(2);
             document.getElementById('edit-proveedor').value = prod.proveedor || '';
-            document.getElementById('edit-categoria').value = prod.categoria || 'Otros';
+            
+            const selectCat = document.getElementById('edit-categoria');
+            selectCat.value = prod.categoria || 'Otros';
+            if(selectCat.value === "") selectCat.value = 'Otros'; // Fallback
+            
+            document.getElementById('edit-categoria-nueva').style.display = 'none';
+            document.getElementById('edit-categoria-nueva').value = '';
+            
             document.getElementById('modal-editar').style.display = 'flex';
         }
         function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
@@ -921,7 +972,14 @@
             const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
-            const categoria = document.getElementById('edit-categoria').value.trim() || 'Otros';
+            
+            let catElegida = document.getElementById('edit-categoria').value;
+            let categoria = "Otros";
+            if(catElegida === 'nueva') {
+                categoria = document.getElementById('edit-categoria-nueva').value.trim() || "Otros";
+            } else {
+                categoria = catElegida;
+            }
             
             if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
@@ -1934,34 +1992,47 @@
         }
 
         function actualizarListaCategorias() {
-            const dl = document.getElementById('lista-categorias');
+            const selectInv = document.getElementById('inv-categoria');
+            const selectEdit = document.getElementById('edit-categoria');
             const filtro = document.getElementById('filtro-categoria');
-            if(!dl || !filtro) return;
+            if(!selectInv || !selectEdit || !filtro) return;
 
-            const categoriasUnicas = new Set();
+            const categoriasUnicas = new Set(["Textil", "Ceramica", "Insumos", "Otros"]);
             inventario.forEach(p => {
-                if(p.categoria && p.categoria !== "Otros" && p.categoria !== "") {
+                if(p.categoria && p.categoria !== "") {
                     categoriasUnicas.add(p.categoria);
                 }
             });
 
-            dl.innerHTML = '<option value="Textil"><option value="Ceramica"><option value="Insumos"><option value="Otros">';
+            // Generar HTML para los selectores de ingreso y edición
+            let optionsHTML = '';
             categoriasUnicas.forEach(c => {
-                if(c !== "Textil" && c !== "Ceramica" && c !== "Insumos" && c !== "Otros") {
-                    dl.innerHTML += `<option value="${c}">`;
-                }
+                let label = c === 'Ceramica' ? 'Cerámica' : c;
+                optionsHTML += `<option value="${c}">${label}</option>`;
             });
+            optionsHTML += `<option value="nueva">➕ Crear Nueva Categoría...</option>`;
 
-            let valActual = filtro.value;
-            filtro.innerHTML = '<option value="todas">Todas las categorías</option><option value="Textil">Textil</option><option value="Ceramica">Cerámica</option><option value="Insumos">Insumos</option><option value="Otros">Otros</option>';
+            // Guardar valores actuales para no perder la selección
+            let valInv = selectInv.value;
+            let valEdit = selectEdit.value;
+
+            selectInv.innerHTML = optionsHTML;
+            selectEdit.innerHTML = optionsHTML;
+
+            // Restaurar valores si existen
+            if([...selectInv.options].some(o => o.value === valInv)) selectInv.value = valInv;
+            if([...selectEdit.options].some(o => o.value === valEdit)) selectEdit.value = valEdit;
+
+            // Actualizar el filtro de inventario
+            let valFiltro = filtro.value;
+            filtro.innerHTML = '<option value="todas">Todas las categorías</option>';
             categoriasUnicas.forEach(c => {
-                if(c !== "Textil" && c !== "Ceramica" && c !== "Insumos" && c !== "Otros") {
-                    filtro.innerHTML += `<option value="${c}">${c}</option>`;
-                }
+                let label = c === 'Ceramica' ? 'Cerámica' : c;
+                filtro.innerHTML += `<option value="${c}">${label}</option>`;
             });
             
-            if([...filtro.options].some(o => o.value === valActual)) {
-                filtro.value = valActual;
+            if([...filtro.options].some(o => o.value === valFiltro)) {
+                filtro.value = valFiltro;
             } else {
                 filtro.value = 'todas';
             }
