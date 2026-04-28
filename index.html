@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -49,6 +50,7 @@
         .bg-purple { background-color: var(--primary-purple); }
         .bg-orange { background-color: var(--primary-orange); }
         .bg-green { background-color: var(--primary-green); }
+        .bg-gray { background-color: #475569; }
         .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
         .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
         .dash-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
@@ -104,6 +106,7 @@
     </style>
 </head>
 <body>
+    <datalist id="lista-clientes"></datalist>
 
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
@@ -170,6 +173,19 @@
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button>
                         </div>
                     </div>
+                    <div class="dash-card bg-gray">
+                        <p class="dash-title">Fondo: Impuestos (SAT)</p>
+                        <p class="dash-value" id="dash-fondo-impuestos">Q 0.00</p>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;">
+                            <input type="number" id="ret-impuesto" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarImpuesto()">Retirar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 25px;">
+                    <h3 class="section-title">Artículos Más Vendidos</h3>
+                    <canvas id="graficoVentas" width="100%" height="45"></canvas>
                 </div>
 
                 <div style="margin-top: 25px; text-align: center;">
@@ -198,6 +214,16 @@
                 <div class="form-group" id="grupo-nombre-producto">
                     <label>Nombre del Nuevo Producto</label>
                     <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
+                </div>
+
+                <div class="form-group" id="grupo-categoria-producto">
+                    <label>Categoría</label>
+                    <select id="inv-categoria">
+                        <option value="Textil">Textil (Playeras, Gorras)</option>
+                        <option value="Ceramica">Cerámica (Tazas, Pachones)</option>
+                        <option value="Insumos">Insumos (Tintas, Papel)</option>
+                        <option value="Otros" selected>Otros / Empaques</option>
+                    </select>
                 </div>
                 
                 <div class="form-group" id="grupo-min-producto">
@@ -250,7 +276,14 @@
                 <h3 class="section-title">Mi Inventario Actual</h3>
                 
                 <div class="form-group">
-                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 15px;">
+                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 10px;">
+                    <select id="filtro-categoria" onchange="renderInventario()" style="margin-bottom: 15px;">
+                        <option value="todas">Todas las categorías</option>
+                        <option value="Textil">Textil</option>
+                        <option value="Ceramica">Cerámica</option>
+                        <option value="Insumos">Insumos</option>
+                        <option value="Otros">Otros</option>
+                    </select>
                 </div>
 
                 <div id="lista-inventario"></div>
@@ -294,10 +327,23 @@
                     <p class="item-details" style="text-align:center;">Carrito vacío.</p>
                 </div>
                 
-                <h4 class="sub-title">2. Gastos de Producción / Envío</h4>
+                <h4 class="sub-title">2. Datos del Cliente</h4>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="venta-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez"></div>
+                    <div class="form-group"><label>NIT</label><input type="text" id="venta-nit" placeholder="C/F"></div>
+                </div>
+
+                <h4 class="sub-title">3. Gastos y Facturación</h4>
                 <div class="grid-2">
                     <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00"></div>
                     <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00"></div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px; background: #e0f2fe; padding: 10px; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
+                        <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;">
+                        El cliente pide Factura (Separar 5% para SAT del total)
+                    </label>
                 </div>
 
                 <div class="cart-total" id="venta-total-preview">Total a Cobrar: Q 0.00</div>
@@ -350,7 +396,7 @@
                 
                 <h4 class="sub-title">2. Datos del Cliente (Opcional)</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" placeholder="Ej. Juan Pérez"></div>
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez"></div>
                     <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
                 </div>
 
@@ -358,6 +404,13 @@
                 <div class="grid-2">
                     <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" min="0" placeholder="0.00"></div>
                     <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00"></div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px; background: #f3e8ff; padding: 10px; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-purple); margin: 0; font-weight: bold;">
+                        <input type="checkbox" id="cotiza-factura" style="width: 20px; height: 20px;">
+                        Incluir Factura (Aplica 5% de retención para la SAT)
+                    </label>
                 </div>
 
                 <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
@@ -395,6 +448,15 @@
             <input type="hidden" id="edit-id">
             
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
+            <div class="form-group">
+                <label>Categoría</label>
+                <select id="edit-categoria">
+                    <option value="Textil">Textil</option>
+                    <option value="Ceramica">Cerámica</option>
+                    <option value="Insumos">Insumos</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
             <div class="grid-2">
                 <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
                 <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min" min="0"></div>
@@ -447,7 +509,7 @@
         let ventas = [];
         let historialIngresos = [];
         let historialCotizaciones = [];
-        let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+        let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let datosCargadosDeLaNube = false; 
         
         let carritoIngresos = [];
@@ -456,7 +518,6 @@
 
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value;
-            
             if(btoa(pass) === 'MTAxMA==') {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
@@ -489,7 +550,8 @@
                         const data = docSnap.data();
                         inventario = data.inventario || [];
                         ventas = data.ventas || [];
-                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                        if (typeof fondos.fondoImpuestos === 'undefined') fondos.fondoImpuestos = 0;
                         historialIngresos = data.historialIngresos || [];
                         historialCotizaciones = data.historialCotizaciones || [];
                         
@@ -516,13 +578,14 @@
                 const dataVent = localStorage.getItem(KEY_VENTAS);
                 if (dataVent) ventas = JSON.parse(dataVent) || [];
                 const dataFondos = localStorage.getItem(KEY_FONDOS);
-                if (dataFondos) fondos = JSON.parse(dataFondos) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+                if (dataFondos) fondos = JSON.parse(dataFondos) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                if (typeof fondos.fondoImpuestos === 'undefined') fondos.fondoImpuestos = 0;
                 const dataIngresos = localStorage.getItem(KEY_INGRESOS);
                 if (dataIngresos) historialIngresos = JSON.parse(dataIngresos) || [];
                 const dataCotiz = localStorage.getItem(KEY_COTIZ_HIST);
                 if (dataCotiz) historialCotizaciones = JSON.parse(dataCotiz) || [];
             } catch (e) { 
-                inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 }; 
+                inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; 
             }
             mostrarLogo();
             actualizarUI();
@@ -543,7 +606,6 @@
             if(pestaña === 'alertas') { renderAlertas(); }
         }
 
-        // ----- COMPRESIÓN Y LÍMITE DEL LOGO -----
         function cargarLogo(event) {
             const file = event.target.files[0];
             if(file){
@@ -594,6 +656,7 @@
             const esNuevo = val === 'nuevo';
             document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
+            document.getElementById('grupo-categoria-producto').style.display = esNuevo ? 'block' : 'none';
         }
 
         function renderSelectIngreso() {
@@ -617,33 +680,29 @@
             const selectId = document.getElementById('inv-select').value;
             const stock = parseInt(document.getElementById('inv-stock').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
-            
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value);
             
             if (isNaN(stock) || isNaN(costoIngresado) || stock <= 0 || costoIngresado < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
             
-            let costoBase = 0;
-            if (tipoCosto === 'total') {
-                costoBase = costoIngresado / stock;
-            } else {
-                costoBase = costoIngresado;
-            }
-
+            let costoBase = tipoCosto === 'total' ? costoIngresado / stock : costoIngresado;
             let nombreProd = "";
             let minStock = 5;
+            let categoria = "Otros";
 
             if (selectId === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
                 minStock = parseInt(document.getElementById('inv-min').value);
+                categoria = document.getElementById('inv-categoria').value;
                 if(isNaN(minStock) || minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
             } else {
                 const prod = inventario.find(p => p.id == selectId);
                 nombreProd = prod ? prod.nombre : "Producto";
                 minStock = prod && prod.min !== undefined ? prod.min : 5;
+                categoria = prod && prod.categoria ? prod.categoria : "Otros";
             }
-            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor });
+            carritoIngresos.push({ tempId: Date.now(), isNew: selectId === 'nuevo', idOriginal: selectId !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor, categoria: categoria });
             
             document.getElementById('inv-stock').value = '';
             document.getElementById('inv-costo').value = '';
@@ -667,7 +726,7 @@
             carritoIngresos.forEach(item => {
                 totalPiezas += item.stock;
                 costoTotalPreview += (item.stock * item.costoBase);
-                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Costo Base: Q${item.costoBase.toFixed(2)} c/u | Cat: ${item.categoria}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
 
             contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
@@ -698,7 +757,7 @@
                     inventario.push({ 
                         id: idFinalAsignado, nombre: item.nombre, stock: item.stock, 
                         min: item.min !== undefined ? item.min : 5, costo: costoFinal, 
-                        proveedor: item.proveedor, lastModified: Date.now() 
+                        proveedor: item.proveedor, categoria: item.categoria, lastModified: Date.now() 
                     });
                 } else {
                     idFinalAsignado = item.idOriginal;
@@ -727,7 +786,7 @@
             cont.innerHTML = '';
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
             [...historialIngresos].reverse().forEach(reg => {
-                if (reg.anulada) return; // SALTA LOS INGRESOS ANULADOS
+                if (reg.anulada) return; 
                 const resumen = reg.items.map(i => `+${i.stock}x ${i.nombre}`).join(', ');
                 cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
             });
@@ -785,6 +844,7 @@
             document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0;
             document.getElementById('edit-costo').value = prod.costo.toFixed(2);
             document.getElementById('edit-proveedor').value = prod.proveedor || '';
+            document.getElementById('edit-categoria').value = prod.categoria || 'Otros';
             document.getElementById('modal-editar').style.display = 'flex';
         }
         function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
@@ -796,6 +856,7 @@
             const min = parseInt(document.getElementById('edit-min').value) || 0;
             const costo = parseFloat(document.getElementById('edit-costo').value);
             const proveedor = document.getElementById('edit-proveedor').value.trim();
+            const categoria = document.getElementById('edit-categoria').value;
             
             if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
@@ -806,6 +867,7 @@
                 p.min = min; 
                 p.costo = costo; 
                 p.proveedor = proveedor; 
+                p.categoria = categoria;
                 p.lastModified = Date.now(); 
                 guardarDatos(); 
                 actualizarUI(); 
@@ -820,9 +882,15 @@
             const contInv = document.getElementById('lista-inventario');
             contInv.innerHTML = '';
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
+            const catFiltro = document.getElementById('filtro-categoria') ? document.getElementById('filtro-categoria').value : 'todas';
             
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            
+            let invFiltrado = invOrdenado.filter(p => {
+                let coincideTexto = p.nombre.toLowerCase().includes(textoBuscado);
+                let coincideCat = (catFiltro === 'todas') || ((p.categoria || 'Otros') === catFiltro);
+                return coincideTexto && coincideCat;
+            });
             
             if(invFiltrado.length === 0) {
                 contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
@@ -834,7 +902,7 @@
                 let stockStyle = stockBajo ? 'color: var(--primary-red); font-weight: bold;' : '';
                 let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
 
-                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${p.stock}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
+                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${p.stock}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
             });
         }
 
@@ -949,6 +1017,9 @@
             if(carritoVentas.length === 0) { alert("⚠️ El carrito está vacío."); return; }
             const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
+            const pideFactura = document.getElementById('venta-factura').checked;
+            const clienteNombre = document.getElementById('venta-nombre').value.trim() || 'C/F';
+            const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
             
             if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
@@ -963,16 +1034,26 @@
                 costosProductos += (item.qty * item.costoBase); 
                 itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
             });
-            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            
+            let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio + impuestoSAT;
             const gananciaNeta = ingresoTotal - totalCostosOperativos;
-            fondos.costoProducto += costosProductos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta;
-            ventas.push({ id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, ganancia: gananciaNeta, detalleItems: [...carritoVentas] });
+            
+            fondos.costoProducto += costosProductos; 
+            fondos.costoLuzTinta += costoTinta; 
+            fondos.gananciaLibre += gananciaNeta;
+            fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
+
+            ventas.push({ id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura });
             
             carritoVentas = []; 
             document.getElementById('venta-tinta').value = ''; 
             document.getElementById('venta-envio').value = '';
             document.getElementById('buscador-venta-producto').value = '';
             document.getElementById('venta-producto').value = '';
+            document.getElementById('venta-nombre').value = '';
+            document.getElementById('venta-nit').value = '';
+            document.getElementById('venta-factura').checked = false;
             
             renderCarritoVentas(); guardarDatos(); actualizarUI();
             alert("💰 ¡Venta procesada con éxito!");
@@ -982,8 +1063,7 @@
             const v = ventas.find(x => x.id === id);
             if(!v || v.anulada) return; 
             
-            // BLINDAJE DE FONDOS EN NEGATIVO
-            if (fondos.costoProducto < v.costosProductos || fondos.costoLuzTinta < v.costoTinta || fondos.gananciaLibre < v.ganancia) {
+            if (fondos.costoProducto < v.costosProductos || fondos.costoLuzTinta < v.costoTinta || fondos.gananciaLibre < v.ganancia || (v.impuestoSAT && fondos.fondoImpuestos < v.impuestoSAT)) {
                 if(!confirm("⚠️ ADVERTENCIA: Ya has retirado parte del dinero de esta venta.\nSi la anulas, tus fondos quedarán en NÚMEROS NEGATIVOS (en rojo) hasta que registres nuevas ventas para cubrirlos.\n\n¿Aún así deseas deshacerla?")) return;
             } else {
                 if(!confirm("¿Deshacer venta? Los artículos regresarán al inventario y el dinero se restará de tus fondos.")) return;
@@ -995,23 +1075,15 @@
                     p.stock += item.qty; 
                     p.lastModified = Date.now();
                 } else {
-                    inventario.push({
-                        id: item.idProd,
-                        nombre: item.nombre + " (Devuelto)",
-                        stock: item.qty,
-                        costo: item.costoBase,
-                        min: 0,
-                        proveedor: "Recuperado de venta anulada",
-                        lastModified: Date.now()
-                    });
+                    inventario.push({ id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta anulada", categoria: "Otros", lastModified: Date.now() });
                 }
             });
             fondos.costoProducto -= v.costosProductos; 
             fondos.costoLuzTinta -= v.costoTinta; 
             fondos.gananciaLibre -= v.ganancia; 
+            if(v.impuestoSAT) fondos.fondoImpuestos -= v.impuestoSAT;
             
             v.anulada = true; 
-            
             guardarDatos(); actualizarUI();
         }
 
@@ -1122,6 +1194,9 @@
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            const pideFactura = document.getElementById('cotiza-factura').checked;
+            const clienteNombre = document.getElementById('cotiza-nombre').value.trim() || 'C/F';
+            const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
 
             if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
             
@@ -1135,7 +1210,8 @@
                 resumen += `- ${item.qty}x ${item.nombre} ${item.rol === 'material' ? '(Gasto Interno)' : `(Q${item.precioCobrado.toFixed(2)} c/u)`}\n`;
             });
             
-            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio;
+            let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+            const totalCostosOperativos = costosProductos + costoTinta + costoEnvio + impuestoSAT;
             const gananciaNeta = ingresoTotal - totalCostosOperativos;
 
             resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
@@ -1143,30 +1219,37 @@
             resumen += `📦 Costos de Materiales: Q ${costosProductos.toFixed(2)}\n`;
             resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
             resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
+            if(pideFactura) resumen += `🏛️ Impuesto SAT (5%): Q ${impuestoSAT.toFixed(2)}\n`;
             resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
             resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-            // GUARDAR EN HISTORIAL
             historialCotizaciones.push({
                 id: Date.now(),
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 detalleItems: [...carritoCotizacion],
                 costoTinta: costoTinta,
                 costoEnvio: costoEnvio,
+                impuestoSAT: impuestoSAT,
                 ingresoTotal: ingresoTotal,
                 costosProductos: costosProductos,
                 gananciaNeta: gananciaNeta,
+                clienteNombre: clienteNombre,
+                clienteNit: clienteNit,
+                factura: pideFactura,
                 eliminada: false
             });
 
-            // LIMPIAR CARRITO DESPUÉS DE GUARDAR
             carritoCotizacion = [];
             document.getElementById('cotiza-tinta').value = '';
             document.getElementById('cotiza-envio').value = '';
+            document.getElementById('cotiza-nombre').value = '';
+            document.getElementById('cotiza-nit').value = '';
+            document.getElementById('cotiza-factura').checked = false;
             renderCarritoCotizacion();
 
             guardarDatos();
             renderHistorialCotizaciones();
+            actualizarUI();
             alert(resumen);
         }
 
@@ -1220,7 +1303,6 @@
             canvas.height = heightBase * scale;
             
             ctx.scale(scale, scale);
-
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, widthBase, heightBase);
 
@@ -1316,19 +1398,21 @@
             
             let hayVisibles = false;
             [...historialCotizaciones].reverse().forEach(cot => {
-                if(cot.eliminada) return; // ELIMINACIÓN SUAVE PARA NO CREAR ZOMBIS
+                if(cot.eliminada) return; 
                 hayVisibles = true;
                 const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', ');
+                const textFactura = cot.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
                 cont.innerHTML += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                        <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen}</p>
+                        <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen} ${textFactura}</p>
                         <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
                     </div>
                     <div class="item-details" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
                         <div>
                             <span style="display: block; margin-bottom: 4px;">📅 ${cot.fecha}</span>
                             <span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${cot.ingresoTotal.toFixed(2)}</span>
+                            ${cot.clienteNombre ? `<span style="display:block; font-size:11px; margin-top:3px;">👤 ${cot.clienteNombre}</span>` : ''}
                         </div>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
                             <button onclick="editarCotizacionPasada(${cot.id})" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button>
@@ -1343,38 +1427,31 @@
             }
         }
 
-        // --- NUEVO: FUNCIÓN PARA EDITAR COTIZACIÓN DEL HISTORIAL ---
         function editarCotizacionPasada(id) {
             const cot = historialCotizaciones.find(c => c.id === id);
             if(!cot) return;
 
-            if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial para que puedas guardarla con los nuevos cambios.")) return;
+            if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial.")) return;
 
-            // Pasar los artículos al carrito actual
             carritoCotizacion = [...cot.detalleItems];
-            
-            // Pasar los gastos extras a las casillas
             document.getElementById('cotiza-tinta').value = cot.costoTinta > 0 ? cot.costoTinta : '';
             document.getElementById('cotiza-envio').value = cot.costoEnvio > 0 ? cot.costoEnvio : '';
+            document.getElementById('cotiza-nombre').value = cot.clienteNombre || '';
+            document.getElementById('cotiza-nit').value = cot.clienteNit || '';
+            document.getElementById('cotiza-factura').checked = cot.factura || false;
 
-            // Eliminar la vieja del historial
             cot.eliminada = true;
             
-            // Guardar, renderizar y llevar a la vista de carrito
             guardarDatos();
             renderCarritoCotizacion();
             renderHistorialCotizaciones();
-            
-            // Subir al tope de la página
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            alert("✏️ Cotización cargada. Puedes agregar, cambiar o quitar productos del carrito y luego presionar 'Resumen Info' para guardarla nuevamente.");
         }
 
         function borrarHistorialCotizacion(id) {
             if(confirm("¿Eliminar esta cotización del historial?")) {
                 const cot = historialCotizaciones.find(c => c.id === id);
-                if(cot) cot.eliminada = true; // SE MARCA COMO ELIMINADA (SOLUCION ZOMBI)
+                if(cot) cot.eliminada = true;
                 guardarDatos();
                 renderHistorialCotizaciones();
             }
@@ -1394,25 +1471,25 @@
 
             if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
 
-            // ACTUALIZACION DE COSTOS CONGELADOS
             let costoProductosActualizado = 0;
             cot.detalleItems.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
                 if(p) {
                     p.stock -= item.qty; 
                     p.lastModified = Date.now();
-                    costoProductosActualizado += (item.qty * p.costo); // TOMA EL COSTO ACTUAL DE HOY
+                    costoProductosActualizado += (item.qty * p.costo);
                 } else {
                     costoProductosActualizado += (item.qty * item.costoBase);
                 }
             });
 
-            const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + cot.costoEnvio;
+            const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + cot.costoEnvio + (cot.impuestoSAT || 0);
             const gananciaNetaActualizada = cot.ingresoTotal - totalCostosOperativos;
 
             fondos.costoProducto += costoProductosActualizado; 
             fondos.costoLuzTinta += cot.costoTinta; 
             fondos.gananciaLibre += gananciaNetaActualizada;
+            if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
             
             ventas.push({ 
                 id: Date.now(), 
@@ -1422,15 +1499,16 @@
                 costosProductos: costoProductosActualizado, 
                 costoTinta: cot.costoTinta, 
                 costoEnvio: cot.costoEnvio, 
+                impuestoSAT: cot.impuestoSAT || 0,
                 ganancia: gananciaNetaActualizada, 
-                detalleItems: [...cot.detalleItems] 
+                detalleItems: [...cot.detalleItems],
+                clienteNombre: cot.clienteNombre || 'C/F',
+                clienteNit: cot.clienteNit || 'C/F',
+                factura: cot.factura || false
             });
             
-            cot.eliminada = true; // ELIMINACION SUAVE (SOLUCION ZOMBI)
-
-            guardarDatos(); 
-            actualizarUI();
-            
+            cot.eliminada = true;
+            guardarDatos(); actualizarUI();
             alert("✅ ¡Venta registrada con éxito desde el historial!");
             cambiarPestaña('ventas');
         }
@@ -1450,18 +1528,20 @@
 
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
+            const pideFactura = document.getElementById('cotiza-factura').checked;
+            const clienteNombre = document.getElementById('cotiza-nombre').value.trim() || 'C/F';
+            const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
 
             if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
             
             let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
             
-            // ACTUALIZACION DE COSTOS
             carritoCotizacion.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
                 if(p) {
                     p.stock -= item.qty; 
                     p.lastModified = Date.now();
-                    costosProductosActualizados += (item.qty * p.costo); // TOMA COSTO DE HOY
+                    costosProductosActualizados += (item.qty * p.costo);
                 } else {
                     costosProductosActualizados += (item.qty * item.costoBase);
                 }
@@ -1470,12 +1550,14 @@
                 itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
             });
             
-            const totalCostosOperativos = costosProductosActualizados + costoTinta + costoEnvio;
+            let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+            const totalCostosOperativos = costosProductosActualizados + costoTinta + costoEnvio + impuestoSAT;
             const gananciaNetaActualizada = ingresoTotal - totalCostosOperativos;
             
             fondos.costoProducto += costosProductosActualizados; 
             fondos.costoLuzTinta += costoTinta; 
             fondos.gananciaLibre += gananciaNetaActualizada;
+            fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
             
             ventas.push({ 
                 id: Date.now(), 
@@ -1485,8 +1567,12 @@
                 costosProductos: costosProductosActualizados, 
                 costoTinta: costoTinta, 
                 costoEnvio: costoEnvio, 
+                impuestoSAT: impuestoSAT,
                 ganancia: gananciaNetaActualizada, 
-                detalleItems: [...carritoCotizacion] 
+                detalleItems: [...carritoCotizacion],
+                clienteNombre: clienteNombre,
+                clienteNit: clienteNit,
+                factura: pideFactura
             });
             
             carritoCotizacion = []; 
@@ -1494,11 +1580,13 @@
             document.getElementById('cotiza-envio').value = '';
             document.getElementById('buscador-cotiza-producto').value = '';
             document.getElementById('cotiza-producto').value = '';
+            document.getElementById('cotiza-nombre').value = '';
+            document.getElementById('cotiza-nit').value = '';
+            document.getElementById('cotiza-factura').checked = false;
             
             renderCarritoCotizacion(); 
             guardarDatos(); 
             actualizarUI();
-            
             alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado.");
             cambiarPestaña('ventas');
         }
@@ -1556,11 +1644,19 @@
                 fondos.gananciaLibre -= val; document.getElementById('ret-ganancia').value = ''; guardarDatos(); actualizarUI(); 
             } 
         }
+        function retirarImpuesto() { 
+            let val = parseFloat(document.getElementById('ret-impuesto').value);
+            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            if(val > (fondos.fondoImpuestos||0)) return alert("El monto a retirar supera el fondo disponible en SAT");
+            if(confirm("¿Retirar Q " + val.toFixed(2) + " para pago de impuestos?")) { 
+                fondos.fondoImpuestos -= val; document.getElementById('ret-impuesto').value = ''; guardarDatos(); actualizarUI(); 
+            } 
+        }
 
         function generarReporteExcel() {
             const inv = JSON.parse(localStorage.getItem(KEY_INV)) || [];
             const vent = (JSON.parse(localStorage.getItem(KEY_VENTAS)) || []).filter(v => !v.anulada);
-            const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0 };
+            const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
             let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
 
             const libro = XLSX.utils.book_new();
@@ -1569,6 +1665,7 @@
                 { "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) },
                 { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) },
                 { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) },
+                { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) },
                 { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }
             ];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen);
@@ -1577,6 +1674,7 @@
             if (inv.length > 0) {
                 const dataInv = inv.map(p => ({
                     "Nombre del Producto": p.nombre,
+                    "Categoría": p.categoria || "Otros",
                     "Existencias (Stock)": p.stock,
                     "Alerta Mínima": p.min !== undefined ? p.min : 0,
                     "Costo Unitario (Q)": p.costo.toFixed(2),
@@ -1590,11 +1688,15 @@
             if (vent.length > 0) {
                 const dataVent = vent.map(v => ({
                     "Fecha y Hora": v.fecha,
+                    "Cliente": v.clienteNombre || "C/F",
+                    "NIT": v.clienteNit || "C/F",
+                    "Factura": v.factura ? "Sí" : "No",
                     "Detalle de Artículos": v.resumenItems,
                     "Total Cobrado (Q)": v.ingresoTotal.toFixed(2),
                     "Costo de Materiales (Q)": v.costosProductos.toFixed(2),
                     "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2),
                     "Pago Mensajero (Q)": v.costoEnvio.toFixed(2),
+                    "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2),
                     "Ganancia Neta (Q)": v.ganancia.toFixed(2)
                 }));
                 const hojaVent = XLSX.utils.json_to_sheet(dataVent);
@@ -1614,7 +1716,7 @@
 
             if(window.db) {
                 if (!datosCargadosDeLaNube) {
-                    console.warn("⚠️ Los datos iniciales de la nube no se han cargado. Se bloquea el guardado en Firebase para no sobrescribir y perder datos.");
+                    console.warn("⚠️ Los datos iniciales de la nube no se han cargado. Se bloquea el guardado en Firebase.");
                     return; 
                 }
 
@@ -1638,6 +1740,7 @@
                                     pLocal.nombre = pNube.nombre;
                                     pLocal.min = pNube.min;
                                     pLocal.proveedor = pNube.proveedor;
+                                    pLocal.categoria = pNube.categoria;
                                     pLocal.costo = pNube.costo;
                                     pLocal.lastModified = pNube.lastModified;
                                 }
@@ -1656,6 +1759,7 @@
                                     fondos.costoProducto += nv.costosProductos;
                                     fondos.costoLuzTinta += nv.costoTinta;
                                     fondos.gananciaLibre += nv.ganancia;
+                                    if(nv.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos||0) + nv.impuestoSAT;
                                 }
                             } else if (nv.anulada && !localVenta.anulada) {
                                 localVenta.anulada = true;
@@ -1666,6 +1770,7 @@
                                 fondos.costoProducto -= localVenta.costosProductos;
                                 fondos.costoLuzTinta -= localVenta.costoTinta;
                                 fondos.gananciaLibre -= localVenta.ganancia;
+                                if(localVenta.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos||0) - localVenta.impuestoSAT;
                             }
                         });
                         
@@ -1685,7 +1790,7 @@
                                             inventario.push({
                                                 id: item.idFinal, nombre: item.nombre, stock: item.stock,
                                                 min: item.min !== undefined ? item.min : 5, costo: item.costoIngresado,
-                                                proveedor: "Sincronizado de la nube", lastModified: Date.now()
+                                                proveedor: "Sincronizado de la nube", categoria: item.categoria || "Otros", lastModified: Date.now()
                                             });
                                         }
                                     });
@@ -1711,11 +1816,7 @@
 
                         nubeCotizaciones.forEach(nc => {
                             let localCot = historialCotizaciones.find(c => c.id === nc.id);
-                            if (!localCot) {
-                                historialCotizaciones.push(nc);
-                            } else if (nc.eliminada && !localCot.eliminada) {
-                                localCot.eliminada = true;
-                            }
+                            if (!localCot) { historialCotizaciones.push(nc); } else if (nc.eliminada && !localCot.eliminada) { localCot.eliminada = true; }
                         });
 
                         ventas.sort((a, b) => a.id - b.id);
@@ -1723,19 +1824,48 @@
                         historialCotizaciones.sort((a, b) => a.id - b.id);
                     }
 
-                    await window.setDoc(docRef, {
-                        inventario: inventario,
-                        ventas: ventas,
-                        fondos: fondos,
-                        historialIngresos: historialIngresos,
-                        historialCotizaciones: historialCotizaciones,
-                        ultimaActualizacion: new Date()
-                    });
-                    console.log("☁️ Nube de SubliCosturas actualizada y fusionada con éxito");
+                    await window.setDoc(docRef, { inventario: inventario, ventas: ventas, fondos: fondos, historialIngresos: historialIngresos, historialCotizaciones: historialCotizaciones, ultimaActualizacion: new Date() });
                 } catch (e) {
                     console.error("Error sincronizando nube:", e);
                 }
             }
+        }
+
+        // --- NUEVAS FUNCIONES PARA GRÁFICO Y LISTA CLIENTES ---
+        let chartVentas = null;
+        function actualizarGraficoVentas() {
+            if(!document.getElementById('graficoVentas')) return;
+            let conteo = {};
+            ventas.forEach(v => {
+                if(v.anulada) return;
+                if(v.detalleItems) {
+                    v.detalleItems.forEach(item => {
+                        if(item.rol === "principal") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty;
+                    });
+                }
+            });
+            let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5);
+            let ctx = document.getElementById('graficoVentas').getContext('2d');
+            if(chartVentas) chartVentas.destroy();
+            chartVentas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n),
+                    datasets: [{ label: 'Unidades Vendidas', data: ordenados.map(n => conteo[n]), backgroundColor: '#2563eb', borderRadius: 5 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function actualizarListaClientes() {
+            const dl = document.getElementById('lista-clientes');
+            if(!dl) return;
+            const clientesUnicos = new Set();
+            ventas.forEach(v => { if(v.clienteNombre && v.clienteNombre !== "C/F" && v.clienteNombre !== "") clientesUnicos.add(v.clienteNombre); });
+            historialCotizaciones.forEach(c => { if(c.clienteNombre && c.clienteNombre !== "C/F" && c.clienteNombre !== "") clientesUnicos.add(c.clienteNombre); });
+            
+            dl.innerHTML = '';
+            clientesUnicos.forEach(c => { dl.innerHTML += `<option value="${c}">`; });
         }
 
         function actualizarUI() {
@@ -1743,25 +1873,30 @@
             document.getElementById('dash-valor-inv').innerText = 'Q ' + valorInventario.toFixed(2);
             document.getElementById('dash-costo-producto').innerText = 'Q ' + fondos.costoProducto.toFixed(2);
             document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
+            document.getElementById('dash-fondo-impuestos').innerText = 'Q ' + (fondos.fondoImpuestos||0).toFixed(2);
             document.getElementById('dash-ganancia').innerText = 'Q ' + fondos.gananciaLibre.toFixed(2);
             
             renderInventario();
+            actualizarGraficoVentas();
+            actualizarListaClientes();
 
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
                 if (v.anulada) return; 
+                const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
                 contVentas.innerHTML += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
-                        <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems}</p>
+                        <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems} ${textFactura}</p>
                         <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
                     </div>
                     <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                        <span>📅 ${v.fecha}</span>
+                        <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre}` : ''}</div>
                         <span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span>
                         <span class="cost-text">📦 <b>Costo Mat.:</b> Q${v.costosProductos.toFixed(2)}</span>
                         <span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span>
                         <span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>
+                        ${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}
                         <span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 5px;">
                             Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}
                         </span>
