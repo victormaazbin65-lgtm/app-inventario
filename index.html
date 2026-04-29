@@ -287,9 +287,12 @@
                 
                 <div class="form-group">
                     <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 10px;">
-                    <select id="filtro-categoria" onchange="renderInventario()" style="margin-bottom: 15px;">
-                        <option value="todas">Todas las categorías</option>
-                    </select>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <select id="filtro-categoria" onchange="renderInventario()" style="margin-bottom: 0; flex: 1;">
+                            <option value="todas">Todas las categorías</option>
+                        </select>
+                        <button onclick="renombrarCategoriaGlobal()" class="btn-sm" style="background-color: var(--primary-blue); color: white; padding: 0 15px;">✏️ Renombrar Categoría</button>
+                    </div>
                 </div>
 
                 <div id="lista-inventario"></div>
@@ -557,6 +560,43 @@
             } else {
                 inputCatNueva.style.display = 'none';
                 inputCatNueva.value = '';
+            }
+        }
+
+        // ================= NUEVA FUNCIÓN PARA MODIFICAR/RENOMBRAR CATEGORÍA =================
+        function renombrarCategoriaGlobal() {
+            const selectFiltro = document.getElementById('filtro-categoria');
+            const catActual = selectFiltro.value;
+            
+            if (catActual === 'todas') {
+                alert("⚠️ Primero selecciona en la lista desplegable (a la izquierda) la categoría que deseas modificar, y luego presiona este botón.");
+                return;
+            }
+
+            const nuevoNombre = prompt(`Estás a punto de renombrar la categoría "${catActual}".\n\nTodos los productos que tengan esta categoría cambiarán automáticamente al nuevo nombre.\n\nEscribe el nuevo nombre:`, catActual);
+            
+            if (!nuevoNombre || nuevoNombre.trim() === "" || nuevoNombre.trim() === catActual) {
+                return; // Se canceló o no hubo cambios
+            }
+
+            const nombreLimpio = nuevoNombre.trim();
+            let contador = 0;
+            
+            inventario.forEach(p => {
+                const catProd = p.categoria || "Otros";
+                if (catProd === catActual) {
+                    p.categoria = nombreLimpio;
+                    p.lastModified = Date.now();
+                    contador++;
+                }
+            });
+
+            if (contador > 0) {
+                guardarDatos();
+                actualizarUI();
+                alert(`✅ ¡Listo! La categoría se renombró a "${nombreLimpio}". Se actualizaron ${contador} productos automáticamente.`);
+            } else {
+                alert("No se encontraron productos con esa categoría.");
             }
         }
 
