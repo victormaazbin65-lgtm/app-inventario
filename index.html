@@ -609,13 +609,11 @@
                 }
             });
 
-            // Si es una categoría vacía que creaste manualmente, actualiza la lista personalizada también
+            // CORRECCIÓN: Siempre aseguramos que el nuevo nombre quede en la lista y el viejo se elimine.
             let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-            if(customCats.includes(catActual)) {
-                customCats = customCats.filter(c => c !== catActual);
-                if(!customCats.includes(nombreLimpio)) customCats.push(nombreLimpio);
-                localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
-            }
+            customCats = customCats.filter(c => c !== catActual);
+            if(!customCats.includes(nombreLimpio)) customCats.push(nombreLimpio);
+            localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
 
             guardarDatos();
             actualizarUI();
@@ -941,7 +939,18 @@
                         if(item.proveedor !== "No especificado") p.proveedor = item.proveedor;
                     }
                 }
-                registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura });
+                
+                // CORRECCIÓN: Ahora guardamos la categoría dentro del registro del historial de ingresos
+                registroHistorial.items.push({ 
+                    idFinal: idFinalAsignado, 
+                    nombre: item.nombre, 
+                    stock: item.stock, 
+                    costoIngresado: costoFinal, 
+                    proveedor: item.proveedor, 
+                    nit: item.nit, 
+                    factura: item.factura,
+                    categoria: item.categoria 
+                });
             });
             historialIngresos.push(registroHistorial);
             carritoIngresos = [];
@@ -2081,9 +2090,13 @@
             const filtro = document.getElementById('filtro-categoria');
             if(!selectInv || !selectEdit || !filtro) return;
 
-            // Agregado: Obtiene también las categorías personalizadas creadas por el usuario
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-            const categoriasUnicas = new Set(["Textil", "Ceramica", "Insumos", "Otros", ...customCats]);
+            // CORRECCIÓN: Quitamos las categorías inmortales. Si es primera vez, se crean por defecto, luego respetarán tus cambios.
+            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats'));
+            if (!customCats) {
+                customCats = ["Textil", "Cerámica", "Insumos"];
+                localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
+            }
+            const categoriasUnicas = new Set(["Otros", ...customCats]);
             
             inventario.forEach(p => {
                 if(p.categoria && p.categoria !== "") {
