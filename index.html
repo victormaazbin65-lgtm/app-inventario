@@ -644,6 +644,12 @@
                         historialIngresos = data.historialIngresos || [];
                         historialCotizaciones = data.historialCotizaciones || [];
                         
+                        // --- INTEGRACIÓN NUEVA: Sincronizar categorías vacías de la nube ---
+                        let nubeCustomCats = data.customCats || [];
+                        if(nubeCustomCats.length > 0) {
+                            localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                        }
+                        
                         datosCargadosDeLaNube = true; 
                         
                         localStorage.setItem(KEY_INV, JSON.stringify(inventario));
@@ -2014,7 +2020,18 @@
                         historialCotizaciones.sort((a, b) => a.id - b.id);
                     }
 
-                    await window.setDoc(docRef, { inventario: inventario, ventas: ventas, fondos: fondos, historialIngresos: historialIngresos, historialCotizaciones: historialCotizaciones, ultimaActualizacion: new Date() });
+                    // Obtener las categorías personalizadas para subirlas a la nube
+                    let customCatsToSave = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+
+                    await window.setDoc(docRef, { 
+                        inventario: inventario, 
+                        ventas: ventas, 
+                        fondos: fondos, 
+                        historialIngresos: historialIngresos, 
+                        historialCotizaciones: historialCotizaciones, 
+                        customCats: customCatsToSave,
+                        ultimaActualizacion: new Date() 
+                    });
                 } catch (e) {
                     console.error("Error sincronizando nube:", e);
                 }
