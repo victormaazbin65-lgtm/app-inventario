@@ -491,7 +491,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
@@ -510,6 +510,7 @@
         window.setDoc = setDoc;
         window.doc = doc;
         window.getDoc = getDoc;
+        window.onSnapshot = onSnapshot;
 
         console.log("🔥 Firebase SubliCosturas Conectado");
     </script>
@@ -691,34 +692,36 @@
             if (window.db) {
                 try {
                     const docRef = window.doc(window.db, "sistema", "datos_actuales");
-                    const docSnap = await window.getDoc(docRef);
-
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        inventario = data.inventario || [];
-                        ventas = data.ventas || [];
-                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
-                        if (typeof fondos.fondoImpuestos === 'undefined') fondos.fondoImpuestos = 0;
-                        historialIngresos = data.historialIngresos || [];
-                        historialCotizaciones = data.historialCotizaciones || [];
-                        
-                        let nubeCustomCats = data.customCats || [];
-                        if(nubeCustomCats.length > 0) {
-                            localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                    
+                    window.onSnapshot(docRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            inventario = data.inventario || [];
+                            ventas = data.ventas || [];
+                            fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                            if (typeof fondos.fondoImpuestos === 'undefined') fondos.fondoImpuestos = 0;
+                            historialIngresos = data.historialIngresos || [];
+                            historialCotizaciones = data.historialCotizaciones || [];
+                            
+                            let nubeCustomCats = data.customCats || [];
+                            if(nubeCustomCats.length > 0) {
+                                localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                            }
+                            
+                            datosCargadosDeLaNube = true; 
+                            
+                            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+                            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+                            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+                            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+                            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
+                            
+                            mostrarLogo();
+                            actualizarUI();
                         }
-                        
-                        datosCargadosDeLaNube = true; 
-                        
-                        localStorage.setItem(KEY_INV, JSON.stringify(inventario));
-                        localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
-                        localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
-                        localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
-                        localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
-                        
-                        mostrarLogo();
-                        actualizarUI();
-                        return; 
-                    } 
+                    });
+                    
+                    return; 
                 } catch (e) {
                     console.error("Fallo la conexión a Firebase.", e);
                 }
