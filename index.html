@@ -7,37 +7,38 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --primary-blue: #2563eb;
-            --primary-green: #16a34a;
-            --primary-red: #dc2626;
-            --primary-purple: #7c3aed;
-            --primary-orange: #ea580c;
-            --text-dark: #1f2937;
-            --text-light: #6b7280;
-            --border-color: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            /* TEMA OSCURO APLICADO */
+            --bg-color: #111827;        /* Fondo general muy oscuro */
+            --card-bg: #1f2937;         /* Fondo de tarjetas oscuro */
+            --primary-blue: #3b82f6;
+            --primary-green: #10b981;
+            --primary-red: #ef4444;
+            --primary-purple: #8b5cf6;
+            --primary-orange: #f97316;
+            --text-dark: #f3f4f6;       /* Texto principal (ahora es claro) */
+            --text-light: #9ca3af;      /* Texto secundario/descripciones */
+            --border-color: #374151;    /* Bordes sutiles oscuros */
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* Sombra más pronunciada para resaltar */
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
 
         /* Pestañas */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
-        .tab-btn.active { background-color: var(--primary-blue); color: white; }
+        .tab-btn { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
+        .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
 
         /* Tarjetas */
-        .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
-        .section-title { margin-top: 0; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; color: var(--text-dark); }
+        .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .section-title { margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; color: var(--text-dark); }
         .sub-title { font-size: 15px; color: var(--text-dark); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
 
         /* Logo */
         .logo-container { text-align: center; margin-bottom: 20px; }
         .logo-wrapper { position: relative; display: inline-block; }
-        #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; }
-        .logo-edit-btn { background: white; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 18px; align-items: center; justify-content: center; padding: 0;}
+        #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; background: white; padding: 5px;}
+        .logo-edit-btn { background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color); border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 18px; align-items: center; justify-content: center; padding: 0;}
         .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
         .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
@@ -51,37 +52,39 @@
         .bg-orange { background-color: var(--primary-orange); }
         .bg-green { background-color: var(--primary-green); }
         .bg-gray { background-color: #475569; }
-        .bg-dark { background-color: #0f172a; } /* Color para Total en Caja */
+        .bg-dark { background-color: #030712; border: 1px solid #1f2937; } /* Total caja más oscuro */
         .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
         .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
-        .dash-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
-        .dash-btn:hover { background: rgba(255,255,255,0.3); }
+        .dash-btn { background: rgba(0,0,0,0.3); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
+        .dash-btn:hover { background: rgba(0,0,0,0.5); }
 
         /* Formularios */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 13px; font-weight: bold; color: var(--text-light); margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #f9fafb; }
-        input:focus, select:focus { outline: none; border-color: var(--primary-blue); background-color: white;}
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #374151; color: var(--text-dark); }
+        input:focus, select:focus { outline: none; border-color: var(--primary-blue); background-color: #4b5563;}
+        input::placeholder { color: #9ca3af; }
 
-        button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button.btn-main:hover { background-color: #1d4ed8; }
+        button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s;}
+        button.btn-main:hover { background-color: #2563eb; }
         button.btn-green { background-color: var(--primary-green); }
+        button.btn-green:hover { background-color: #059669; }
 
         /* Listas y Tablas (Carritos) */
-        .cart-container { background-color: #f8fafc; border: 1px dashed var(--primary-blue); border-radius: 8px; padding: 15px; margin-top: 15px; }
-        .cart-title { font-size: 14px; font-weight: bold; color: var(--primary-blue); margin-top: 0; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; }
+        .cart-container { background-color: #111827; border: 1px dashed var(--primary-blue); border-radius: 8px; padding: 15px; margin-top: 15px; }
+        .cart-title { font-size: 14px; font-weight: bold; color: var(--primary-blue); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
         
         .item-row { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding: 12px 0; }
         .item-info { flex: 1; }
-        .item-title { font-weight: bold; font-size: 15px; margin: 0 0 5px 0; text-transform: capitalize; }
+        .item-title { font-weight: bold; font-size: 15px; margin: 0 0 5px 0; text-transform: capitalize; color: var(--text-dark); }
         .item-details { font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5; }
         .item-actions { display: flex; gap: 8px; flex-direction: row; flex-wrap: wrap;}
 
         .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
-        .btn-edit { background-color: #fef08a; color: #854d0e; }
-        .btn-delete { background-color: #fecaca; color: var(--primary-red); }
-        .btn-sell { background-color: #bfdbfe; color: var(--primary-blue); border: 1px solid var(--primary-blue); }
+        .btn-edit { background-color: #d97706; color: white; }
+        .btn-delete { background-color: #991b1b; color: white; }
+        .btn-sell { background-color: #1e3a8a; color: white; border: 1px solid var(--primary-blue); }
         
         .alert-stock { color: var(--primary-red); font-weight: bold; }
         .profit-text { color: var(--primary-green); font-weight: bold; font-size: 14px; display: block; margin-top: 3px;}
@@ -89,20 +92,20 @@
         .cart-total { text-align: right; font-size: 18px; font-weight: bold; color: var(--text-dark); margin-top: 10px; }
 
         /* MODAL DE EDICIÓN */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
-        .modal-card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-color); }
         .modal-title { margin-top: 0; color: var(--primary-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: #e5e7eb; color: #374151; }
+        .btn-cancel { background: #4b5563; color: white; }
 
         /* ESTILOS NUEVOS PARA EL AUTOCOMPLETADO */
-        .autocomplete-input { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #fff; transition: 0.2s;}
-        .autocomplete-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: white; z-index: 100; border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: none; margin-top: 5px; }
-        .sugerencia-item { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; cursor: pointer; font-size: 14px; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center; transition: 0.2s;}
+        .autocomplete-input { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #374151; color: var(--text-dark); transition: 0.2s;}
+        .autocomplete-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        .sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); z-index: 100; border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: none; margin-top: 5px; }
+        .sugerencia-item { padding: 12px 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; font-size: 14px; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center; transition: 0.2s;}
         .sugerencia-item:hover { background-color: var(--primary-blue); color: white; }
-        .sugerencia-item:hover span { color: #e5e7eb !important; }
+        .sugerencia-item:hover span { color: white !important; }
         .sugerencia-item:last-child { border-bottom: none; }
     </style>
 </head>
@@ -159,7 +162,7 @@
                         <p class="dash-title">Fondo: Productos</p>
                         <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-prod" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-prod" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoProducto()">Retirar</button>
                         </div>
                     </div>
@@ -167,7 +170,7 @@
                         <p class="dash-title">Fondo: Luz y Tinta</p>
                         <p class="dash-value" id="dash-costo-luz">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-luz" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-luz" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoLuz()">Retirar</button>
                         </div>
                     </div>
@@ -175,7 +178,7 @@
                         <p class="dash-title">Ganancia Libre</p>
                         <p class="dash-value" id="dash-ganancia">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-ganancia" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-ganancia" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button>
                         </div>
                     </div>
@@ -183,15 +186,15 @@
                         <p class="dash-title">Fondo: Impuestos (SAT)</p>
                         <p class="dash-value" id="dash-fondo-impuestos">Q 0.00</p>
                         <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-impuesto" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: none; font-size: 12px; text-align: center; color: var(--text-dark);">
+                            <input type="number" id="ret-impuesto" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
                             <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarImpuesto()">Retirar</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="card" style="margin-top: 25px;">
+                <div class="card" style="margin-top: 25px; background-color: var(--card-bg);">
                     <h3 class="section-title">Artículos Más Vendidos</h3>
-                    <canvas id="graficoVentas" width="100%" height="45"></canvas>
+                    <canvas id="graficoVentas" width="100%" height="45" style="background-color: var(--card-bg); border-radius: 8px; padding: 10px;"></canvas>
                 </div>
 
                 <div style="margin-top: 25px; text-align: center;">
@@ -321,6 +324,7 @@
                 <div class="form-group">
                     <label>¿Cuál es su función en esta venta?</label>
                     <select id="venta-rol" onchange="cambiarRolVenta()">
+                        <option value="" disabled selected>👉 Selecciona la función...</option>
                         <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
                         <option value="material">✂️ MATERIAL USADO (Gasto interno, resta ganancia)</option>
                     </select>
@@ -328,14 +332,14 @@
 
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a usar/vender</label><input type="number" id="venta-qty" value="1" min="1"></div>
-                    <div class="form-group" id="grupo-venta-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group" id="grupo-venta-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
                 <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
             </div>
 
             <div class="card cart-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #bfdbfe; padding-bottom: 5px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">
                     <h3 class="cart-title" style="border: none; padding: 0; margin: 0;">🛍️ Carrito de la Venta Actual</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
                 </div>
@@ -356,7 +360,7 @@
                     <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
-                <div class="form-group" style="margin-top: 10px; background: #e0f2fe; padding: 10px; border-radius: 8px;">
+                <div class="form-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
                         <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;">
                         El cliente pide Factura (Separar 5% para SAT del total)
@@ -388,6 +392,7 @@
                 <div class="form-group">
                     <label>¿Cuál es su función en esta cotización?</label>
                     <select id="cotiza-rol" onchange="cambiarRolCotizacion()">
+                        <option value="" disabled selected>👉 Selecciona la función...</option>
                         <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
                         <option value="material">✂️ MATERIAL USADO (Gasto interno)</option>
                     </select>
@@ -395,14 +400,14 @@
 
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a cotizar</label><input type="number" id="cotiza-qty" value="1" min="1"></div>
-                    <div class="form-group" id="grupo-cotiza-precio"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group" id="grupo-cotiza-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
-                <button class="btn-main" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
+                <button class="btn-main" style="background-color: var(--primary-purple);" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
             </div>
 
             <div class="card cart-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9d5ff; padding-bottom: 5px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">
                     <h3 class="cart-title" style="color: var(--primary-purple); border: none; padding: 0; margin: 0;">📄 Detalles de la Cotización</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
                 </div>
@@ -423,7 +428,7 @@
                     <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
 
-                <div class="form-group" style="margin-top: 10px; background: #f3e8ff; padding: 10px; border-radius: 8px;">
+                <div class="form-group" style="margin-top: 10px; background: rgba(139, 92, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-purple); margin: 0; font-weight: bold;">
                         <input type="checkbox" id="cotiza-factura" style="width: 20px; height: 20px;">
                         Incluir Factura (Aplica 5% de retención para la SAT)
@@ -881,15 +886,15 @@
 
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
-            const stock = parseInt(document.getElementById('inv-stock').value);
+            const stock = parseInt(document.getElementById('inv-stock').value) || 0;
             const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
             const nit = document.getElementById('inv-nit').value.trim() || '';
             const factura = document.getElementById('inv-factura').value.trim() || '';
             
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
-            const costoIngresado = parseFloat(document.getElementById('inv-costo').value);
+            const costoIngresado = parseFloat(document.getElementById('inv-costo').value) || 0;
             
-            if (isNaN(stock) || isNaN(costoIngresado) || stock <= 0 || costoIngresado < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
+            if (stock <= 0 || costoIngresado < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
             
             let costoBase = tipoCosto === 'total' ? costoIngresado / stock : costoIngresado;
             let nombreProd = "";
@@ -899,7 +904,7 @@
 
             if (modo === 'nuevo') {
                 nombreProd = document.getElementById('inv-nombre').value.trim();
-                minStock = parseInt(document.getElementById('inv-min').value);
+                minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 
                 let catElegida = document.getElementById('inv-categoria').value;
                 if (catElegida === 'nueva') {
@@ -908,7 +913,7 @@
                     categoria = catElegida;
                 }
                 
-                if(isNaN(minStock) || minStock < 0) minStock = 0;
+                if(minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
                 selectId = 'nuevo';
             } else {
@@ -959,7 +964,7 @@
                 contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Q${item.costoBase.toFixed(2)} c/u${provText}${facText}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
 
-            contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--primary-blue); padding-top: 10px; color: var(--primary-blue);">
+            contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">
                 Total a Ingresar: <b>${totalPiezas} piezas</b><br>
                 Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b>
             </div>`;
@@ -1109,11 +1114,11 @@
         function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
         
         function guardarEdicionInventario() {
-            const id = parseFloat(document.getElementById('edit-id').value);
+            const id = parseFloat(document.getElementById('edit-id').value) || 0;
             const nombre = document.getElementById('edit-nombre').value.trim();
-            const stock = parseInt(document.getElementById('edit-stock').value);
+            const stock = parseInt(document.getElementById('edit-stock').value) || 0;
             const min = parseInt(document.getElementById('edit-min').value) || 0;
-            const costo = parseFloat(document.getElementById('edit-costo').value);
+            const costo = parseFloat(document.getElementById('edit-costo').value) || 0;
             const proveedor = document.getElementById('edit-proveedor').value.trim();
             
             let catElegida = document.getElementById('edit-categoria').value;
@@ -1124,7 +1129,7 @@
                 categoria = catElegida;
             }
             
-            if(!nombre || isNaN(stock) || stock < 0 || isNaN(costo) || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
+            if(!nombre || stock < 0 || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
             const p = inventario.find(x => x.id === id);
             if(p) { 
@@ -1217,8 +1222,13 @@
 
         function cambiarRolVenta() {
             const rol = document.getElementById('venta-rol').value;
-            if(rol === 'material') { document.getElementById('grupo-venta-precio').style.display = 'none'; document.getElementById('venta-precio').value = '0';
-            } else { document.getElementById('grupo-venta-precio').style.display = 'block'; document.getElementById('venta-precio').value = ''; }
+            if(rol === 'principal') { 
+                document.getElementById('grupo-venta-precio').style.display = 'block'; 
+                document.getElementById('venta-precio').value = '';
+            } else { 
+                document.getElementById('grupo-venta-precio').style.display = 'none'; 
+                document.getElementById('venta-precio').value = '0'; 
+            }
         }
 
         function getStockDisponible(idProd) {
@@ -1231,10 +1241,11 @@
         function agregarAlCarritoVenta() {
             const idProd = document.getElementById('venta-producto').value; 
             const rol = document.getElementById('venta-rol').value; 
-            const qty = parseInt(document.getElementById('venta-qty').value);
-            const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('venta-precio').value) : 0;
+            const qty = parseInt(document.getElementById('venta-qty').value) || 0;
+            const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('venta-precio').value) || 0) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado) || precioCobrado < 0) { 
+            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal o Material)."); return; }
+            if(!idProd || qty <= 0 || precioCobrado < 0) { 
                 alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
             }
@@ -1246,9 +1257,12 @@
             carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             
             document.getElementById('venta-qty').value = '1';
-            if(rol === 'principal') document.getElementById('venta-precio').value = '';
+            document.getElementById('venta-precio').value = '';
             document.getElementById('buscador-venta-producto').value = ''; 
             document.getElementById('venta-producto').value = ''; 
+            document.getElementById('venta-rol').value = ''; // Resetear rol para obligar a seleccionar
+            cambiarRolVenta(); // Ocultar campo de precio
+            
             renderCarritoVentas();
         }
 
@@ -1273,7 +1287,7 @@
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
                     const esPrincipal = item.rol === 'principal';
                     const icon = esPrincipal ? '🏷️' : '✂️';
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
             document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
@@ -1396,17 +1410,23 @@
 
         function cambiarRolCotizacion() {
             const rol = document.getElementById('cotiza-rol').value;
-            if(rol === 'material') { document.getElementById('grupo-cotiza-precio').style.display = 'none'; document.getElementById('cotiza-precio').value = '0';
-            } else { document.getElementById('grupo-cotiza-precio').style.display = 'block'; document.getElementById('cotiza-precio').value = ''; }
+            if(rol === 'principal') { 
+                document.getElementById('grupo-cotiza-precio').style.display = 'block'; 
+                document.getElementById('cotiza-precio').value = '';
+            } else { 
+                document.getElementById('grupo-cotiza-precio').style.display = 'none'; 
+                document.getElementById('cotiza-precio').value = '0'; 
+            }
         }
 
         function agregarAlCarritoCotizacion() {
             const idProd = document.getElementById('cotiza-producto').value;
             const rol = document.getElementById('cotiza-rol').value; 
-            const qty = parseInt(document.getElementById('cotiza-qty').value);
-            const precioCobrado = rol === 'principal' ? parseFloat(document.getElementById('cotiza-precio').value) : 0;
+            const qty = parseInt(document.getElementById('cotiza-qty').value) || 0;
+            const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('cotiza-precio').value) || 0) : 0;
             
-            if(!idProd || isNaN(qty) || qty <= 0 || isNaN(precioCobrado) || precioCobrado < 0) { 
+            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal o Material)."); return; }
+            if(!idProd || qty <= 0 || precioCobrado < 0) { 
                 alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
             }
@@ -1415,9 +1435,12 @@
             carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
             
             document.getElementById('cotiza-qty').value = '1';
-            if(rol === 'principal') document.getElementById('cotiza-precio').value = '';
+            document.getElementById('cotiza-precio').value = '';
             document.getElementById('buscador-cotiza-producto').value = '';
             document.getElementById('cotiza-producto').value = '';
+            document.getElementById('cotiza-rol').value = ''; // Reset
+            cambiarRolCotizacion(); // Ocultar precio
+            
             renderCarritoCotizacion();
         }
 
@@ -1450,7 +1473,7 @@
                     const stockActual = prod ? prod.stock : 0;
                     const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
 
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? '#1f2937' : '#6b7280'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
             document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
@@ -1569,7 +1592,7 @@
             canvas.height = heightBase * scale;
             
             ctx.scale(scale, scale);
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff'; // Fondo blanco para la imagen exportada
             ctx.fillRect(0, 0, widthBase, heightBase);
 
             const logoSrc = localStorage.getItem('subli_logo');
@@ -1669,8 +1692,8 @@
                 const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', ');
                 const textFactura = cot.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
                 cont.innerHTML += `
-                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen} ${textFactura}</p>
                         <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
                     </div>
@@ -1872,8 +1895,8 @@
 
             productosBajos.forEach(p => {
                 contAlertas.innerHTML += `
-                <div class="item-row" style="background-color: #fef2f2; border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #fecaca; padding-bottom: 8px; margin-bottom: 8px;">
+                <div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
@@ -1887,32 +1910,32 @@
         }
 
         function retirarCostoProducto() { 
-            let val = parseFloat(document.getElementById('ret-prod').value);
-            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            let val = parseFloat(document.getElementById('ret-prod').value) || 0;
+            if(val <= 0) return alert("Ingrese un monto válido mayor a 0");
             if(val > fondos.costoProducto) return alert("El monto a retirar supera el fondo disponible");
             if(confirm("¿Retirar Q " + val.toFixed(2) + " para surtir?")) { 
                 fondos.costoProducto -= val; document.getElementById('ret-prod').value = ''; guardarDatos(); actualizarUI(); 
             } 
         }
         function retirarCostoLuz() { 
-            let val = parseFloat(document.getElementById('ret-luz').value);
-            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            let val = parseFloat(document.getElementById('ret-luz').value) || 0;
+            if(val <= 0) return alert("Ingrese un monto válido mayor a 0");
             if(val > fondos.costoLuzTinta) return alert("El monto a retirar supera el fondo disponible");
             if(confirm("¿Retirar Q " + val.toFixed(2) + " para pagos de luz/tinta?")) { 
                 fondos.costoLuzTinta -= val; document.getElementById('ret-luz').value = ''; guardarDatos(); actualizarUI(); 
             } 
         }
         function retirarGanancia() { 
-            let val = parseFloat(document.getElementById('ret-ganancia').value);
-            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            let val = parseFloat(document.getElementById('ret-ganancia').value) || 0;
+            if(val <= 0) return alert("Ingrese un monto válido mayor a 0");
             if(val > fondos.gananciaLibre) return alert("El monto a retirar supera el fondo disponible");
             if(confirm("¿Retirar Q " + val.toFixed(2) + " de la ganancia libre?")) { 
                 fondos.gananciaLibre -= val; document.getElementById('ret-ganancia').value = ''; guardarDatos(); actualizarUI(); 
             } 
         }
         function retirarImpuesto() { 
-            let val = parseFloat(document.getElementById('ret-impuesto').value);
-            if(isNaN(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            let val = parseFloat(document.getElementById('ret-impuesto').value) || 0;
+            if(val <= 0) return alert("Ingrese un monto válido mayor a 0");
             if(val > (fondos.fondoImpuestos||0)) return alert("El monto a retirar supera el fondo disponible en SAT");
             if(confirm("¿Retirar Q " + val.toFixed(2) + " para pago de impuestos?")) { 
                 fondos.fondoImpuestos -= val; document.getElementById('ret-impuesto').value = ''; guardarDatos(); actualizarUI(); 
@@ -2128,7 +2151,7 @@
                 type: 'bar',
                 data: {
                     labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n),
-                    datasets: [{ label: 'Unidades Vendidas', data: ordenados.map(n => conteo[n]), backgroundColor: '#2563eb', borderRadius: 5 }]
+                    datasets: [{ label: 'Unidades Vendidas', data: ordenados.map(n => conteo[n]), backgroundColor: '#3b82f6', borderRadius: 5 }]
                 },
                 options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
@@ -2226,8 +2249,8 @@
                 if (v.anulada) return; 
                 const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
                 contVentas.innerHTML += `
-                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px;">
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems} ${textFactura}</p>
                         <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
                     </div>
@@ -2238,7 +2261,7 @@
                         <span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span>
                         <span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>
                         ${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}
-                        <span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 5px;">
+                        <span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">
                             Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}
                         </span>
                     </div>
