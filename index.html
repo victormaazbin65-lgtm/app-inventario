@@ -1684,18 +1684,24 @@
             ctx.font = '18px Arial';
             let total = 0;
 
+            // Verificar si hay algún artículo marcado como combo
+            let tieneCombo = principales.some(item => item.rol === 'combo');
+
             principales.forEach(item => {
                 ctx.fillStyle = '#374151';
                 ctx.fillText(item.qty + 'x', 45, y);
                 
-                if (item.rol === 'combo') {
-                    ctx.fillStyle = '#10b981'; // Color verde para "INCLUIDO"
+                let sub = item.qty * item.precioCobrado;
+                total += sub; // Sumamos siempre el precio para que el total final sea exacto
+
+                if (tieneCombo) {
+                    // Si es un combo, TODOS los artículos (incluido el principal) dicen INCLUIDO en verde
+                    ctx.fillStyle = '#10b981'; 
                     ctx.fillText('INCLUIDO', 480, y);
                 } else {
-                    let sub = item.qty * item.precioCobrado;
+                    // Si no es un combo (venta normal de uno o varios principales), muestra el precio
                     ctx.fillStyle = '#374151';
                     ctx.fillText('Q ' + sub.toFixed(2), 480, y);
-                    total += sub;
                 }
 
                 ctx.fillStyle = '#1f2937';
