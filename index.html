@@ -52,7 +52,7 @@
         .bg-orange { background-color: var(--primary-orange); }
         .bg-green { background-color: var(--primary-green); }
         .bg-gray { background-color: #475569; }
-        .bg-dark { background-color: #030712; border: 1px solid #1f2937; } /* Total caja más oscuro */
+        .bg-dark { background-color: #030712; border: 1px solid #1f2937; }
         .dash-title { font-size: 13px; text-transform: uppercase; opacity: 0.9; margin: 0 0 5px 0; }
         .dash-value { font-size: 26px; font-weight: bold; margin: 0; }
         .dash-btn { background: rgba(0,0,0,0.3); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 15px; width: 100%; font-weight: bold; }
@@ -326,6 +326,7 @@
                     <select id="venta-rol" onchange="cambiarRolVenta()">
                         <option value="" disabled selected>👉 Selecciona la función...</option>
                         <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
+                        <option value="combo">🎁 INCLUIDO EN COMBO (Precio Q0.00 al cliente)</option>
                         <option value="material">✂️ MATERIAL USADO (Gasto interno, resta ganancia)</option>
                     </select>
                 </div>
@@ -394,6 +395,7 @@
                     <select id="cotiza-rol" onchange="cambiarRolCotizacion()">
                         <option value="" disabled selected>👉 Selecciona la función...</option>
                         <option value="principal">🏷️ ARTÍCULO PRINCIPAL (El que le cobro al cliente)</option>
+                        <option value="combo">🎁 INCLUIDO EN COMBO (Precio Q0.00 al cliente)</option>
                         <option value="material">✂️ MATERIAL USADO (Gasto interno)</option>
                     </select>
                 </div>
@@ -579,6 +581,9 @@
 
         // ================= NUEVAS FUNCIONES PARA CREAR / RENOMBRAR / ELIMINAR CATEGORÍA DESDE INVENTARIO =================
         function crearCategoriaVacia() {
+            const pass = prompt("🔒 Ingrese la contraseña de seguridad para crear una categoría:");
+            if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
+
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
             
@@ -603,6 +608,9 @@
                 alert("⚠️ Primero selecciona en la lista desplegable (a la izquierda) la categoría que deseas modificar, y luego presiona este botón.");
                 return;
             }
+
+            const pass = prompt("🔒 Ingrese la contraseña de seguridad para renombrar esta categoría:");
+            if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
 
             const nuevoNombre = prompt(`Estás a punto de renombrar la categoría "${catActual}".\n\nTodos los productos que tengan esta categoría cambiarán automáticamente al nuevo nombre.\n\nEscribe el nuevo nombre:`, catActual);
             
@@ -645,6 +653,9 @@
                 alert("⚠️ Primero selecciona en la lista desplegable (a la izquierda) la categoría que deseas ELIMINAR, y luego presiona este botón.");
                 return;
             }
+
+            const pass = prompt("🔒 Ingrese la contraseña de seguridad para eliminar esta categoría:");
+            if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
 
             let prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === catActual);
             let nuevaCategoria = "Otros";
@@ -1090,6 +1101,9 @@
 
         // ================= INVENTARIO =================
         function abrirModalEditar(id) {
+            const pass = prompt("🔒 Ingrese la contraseña de seguridad para editar productos:");
+            if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
+
             const prod = inventario.find(p => p.id === id);
             if(!prod) return;
             
@@ -1146,6 +1160,9 @@
             }
         }
         function borrarProducto(id) {
+            const pass = prompt("🔒 Ingrese la contraseña de seguridad para borrar este producto:");
+            if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
+
             if(confirm("¿Eliminar definitivamente del inventario?")) { inventario = inventario.filter(p => p.id !== id); guardarDatos(); actualizarUI(); }
         }
 
@@ -1244,7 +1261,7 @@
             const qty = parseInt(document.getElementById('venta-qty').value) || 0;
             const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('venta-precio').value) || 0) : 0;
             
-            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal o Material)."); return; }
+            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || qty <= 0 || precioCobrado < 0) { 
                 alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
@@ -1285,9 +1302,12 @@
                     const subtotalCobrado = item.qty * item.precioCobrado;
                     const subtotalCosto = item.qty * item.costoBase;
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
-                    const esPrincipal = item.rol === 'principal';
-                    const icon = esPrincipal ? '🏷️' : '✂️';
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${esPrincipal ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    
+                    const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
+                    const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
+                    const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material (Q${subtotalCosto.toFixed(2)})`);
+
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
             document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
@@ -1312,7 +1332,11 @@
                 }
                 ingresoTotal += (item.qty * item.precioCobrado);
                 costosProductos += (item.qty * item.costoBase); 
-                itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
+                
+                let suffix = '';
+                if (item.rol === 'material') suffix = ' (M)';
+                if (item.rol === 'combo') suffix = ' (Combo)';
+                itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
             });
             
             let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
@@ -1425,7 +1449,7 @@
             const qty = parseInt(document.getElementById('cotiza-qty').value) || 0;
             const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('cotiza-precio').value) || 0) : 0;
             
-            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal o Material)."); return; }
+            if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || qty <= 0 || precioCobrado < 0) { 
                 alert("⚠️ Revisa los datos. Asegúrate de haber tocado el producto y que los valores no sean negativos."); 
                 return; 
@@ -1466,14 +1490,17 @@
                     const subtotalCobrado = item.qty * item.precioCobrado;
                     const subtotalCosto = item.qty * item.costoBase;
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
-                    const esPrincipal = item.rol === 'principal';
-                    const icon = esPrincipal ? '🏷️' : '✂️';
+                    
+                    const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
+                    const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
                     
                     const prod = inventario.find(x => x.id == item.idProd);
                     const stockActual = prod ? prod.stock : 0;
                     const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
 
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${esPrincipal ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : `Material (Q${subtotalCosto.toFixed(2)})`}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material (Q${subtotalCosto.toFixed(2)})`);
+
+                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
             document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
@@ -1496,7 +1523,13 @@
             carritoCotizacion.forEach(item => {
                 ingresoTotal += (item.qty * item.precioCobrado);
                 costosProductos += (item.qty * item.costoBase); 
-                resumen += `- ${item.qty}x ${item.nombre} ${item.rol === 'material' ? '(Gasto Interno)' : `(Q${item.precioCobrado.toFixed(2)} c/u)`}\n`;
+                
+                let priceStr = '';
+                if (item.rol === 'material') priceStr = '(Gasto Interno)';
+                else if (item.rol === 'combo') priceStr = '(🎁 INCLUIDO)';
+                else priceStr = `(Q${item.precioCobrado.toFixed(2)} c/u)`;
+
+                resumen += `- ${item.qty}x ${item.nombre} ${priceStr}\n`;
             });
             
             let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
@@ -1566,8 +1599,9 @@
         function generarImagenCotizacionActual() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización actual está vacía. Debes añadir artículos al carrito de cotización primero."); return; }
             
-            const principales = carritoCotizacion.filter(item => item.rol === 'principal');
-            if(principales.length === 0) { alert("No hay productos principales para cobrarle al cliente en esta cotización."); return; }
+            // Ahora incluimos tanto principales como combos
+            const principales = carritoCotizacion.filter(item => item.rol === 'principal' || item.rol === 'combo');
+            if(principales.length === 0) { alert("No hay productos principales ni combos para cobrarle al cliente en esta cotización."); return; }
 
             let clienteNombre = document.getElementById('cotiza-nombre').value.trim();
             let clienteNit = document.getElementById('cotiza-nit').value.trim();
@@ -1654,9 +1688,15 @@
                 ctx.fillStyle = '#374151';
                 ctx.fillText(item.qty + 'x', 45, y);
                 
-                let sub = item.qty * item.precioCobrado;
-                ctx.fillText('Q ' + sub.toFixed(2), 480, y);
-                total += sub;
+                if (item.rol === 'combo') {
+                    ctx.fillStyle = '#10b981'; // Color verde para "INCLUIDO"
+                    ctx.fillText('INCLUIDO', 480, y);
+                } else {
+                    let sub = item.qty * item.precioCobrado;
+                    ctx.fillStyle = '#374151';
+                    ctx.fillText('Q ' + sub.toFixed(2), 480, y);
+                    total += sub;
+                }
 
                 ctx.fillStyle = '#1f2937';
                 let lineasUsadas = wrapTextCotizacion(ctx, item.nombre, 120, y, 340, 22);
@@ -1783,7 +1823,12 @@
             ventas.push({ 
                 id: Date.now(), 
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                resumenItems: cot.detalleItems.map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : ''}`).join(' + '), 
+                resumenItems: cot.detalleItems.map(i => {
+                    let suffix = '';
+                    if (i.rol === 'material') suffix = ' (M)';
+                    if (i.rol === 'combo') suffix = ' (Combo)';
+                    return `${i.qty}x ${i.nombre}${suffix}`;
+                }).join(' + '), 
                 ingresoTotal: cot.ingresoTotal, 
                 costosProductos: costoProductosActualizado, 
                 costoTinta: cot.costoTinta, 
@@ -1836,7 +1881,10 @@
                 }
                 
                 ingresoTotal += (item.qty * item.precioCobrado);
-                itemsResumen.push(`${item.qty}x ${item.nombre}${item.rol === 'material' ? ' (M)' : ''}`);
+                let suffix = '';
+                if (item.rol === 'material') suffix = ' (M)';
+                if (item.rol === 'combo') suffix = ' (Combo)';
+                itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
             });
             
             let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
@@ -2140,7 +2188,7 @@
                 if(v.anulada) return;
                 if(v.detalleItems) {
                     v.detalleItems.forEach(item => {
-                        if(item.rol === "principal") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty;
+                        if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty;
                     });
                 }
             });
