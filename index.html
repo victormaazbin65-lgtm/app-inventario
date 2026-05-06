@@ -1045,16 +1045,34 @@
             const cont = document.getElementById('lista-historial-ingresos');
             cont.innerHTML = '';
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
+            
             [...historialIngresos].reverse().forEach(reg => {
                 if (reg.anulada) return; 
+                let totalGasto = 0; // NUEVO: Calculamos el total de este lote
+                
                 const resumen = reg.items.map(i => {
+                    totalGasto += (i.stock * (i.costoIngresado || 0)); // Sumamos al total general
                     let info = `+${i.stock}x ${i.nombre}`;
                     if (i.proveedor && i.proveedor !== "No especificado") info += ` (${i.proveedor})`;
                     if (i.factura) info += ` [Fac: ${i.factura}]`;
                     if (i.nit) info += ` [NIT: ${i.nit}]`;
                     return info;
                 }).join(', ');
-                cont.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${reg.fecha}</p><p class="item-details">${resumen}</p></div><div class="item-actions"><button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button></div></div>`;
+                
+                cont.innerHTML += `
+                <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
+                        <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">📅 ${reg.fecha}</p>
+                        <button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button>
+                    </div>
+                    <div class="item-details" style="font-size: 13px;">
+                        <p style="margin: 0 0 8px 0; color: var(--text-light); line-height: 1.6;">${resumen}</p>
+                        <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; font-weight: bold; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center;">
+                            <span>Inversión Total del Lote:</span>
+                            <span style="color: var(--primary-green); font-size: 15px;">Q ${totalGasto.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>`;
             });
         }
 
@@ -1063,6 +1081,7 @@
             if(reg && !reg.anulada) {
                 for (let item of reg.items) {
                     let p = inventario.find(inv => inv.id === item.idFinal);
+                    // Verificación mejorada: Si p existe, validamos el stock. Si p fue borrado del sistema, pasa directo.
                     if (p && p.stock < item.stock) {
                         alert(`❌ ERROR: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}". Si lo anulas ahora, tu inventario quedaría en números negativos.`);
                         return; 
@@ -1073,7 +1092,7 @@
                 
                 reg.items.forEach(item => { 
                     let p = inventario.find(inv => inv.id === item.idFinal); 
-                    if(p) {
+                    if(p) { // Solo si el producto sigue existiendo
                         if (item.costoIngresado !== undefined) {
                             let valorActualTotal = p.stock * p.costo;
                             let valorIngresoAnulado = item.stock * item.costoIngresado;
@@ -2155,6 +2174,7 @@
                                     pLocal.categoria = pNube.categoria;
                                     pLocal.costo = pNube.costo;
                                     pLocal.lastModified = pNube.lastModified;
+                                    if(pNube.isService !== undefined) pLocal.isService = pNube.isService;
                                 }
                             }
                         });
