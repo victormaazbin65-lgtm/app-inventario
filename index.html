@@ -861,7 +861,8 @@
             }
 
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            // Evitar mostrar servicios en ingreso de mercadería
+            let invFiltrado = invOrdenado.filter(p => !p.isService && p.nombre.toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -1116,6 +1117,14 @@
             document.getElementById('edit-costo').value = prod.costo.toFixed(2);
             document.getElementById('edit-proveedor').value = prod.proveedor || '';
             
+            if(prod.isService) {
+                document.getElementById('edit-stock').disabled = true;
+                document.getElementById('edit-min').disabled = true;
+            } else {
+                document.getElementById('edit-stock').disabled = false;
+                document.getElementById('edit-min').disabled = false;
+            }
+
             const selectCat = document.getElementById('edit-categoria');
             selectCat.value = prod.categoria || 'Otros';
             if(selectCat.value === "") selectCat.value = 'Otros'; // Fallback
@@ -1128,7 +1137,7 @@
         function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
         
         function guardarEdicionInventario() {
-            const id = parseFloat(document.getElementById('edit-id').value) || 0;
+            const id = document.getElementById('edit-id').value;
             const nombre = document.getElementById('edit-nombre').value.trim();
             const stock = parseInt(document.getElementById('edit-stock').value) || 0;
             const min = parseInt(document.getElementById('edit-min').value) || 0;
@@ -1145,11 +1154,14 @@
             
             if(!nombre || stock < 0 || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
             
-            const p = inventario.find(x => x.id === id);
+            // Buscar usando doble igual por si el ID es string (como el del servicio)
+            const p = inventario.find(x => x.id == id);
             if(p) { 
                 p.nombre = nombre; 
-                p.stock = stock; 
-                p.min = min; 
+                if(!p.isService) {
+                    p.stock = stock; 
+                    p.min = min; 
+                }
                 p.costo = costo; 
                 p.proveedor = proveedor; 
                 p.categoria = categoria;
@@ -1160,6 +1172,11 @@
             }
         }
         function borrarProducto(id) {
+            const prod = inventario.find(p => p.id == id);
+            if(prod && prod.isService) {
+                alert("⚠️ No puedes borrar el producto CREACIÓN ya que es del sistema.");
+                return;
+            }
             const pass = prompt("🔒 Ingrese la contraseña de seguridad para borrar este producto:");
             if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
 
@@ -1186,11 +1203,12 @@
 
             invFiltrado.forEach(p => {
                 let minVal = p.min !== undefined ? p.min : 0;
-                let stockBajo = p.stock <= minVal;
+                let stockBajo = !p.isService && (p.stock <= minVal);
                 let stockStyle = stockBajo ? 'color: var(--primary-red); font-weight: bold;' : '';
                 let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
+                let stockDisplay = p.isService ? '∞ (Servicio)' : p.stock;
 
-                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${p.stock}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar(${p.id})" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(${p.id})" class="btn-sm btn-delete">Borrar</button></div></div>`;
+                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${stockDisplay}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar('${p.id}')" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto('${p.id}')" class="btn-sm btn-delete">Borrar</button></div></div>`;
             });
         }
 
@@ -1215,11 +1233,12 @@
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
-                if(p.stock > 0) {
+                if(p.stock > 0 || p.isService) {
                     hayResultados = true;
                     const div = document.createElement('div');
                     div.className = 'sugerencia-item';
-                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
+                    let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
+                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
                     
                     div.onclick = function() {
                         input.value = p.nombre; 
@@ -1251,6 +1270,7 @@
         function getStockDisponible(idProd) {
             const prod = inventario.find(p => p.id == idProd);
             if(!prod) return 0;
+            if(prod.isService) return 9999;
             let qtyEnCarrito = carritoVentas.filter(item => item.idProd == idProd).reduce((sum, item) => sum + item.qty, 0);
             return prod.stock - qtyEnCarrito;
         }
@@ -1268,10 +1288,32 @@
             }
             
             const prod = inventario.find(p => p.id == idProd);
-            const stockLibre = getStockDisponible(idProd);
-            if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
+            let nombreVenta = prod.nombre;
+            let costoVenta = prod.costo;
+
+            if (prod.isService) {
+                const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
+                if (!customName || customName.trim() === "") return; 
+                nombreVenta = "🎨 " + customName.trim();
+                
+                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
+                if (customCostoStr === null) return;
+                costoVenta = parseFloat(customCostoStr) || 0;
+            } else {
+                const stockLibre = getStockDisponible(idProd);
+                if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
+            }
             
-            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            carritoVentas.push({ 
+                tempId: Date.now(), 
+                idProd: prod.id, 
+                nombre: nombreVenta, 
+                rol: rol, 
+                qty: qty, 
+                precioCobrado: precioCobrado, 
+                costoBase: costoVenta,
+                isService: prod.isService || false
+            });
             
             document.getElementById('venta-qty').value = '1';
             document.getElementById('venta-precio').value = '';
@@ -1305,12 +1347,12 @@
                     
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
-                    const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material (Q${subtotalCosto.toFixed(2)})`);
+                    const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
                     contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
-            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
+            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
         }
 
         function procesarVentaMultiple() {
@@ -1326,7 +1368,7 @@
             let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
             carritoVentas.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
-                if(p) {
+                if(p && !item.isService) {
                     p.stock -= item.qty;
                     p.lastModified = Date.now();
                 }
@@ -1376,9 +1418,11 @@
             v.detalleItems.forEach(item => { 
                 const p = inventario.find(x => x.id == item.idProd); 
                 if(p) { 
-                    p.stock += item.qty; 
-                    p.lastModified = Date.now();
-                } else {
+                    if(!item.isService) { 
+                        p.stock += item.qty; 
+                        p.lastModified = Date.now(); 
+                    }
+                } else if (!item.isService) {
                     inventario.push({ id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta anulada", categoria: "Otros", lastModified: Date.now() });
                 }
             });
@@ -1412,17 +1456,20 @@
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
-                hayResultados = true;
-                const div = document.createElement('div');
-                div.className = 'sugerencia-item';
-                div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Hay ${p.stock})</span>`;
-                
-                div.onclick = function() {
-                    input.value = p.nombre; 
-                    hiddenId.value = p.id;  
-                    box.style.display = 'none'; 
-                };
-                box.appendChild(div);
+                if(p.stock > 0 || p.isService) {
+                    hayResultados = true;
+                    const div = document.createElement('div');
+                    div.className = 'sugerencia-item';
+                    let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
+                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
+                    
+                    div.onclick = function() {
+                        input.value = p.nombre; 
+                        hiddenId.value = p.id;  
+                        box.style.display = 'none'; 
+                    };
+                    box.appendChild(div);
+                }
             });
 
             if(!hayResultados) {
@@ -1456,7 +1503,29 @@
             }
             const prod = inventario.find(p => p.id == idProd);
             
-            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: prod.nombre, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: prod.costo });
+            let nombreVenta = prod.nombre;
+            let costoVenta = prod.costo;
+
+            if (prod.isService) {
+                const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
+                if (!customName || customName.trim() === "") return; 
+                nombreVenta = "🎨 " + customName.trim();
+                
+                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
+                if (customCostoStr === null) return;
+                costoVenta = parseFloat(customCostoStr) || 0;
+            }
+
+            carritoCotizacion.push({ 
+                tempId: Date.now(), 
+                idProd: prod.id, 
+                nombre: nombreVenta, 
+                rol: rol, 
+                qty: qty, 
+                precioCobrado: precioCobrado, 
+                costoBase: costoVenta,
+                isService: prod.isService || false
+            });
             
             document.getElementById('cotiza-qty').value = '1';
             document.getElementById('cotiza-precio').value = '';
@@ -1496,14 +1565,14 @@
                     
                     const prod = inventario.find(x => x.id == item.idProd);
                     const stockActual = prod ? prod.stock : 0;
-                    const alertaStock = stockActual < item.qty ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
+                    const alertaStock = (!item.isService && stockActual < item.qty) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
 
-                    const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material (Q${subtotalCosto.toFixed(2)})`);
+                    const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
                     contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
             }
-            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales: Q ${totalCostoInterno.toFixed(2)})</div>`;
+            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
         }
 
         function procesarCotizacion() {
@@ -1538,7 +1607,7 @@
 
             resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
             resumen += `--------------------------------------\n`;
-            resumen += `📦 Costos de Materiales: Q ${costosProductos.toFixed(2)}\n`;
+            resumen += `📦 Costos de Materiales/Servicios: Q ${costosProductos.toFixed(2)}\n`;
             resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
             resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
             if(pideFactura) resumen += `🏛️ Impuesto SAT (5%): Q ${impuestoSAT.toFixed(2)}\n`;
@@ -1798,7 +1867,7 @@
             
             for (let item of cot.detalleItems) {
                 const prod = inventario.find(p => p.id == item.idProd);
-                if (!prod || prod.stock < item.qty) {
+                if (!item.isService && (!prod || prod.stock < item.qty)) {
                     alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nSurte el inventario antes de confirmar esta venta.`);
                     return;
                 }
@@ -1809,7 +1878,7 @@
             let costoProductosActualizado = 0;
             cot.detalleItems.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
-                if(p) {
+                if(p && !item.isService) {
                     p.stock -= item.qty; 
                     p.lastModified = Date.now();
                     costoProductosActualizado += (item.qty * p.costo);
@@ -1858,7 +1927,7 @@
             
             for (let item of carritoCotizacion) {
                 const prod = inventario.find(p => p.id == item.idProd);
-                if (!prod || prod.stock < item.qty) {
+                if (!item.isService && (!prod || prod.stock < item.qty)) {
                     alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nAjusta las cantidades o surte el inventario antes de confirmar la venta.`);
                     return;
                 }
@@ -1878,7 +1947,7 @@
             
             carritoCotizacion.forEach(item => {
                 const p = inventario.find(x => x.id == item.idProd);
-                if(p) {
+                if(p && !item.isService) {
                     p.stock -= item.qty; 
                     p.lastModified = Date.now();
                     costosProductosActualizados += (item.qty * p.costo);
@@ -1940,7 +2009,7 @@
             contAlertas.innerHTML = '';
             
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            let productosBajos = invOrdenado.filter(p => p.stock <= (p.min || 0));
+            let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
             
             if(productosBajos.length === 0) {
                 contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>';
@@ -2097,7 +2166,7 @@
                                 if (!nv.anulada) {
                                     nv.detalleItems.forEach(item => {
                                         let p = inventario.find(x => x.id == item.idProd);
-                                        if(p) p.stock -= item.qty;
+                                        if(p && !item.isService) p.stock -= item.qty;
                                     });
                                     fondos.costoProducto += nv.costosProductos;
                                     fondos.costoLuzTinta += nv.costoTinta;
@@ -2108,7 +2177,7 @@
                                 localVenta.anulada = true;
                                 localVenta.detalleItems.forEach(item => {
                                     let p = inventario.find(x => x.id == item.idProd);
-                                    if(p) p.stock += item.qty;
+                                    if(p && !item.isService) p.stock += item.qty;
                                 });
                                 fondos.costoProducto -= localVenta.costosProductos;
                                 fondos.costoLuzTinta -= localVenta.costoTinta;
@@ -2280,8 +2349,27 @@
         }
 
         function actualizarUI() {
+            // --- CÓDIGO NUEVO: Asegurar que exista el servicio CREACIÓN ---
+            const ID_CREACION = "srv_creacion_01";
+            let existeCreacion = inventario.find(p => p.id === ID_CREACION);
+            if (!existeCreacion) {
+                inventario.push({
+                    id: ID_CREACION,
+                    nombre: "CREACIÓN (Servicio/Diseño)",
+                    stock: 9999, // Simbólico
+                    min: 0,
+                    costo: 0,
+                    proveedor: "Servicio Interno",
+                    categoria: "Servicios",
+                    lastModified: Date.now(),
+                    isService: true
+                });
+            }
+            // --------------------------------------------------------------
+
             // Actualizar Tarjetas Financieras
-            let valorInventario = inventario.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+            // Ignoramos el valor en bodega de los servicios
+            let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
             document.getElementById('dash-valor-inv').innerText = 'Q ' + valorInventario.toFixed(2);
             
             document.getElementById('dash-costo-producto').innerText = 'Q ' + fondos.costoProducto.toFixed(2);
@@ -2311,7 +2399,7 @@
                     <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                         <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre}` : ''}</div>
                         <span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span>
-                        <span class="cost-text">📦 <b>Costo Mat.:</b> Q${v.costosProductos.toFixed(2)}</span>
+                        <span class="cost-text">📦 <b>Costo Mat./Serv:</b> Q${v.costosProductos.toFixed(2)}</span>
                         <span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span>
                         <span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>
                         ${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}
