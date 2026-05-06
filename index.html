@@ -484,7 +484,14 @@
                 <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
                 <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min" min="0"></div>
             </div>
-            <div class="form-group"><label>Costo Unitario Real (Q)</label><input type="number" id="edit-costo" step="0.01" min="0"></div>
+            <div class="form-group">
+                <label>¿Cómo actualizarás el costo?</label>
+                <select id="edit-tipo-costo" onchange="cambiarLabelCostoEdit()" style="margin-bottom: 5px; padding: 6px; font-size: 12px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <option value="unitario">Por Unidad (c/u)</option>
+                    <option value="total">Costo Total del Lote Actual</option>
+                </select>
+                <input type="number" id="edit-costo" step="0.01" min="0" placeholder="Q por pieza">
+            </div>
             <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
 
             <div class="modal-btn-row">
@@ -1120,6 +1127,11 @@
         }
 
         // ================= INVENTARIO =================
+        function cambiarLabelCostoEdit() {
+            const tipo = document.getElementById('edit-tipo-costo').value;
+            document.getElementById('edit-costo').placeholder = tipo === 'unitario' ? "Q por pieza" : "Q costo de todo el stock";
+        }
+
         function abrirModalEditar(id) {
             const pass = prompt("🔒 Ingrese la contraseña de seguridad para editar productos:");
             if(pass !== "9090") { alert("❌ Contraseña incorrecta."); return; }
@@ -1135,6 +1147,8 @@
             document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0;
             document.getElementById('edit-costo').value = prod.costo.toFixed(2);
             document.getElementById('edit-proveedor').value = prod.proveedor || '';
+            document.getElementById('edit-tipo-costo').value = 'unitario';
+            cambiarLabelCostoEdit();
             
             if(prod.isService) {
                 document.getElementById('edit-stock').disabled = true;
@@ -1160,7 +1174,11 @@
             const nombre = document.getElementById('edit-nombre').value.trim();
             const stock = parseInt(document.getElementById('edit-stock').value) || 0;
             const min = parseInt(document.getElementById('edit-min').value) || 0;
-            const costo = parseFloat(document.getElementById('edit-costo').value) || 0;
+            
+            const tipoCosto = document.getElementById('edit-tipo-costo').value;
+            const costoIngresado = parseFloat(document.getElementById('edit-costo').value) || 0;
+            const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
+            
             const proveedor = document.getElementById('edit-proveedor').value.trim();
             
             let catElegida = document.getElementById('edit-categoria').value;
@@ -1884,10 +1902,17 @@
             const cot = historialCotizaciones.find(c => c.id === id);
             if(!cot) return;
             
+            // NUEVA VALIDACIÓN AGRUPADA DE STOCK
+            let stockRequerido = {};
             for (let item of cot.detalleItems) {
-                const prod = inventario.find(p => p.id == item.idProd);
-                if (!item.isService && (!prod || prod.stock < item.qty)) {
-                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nSurte el inventario antes de confirmar esta venta.`);
+                if (item.isService) continue;
+                stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty;
+            }
+
+            for (let idProd in stockRequerido) {
+                const prod = inventario.find(p => p.id == idProd);
+                if (!prod || prod.stock < stockRequerido[idProd]) {
+                    alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'Desconocido'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`);
                     return;
                 }
             }
@@ -1944,10 +1969,17 @@
         function convertirCotizacionAVenta() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización está vacía."); return; }
             
+            // NUEVA VALIDACIÓN AGRUPADA DE STOCK
+            let stockRequerido = {};
             for (let item of carritoCotizacion) {
-                const prod = inventario.find(p => p.id == item.idProd);
-                if (!item.isService && (!prod || prod.stock < item.qty)) {
-                    alert(`❌ No tienes inventario suficiente para "${item.nombre}". Te quedan ${prod ? prod.stock : 0} pero cotizaste ${item.qty}.\n\nAjusta las cantidades o surte el inventario antes de confirmar la venta.`);
+                if (item.isService) continue;
+                stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty;
+            }
+
+            for (let idProd in stockRequerido) {
+                const prod = inventario.find(p => p.id == idProd);
+                if (!prod || prod.stock < stockRequerido[idProd]) {
+                    alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'Desconocido'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`);
                     return;
                 }
             }
