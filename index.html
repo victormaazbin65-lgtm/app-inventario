@@ -516,7 +516,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script type="module">
-        // NUEVAS IMPORTACIONES: Añadimos collection, deleteDoc y updateDoc para usar Colecciones Separadas
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -542,7 +541,7 @@
         window.deleteDoc = deleteDoc;
         window.updateDoc = updateDoc;
 
-        console.log("🔥 Firebase SubliCosturas Conectado (Modo Colecciones)");
+        console.log("🔥 Firebase SubliCosturas Conectado (Modo Colecciones y Migración)");
     </script>
 
     <script>
@@ -563,7 +562,6 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        // ================= NUEVA FUNCIÓN PARA VENTANA DE CONTRASEÑA DE SEGURIDAD =================
         function solicitarPassword(mensaje) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('modal-password');
@@ -759,12 +757,49 @@
             }
         }
 
-        // ================= LECTURA SEPARADA POR COLECCIONES PARA EVITAR COLAPSO 1MB =================
+        // ================= CÓDIGO DE LECTURA Y MIGRACIÓN AUTOMÁTICA =================
         async function cargarDatos() {
-            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center;">Descargando datos de la nube... ⏳</p>';
+            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos desde la base principal... ⏳</p>';
 
             if (window.db) {
                 try {
+                    // PASO 1: RESCATE DE DATOS ANTERIORES (MIGRACIÓN)
+                    const docViejoRef = window.doc(window.db, "sistema", "datos_actuales");
+                    const docViejoSnap = await window.getDoc(docViejoRef);
+
+                    if (docViejoSnap.exists()) {
+                        const dataVieja = docViejoSnap.data();
+                        
+                        // Si no tiene la marca de migrado, pasamos todo a las nuevas gavetas
+                        if (!dataVieja.migrado_v10) {
+                            console.log("🛠️ Iniciando rescate de datos antiguos...");
+                            
+                            // 1. Cargar temporalmente en pantalla para que el usuario pueda trabajar de inmediato
+                            inventario = dataVieja.inventario || [];
+                            ventas = dataVieja.ventas || [];
+                            fondos = dataVieja.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                            historialIngresos = dataVieja.historialIngresos || [];
+                            historialCotizaciones = dataVieja.historialCotizaciones || [];
+                            let nubeCustomCats = dataVieja.customCats || [];
+                            
+                            if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                            
+                            actualizarUI(); // Refrescar pantalla rápido con los datos viejos
+
+                            // 2. Escribir silenciosamente en las nuevas colecciones
+                            inventario.forEach(p => window.setDoc(window.doc(window.db, "inventario", String(p.id)), p));
+                            ventas.forEach(v => window.setDoc(window.doc(window.db, "ventas", String(v.id)), v));
+                            historialIngresos.forEach(i => window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i));
+                            historialCotizaciones.forEach(c => window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c));
+                            await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date() });
+
+                            // 3. Marcar el archivo viejo como migrado para no repetir este proceso
+                            await window.updateDoc(docViejoRef, { migrado_v10: true });
+                            console.log("✅ Rescate de datos completado.");
+                        }
+                    }
+
+                    // PASO 2: ESCUCHAR LAS NUEVAS GAVETAS (COLECCIONES)
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
@@ -778,36 +813,44 @@
                     window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
-                        inventario = temp;
-                        actualizarUI();
+                        if(temp.length > 0) {
+                            inventario = temp;
+                            actualizarUI();
+                        }
                     });
 
                     window.onSnapshot(window.collection(window.db, "ventas"), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
-                        ventas = temp.sort((a,b)=>a.id-b.id);
-                        actualizarUI();
+                        if(temp.length > 0) {
+                            ventas = temp.sort((a,b)=>a.id-b.id);
+                            actualizarUI();
+                        }
                     });
 
                     window.onSnapshot(window.collection(window.db, "ingresos"), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
-                        historialIngresos = temp.sort((a,b)=>a.id-b.id);
-                        actualizarUI();
+                        if(temp.length > 0) {
+                            historialIngresos = temp.sort((a,b)=>a.id-b.id);
+                            actualizarUI();
+                        }
                     });
 
                     window.onSnapshot(window.collection(window.db, "cotizaciones"), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
-                        historialCotizaciones = temp.sort((a,b)=>a.id-b.id);
-                        actualizarUI();
+                        if(temp.length > 0) {
+                            historialCotizaciones = temp.sort((a,b)=>a.id-b.id);
+                            actualizarUI();
+                        }
                     });
                     
                     datosCargadosDeLaNube = true; 
                     mostrarLogo();
                     return; 
                 } catch (e) {
-                    console.error("Fallo la conexión a Firebase.", e);
+                    console.error("Fallo la conexión a Firebase o la migración.", e);
                 }
             } 
 
@@ -1648,7 +1691,7 @@
             fondos.costoProducto += costoProductosActualizado; fondos.costoLuzTinta += cot.costoTinta; fondos.gananciaLibre += gananciaNetaActualizada;
             if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
             
-            const nuevaVenta = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+            const nuevaVenta = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: costoEnvio, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
             ventas.push(nuevaVenta);
             if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta);
 
