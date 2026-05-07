@@ -81,7 +81,7 @@
         .item-details { font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5; }
         .item-actions { display: flex; gap: 8px; flex-direction: row; flex-wrap: wrap;}
 
-        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
+        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: text-align: center;}
         .btn-edit { background-color: #d97706; color: white; }
         .btn-delete { background-color: #991b1b; color: white; }
         .btn-sell { background-color: #1e3a8a; color: white; border: 1px solid var(--primary-blue); }
@@ -1183,7 +1183,7 @@
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar productos:");
             if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
 
-            const prod = inventario.find(p => p.id === id);
+            const prod = inventario.find(p => p.id == id);
             if(!prod) return;
             actualizarListaCategorias(); 
             document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = prod.costo.toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
