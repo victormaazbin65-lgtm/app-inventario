@@ -209,6 +209,13 @@
                     <canvas id="graficoVentas" width="100%" height="45" style="background-color: var(--card-bg); border-radius: 8px; padding: 10px;"></canvas>
                 </div>
 
+                <div class="card" style="margin-top: 25px;">
+                    <h3 class="section-title">📅 Resumen Mensual de Ventas</h3>
+                    <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos por mes (Solo para control visual).</p>
+                    <div id="lista-resumen-mensual">
+                        </div>
+                </div>
+
                 <div style="margin-top: 25px; text-align: center;">
                     <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: var(--shadow);">
                         📂 Descargar Reporte Completo (Excel)
@@ -1444,10 +1451,12 @@
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
-                if(p.stock > 0 || p.isService) {
+                if(p.stock >= 0 || p.isService) { // NOTA: Mostramos incluso si tiene 0 para que pueda cotizarlo
                     hayResultados = true;
                     const div = document.createElement('div'); div.className = 'sugerencia-item';
                     let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
+                    if (!p.isService && p.stock === 0) stockText = `<span style="color:var(--primary-red); font-weight:bold;">(Sin Stock)</span>`;
+                    
                     div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
                     div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
                     box.appendChild(div);
@@ -1474,6 +1483,16 @@
             if(!idProd || qty <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
             const prod = inventario.find(p => p.id == idProd);
             
+            // NUEVO: Alerta visual de inventario al cotizar
+            if (!prod.isService) {
+                const stockActual = prod.stock;
+                if (stockActual <= 0) {
+                    alert(`⚠️ AVISO DE INVENTARIO:\n\nActualmente tienes 0 existencias de "${prod.nombre}".\n\nPuedes agregarlo a la cotización, pero recuerda que deberás surtirlo/fabricarlo si el cliente aprueba el presupuesto.`);
+                } else if (stockActual < qty) {
+                    alert(`⚠️ AVISO DE INVENTARIO:\n\nSolo te quedan ${stockActual} unidades de "${prod.nombre}", y estás cotizando ${qty}.\n\nTendrás que surtir la diferencia si el cliente aprueba.`);
+                }
+            }
+
             let nombreVenta = prod.nombre; let costoVenta = prod.costo;
 
             if (prod.isService) {
@@ -1807,6 +1826,77 @@
             chartVentas = new Chart(ctx, { type: 'bar', data: { labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n), datasets: [{ label: 'Unidades Vendidas', data: ordenados.map(n => conteo[n]), backgroundColor: '#3b82f6', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
         }
 
+        function renderResumenMensual() {
+            const cont = document.getElementById('lista-resumen-mensual');
+            if(!cont) return;
+            cont.innerHTML = '';
+
+            if (ventas.length === 0) {
+                cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ventas registradas aún para el resumen.</p>';
+                return;
+            }
+
+            let agrupado = {};
+            const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            ventas.forEach(v => {
+                if (v.anulada) return;
+                let partesFecha = v.fecha.split(' ')[0].split('/');
+                if(partesFecha.length >= 3) {
+                    // Determinar dia, mes, año. Formato usual de toLocaleDateString: DD/MM/YYYY o MM/DD/YYYY
+                    let mes = parseInt(partesFecha[1], 10);
+                    let anio = partesFecha[2];
+
+                    if(mes > 12) mes = parseInt(partesFecha[0], 10); // Ajuste por si el navegador invirtió mes y día
+
+                    let llave = anio + '-' + mes.toString().padStart(2, '0');
+                    if(!agrupado[llave]) agrupado[llave] = { mesTexto: mesesNombres[mes-1] + " " + anio, totalVendido: 0, ganancia: 0, items: 0 };
+
+                    agrupado[llave].totalVendido += v.ingresoTotal;
+                    agrupado[llave].ganancia += v.ganancia;
+
+                    v.detalleItems.forEach(item => {
+                        if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty;
+                    });
+                }
+            });
+
+            let llavesOrdenadas = Object.keys(agrupado).sort().reverse(); 
+
+            if(llavesOrdenadas.length === 0) {
+                 cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay datos de ventas válidos.</p>';
+                 return;
+            }
+
+            let mesEstrella = '';
+            let maxVentas = -1;
+            llavesOrdenadas.forEach(llave => {
+                if(agrupado[llave].totalVendido > maxVentas) {
+                    maxVentas = agrupado[llave].totalVendido;
+                    mesEstrella = llave;
+                }
+            });
+
+            llavesOrdenadas.forEach(llave => {
+                let data = agrupado[llave];
+                let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ Mes Récord</span>' : '';
+
+                cont.innerHTML += `
+                <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div>
+                            <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 15px;">📊 ${data.mesTexto} ${estrellaHTML}</p>
+                            <p class="item-details" style="margin-top: 5px;">Artículos vendidos: <b>${data.items}</b></p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="margin: 0; color: var(--text-dark); font-weight: bold; font-size: 16px;">Total: Q${data.totalVendido.toFixed(2)}</p>
+                            <p style="margin: 2px 0 0 0; color: var(--primary-green); font-size: 12px; font-weight: bold;">Ganancia Neta: Q${data.ganancia.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
         function actualizarListaClientes() {
             const dl = document.getElementById('lista-clientes'); if(!dl) return; const clientesUnicos = new Set();
             ventas.forEach(v => { if(v.clienteNombre && v.clienteNombre !== "C/F" && v.clienteNombre !== "") clientesUnicos.add(v.clienteNombre); });
@@ -1849,7 +1939,7 @@
             let totalCaja = fondos.costoProducto + fondos.costoLuzTinta + fondos.gananciaLibre + (fondos.fondoImpuestos || 0);
             document.getElementById('dash-total-caja').innerText = 'Q ' + totalCaja.toFixed(2);
 
-            actualizarListaCategorias(); renderInventario(); actualizarGraficoVentas(); actualizarListaClientes();
+            actualizarListaCategorias(); renderInventario(); actualizarGraficoVentas(); renderResumenMensual(); actualizarListaClientes();
 
             const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
             [...ventas].reverse().forEach(v => {
