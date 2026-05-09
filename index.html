@@ -206,7 +206,8 @@
 
                 <div class="card" style="margin-top: 25px;">
                     <h3 class="section-title">💸 Historial de Retiros (Bitácora)</h3>
-                    <div id="lista-retiros-historial" style="max-height: 250px; overflow-y: auto;">
+                    <button onclick="toggleHistorial('lista-retiros-historial')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                    <div id="lista-retiros-historial" style="max-height: 250px; overflow-y: auto; display: none;">
                         <p class="item-details" style="text-align:center;">No hay retiros registrados.</p>
                     </div>
                 </div>
@@ -312,7 +313,8 @@
 
             <div class="card">
                 <h3 class="section-title">Historial de Ingresos</h3>
-                <div id="lista-historial-ingresos"></div>
+                <button onclick="toggleHistorial('lista-historial-ingresos')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="lista-historial-ingresos" style="display: none;"></div>
             </div>
         </div>
 
@@ -400,7 +402,8 @@
 
             <div class="card">
                 <h3 class="section-title">Historial de Ventas</h3>
-                <div id="lista-ventas"></div>
+                <button onclick="toggleHistorial('lista-ventas')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="lista-ventas" style="display: none;"></div>
             </div>
         </div>
 
@@ -475,7 +478,8 @@
             <div class="card" style="margin-top: 20px;">
                 <h3 class="section-title">Historial de Cotizaciones</h3>
                 <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas o editarlas más adelante.</p>
-                <div id="lista-historial-cotizaciones"></div>
+                <button onclick="toggleHistorial('lista-historial-cotizaciones')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="lista-historial-cotizaciones" style="display: none;"></div>
             </div>
         </div>
 
@@ -648,6 +652,15 @@
             } else {
                 inputCatNueva.style.display = 'none';
                 inputCatNueva.value = '';
+            }
+        }
+
+        function toggleHistorial(id) {
+            const el = document.getElementById(id);
+            if (el.style.display === 'none' || el.style.display === '') {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
             }
         }
 
@@ -1090,7 +1103,7 @@
 
                 const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
                 const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
-                let registroHistorial = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
+                let registroHistorial = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
                 
                 let valorTotalIngresado = 0; 
 
@@ -1435,7 +1448,7 @@
                 fondos.costoProducto += costosProductos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta;
                 fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
 
-                const nuevaVenta = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                 ventas.push(nuevaVenta);
                 if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta); // Sincronizar venta
 
@@ -1610,7 +1623,7 @@
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-                const nuevaCotiz = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
+                const nuevaCotiz = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
                 historialCotizaciones.push(nuevaCotiz);
                 if(window.db) window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
 
@@ -1759,7 +1772,7 @@
                 fondos.costoProducto += costoProductosActualizado; fondos.costoLuzTinta += cot.costoTinta; fondos.gananciaLibre += gananciaNetaActualizada;
                 if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
                 
-                const nuevaVenta = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
                 ventas.push(nuevaVenta);
                 if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta);
 
@@ -1809,7 +1822,7 @@
                 
                 fondos.costoProducto += costosProductosActualizados; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNetaActualizada; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
                 
-                const nuevaVenta = { id: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                 ventas.push(nuevaVenta);
                 if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta);
 
@@ -1841,6 +1854,7 @@
             fondos[fondoKey] -= val;
             const nuevoRetiro = { 
                 id: Date.now(), 
+                timestamp: Date.now(), 
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
                 tipo: tipo, 
                 monto: val 
@@ -1940,22 +1954,32 @@
 
             ventas.forEach(v => {
                 if (v.anulada) return;
-                let partesFecha = v.fecha.split(' ')[0].split('/');
-                if(partesFecha.length >= 3) {
-                    let mes = parseInt(partesFecha[1], 10);
-                    let anio = partesFecha[2];
-                    if(mes > 12) mes = parseInt(partesFecha[0], 10); 
-
-                    let llave = anio + '-' + mes.toString().padStart(2, '0');
-                    if(!agrupado[llave]) agrupado[llave] = { mesTexto: mesesNombres[mes-1] + " " + anio, totalVendido: 0, ganancia: 0, items: 0 };
-
-                    agrupado[llave].totalVendido += v.ingresoTotal;
-                    agrupado[llave].ganancia += v.ganancia;
-
-                    v.detalleItems.forEach(item => {
-                        if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty;
-                    });
+                let mes, anio;
+                
+                if (v.timestamp) {
+                    let d = new Date(v.timestamp);
+                    mes = d.getMonth() + 1;
+                    anio = d.getFullYear();
+                } else {
+                    let partesFecha = v.fecha.split(' ')[0].split('/');
+                    if(partesFecha.length >= 3) {
+                        mes = parseInt(partesFecha[1], 10);
+                        anio = partesFecha[2];
+                        if(mes > 12) mes = parseInt(partesFecha[0], 10);
+                    } else {
+                        return; 
+                    }
                 }
+
+                let llave = anio + '-' + mes.toString().padStart(2, '0');
+                if(!agrupado[llave]) agrupado[llave] = { mesTexto: mesesNombres[mes-1] + " " + anio, totalVendido: 0, ganancia: 0, items: 0 };
+
+                agrupado[llave].totalVendido += v.ingresoTotal;
+                agrupado[llave].ganancia += v.ganancia;
+
+                v.detalleItems.forEach(item => {
+                    if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty;
+                });
             });
 
             let llavesOrdenadas = Object.keys(agrupado).sort().reverse(); 
