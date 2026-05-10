@@ -313,8 +313,16 @@
 
             <div class="card">
                 <h3 class="section-title">Historial de Ingresos</h3>
-                <button onclick="toggleHistorial('lista-historial-ingresos')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="lista-historial-ingresos" style="display: none;"></div>
+                <button onclick="toggleHistorial('wrapper-historial-ingresos')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="wrapper-historial-ingresos" style="display: none;">
+                    <div style="text-align: right; margin-bottom: 10px;">
+                        <select id="limite-historial-ingresos" onchange="renderHistorialIngresos()" style="width: auto; padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
+                            <option value="30">Últimos 30 registros</option>
+                            <option value="all">Todos los registros</option>
+                        </select>
+                    </div>
+                    <div id="lista-historial-ingresos"></div>
+                </div>
             </div>
         </div>
 
@@ -402,8 +410,16 @@
 
             <div class="card">
                 <h3 class="section-title">Historial de Ventas</h3>
-                <button onclick="toggleHistorial('lista-ventas')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="lista-ventas" style="display: none;"></div>
+                <button onclick="toggleHistorial('wrapper-historial-ventas')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="wrapper-historial-ventas" style="display: none;">
+                    <div style="text-align: right; margin-bottom: 10px;">
+                        <select id="limite-historial-ventas" onchange="actualizarUI()" style="width: auto; padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
+                            <option value="30">Últimos 30 registros</option>
+                            <option value="all">Todos los registros</option>
+                        </select>
+                    </div>
+                    <div id="lista-ventas"></div>
+                </div>
             </div>
         </div>
 
@@ -478,8 +494,16 @@
             <div class="card" style="margin-top: 20px;">
                 <h3 class="section-title">Historial de Cotizaciones</h3>
                 <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas o editarlas más adelante.</p>
-                <button onclick="toggleHistorial('lista-historial-cotizaciones')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="lista-historial-cotizaciones" style="display: none;"></div>
+                <button onclick="toggleHistorial('wrapper-historial-cotizaciones')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
+                <div id="wrapper-historial-cotizaciones" style="display: none;">
+                    <div style="text-align: right; margin-bottom: 10px;">
+                        <select id="limite-historial-cotizaciones" onchange="renderHistorialCotizaciones()" style="width: auto; padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
+                            <option value="30">Últimos 30 registros</option>
+                            <option value="all">Todos los registros</option>
+                        </select>
+                    </div>
+                    <div id="lista-historial-cotizaciones"></div>
+                </div>
             </div>
         </div>
 
@@ -568,13 +592,13 @@
         const KEY_FONDOS = 'subli_fondos_v10';
         const KEY_INGRESOS = 'subli_ingresos_v10';
         const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
-        const KEY_RETIROS = 'subli_retiros_v10'; // Nueva Key para la bitácora
+        const KEY_RETIROS = 'subli_retiros_v10'; 
 
         let inventario = [];
         let ventas = [];
         let historialIngresos = [];
         let historialCotizaciones = [];
-        let historialRetiros = []; // Nuevo arreglo
+        let historialRetiros = []; 
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let datosCargadosDeLaNube = false; 
         
@@ -582,7 +606,7 @@
         let carritoVentas = [];
         let carritoCotizacion = []; 
 
-        let isProcessingTransaction = false; // Bloqueo Anti-Doble Clic
+        let isProcessingTransaction = false; 
 
         function solicitarPassword(mensaje) {
             return new Promise((resolve) => {
@@ -712,7 +736,7 @@
                     p.categoria = nombreLimpio;
                     p.lastModified = Date.now();
                     contador++;
-                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Sube el cambio a la nube
+                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
                 }
             });
 
@@ -766,7 +790,7 @@
                     if ((p.categoria || "Otros") === catActual) {
                         p.categoria = nuevaCategoria;
                         p.lastModified = Date.now();
-                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Sube el cambio a la nube
+                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
                     }
                 });
             }
@@ -801,30 +825,24 @@
                     if (docViejoSnap.exists()) {
                         const dataVieja = docViejoSnap.data();
                         
-                        // Si no tiene la marca de migrado, pasamos todo a las nuevas gavetas
                         if (!dataVieja.migrado_v10) {
                             console.log("🛠️ Iniciando rescate de datos antiguos...");
-                            
-                            // 1. Cargar temporalmente en pantalla para que el usuario pueda trabajar de inmediato
                             inventario = dataVieja.inventario || [];
                             ventas = dataVieja.ventas || [];
                             fondos = dataVieja.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                             historialIngresos = dataVieja.historialIngresos || [];
                             historialCotizaciones = dataVieja.historialCotizaciones || [];
                             let nubeCustomCats = dataVieja.customCats || [];
-                            
                             if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
                             
-                            actualizarUI(); // Refrescar pantalla rápido con los datos viejos
+                            actualizarUI(); 
 
-                            // 2. Escribir silenciosamente en las nuevas colecciones
                             inventario.forEach(p => window.setDoc(window.doc(window.db, "inventario", String(p.id)), p));
                             ventas.forEach(v => window.setDoc(window.doc(window.db, "ventas", String(v.id)), v));
                             historialIngresos.forEach(i => window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i));
                             historialCotizaciones.forEach(c => window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c));
                             await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date() });
 
-                            // 3. Marcar el archivo viejo como migrado para no repetir este proceso
                             await window.updateDoc(docViejoRef, { migrado_v10: true });
                             console.log("✅ Rescate de datos completado.");
                         }
@@ -1082,18 +1100,19 @@
         function renderCarritoIngresos() {
             const contenedor = document.getElementById('lista-ingresos-pendientes');
             if (carritoIngresos.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Lista vacía.</p>'; return; }
-            contenedor.innerHTML = ''; let totalPiezas = 0; let costoTotalPreview = 0;
+            let html = ''; let totalPiezas = 0; let costoTotalPreview = 0;
 
             carritoIngresos.forEach(item => {
                 totalPiezas += item.stock; costoTotalPreview += (item.stock * item.costoBase);
                 let provText = item.proveedor !== 'No especificado' ? ` | Prov: ${item.proveedor}` : '';
                 let facText = item.factura ? ` | Fac: ${item.factura}` : '';
-                contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Q${item.costoBase.toFixed(2)} c/u${provText}${facText}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Q${item.costoBase.toFixed(2)} c/u${provText}${facText}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
-            contenedor.innerHTML += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">Total a Ingresar: <b>${totalPiezas} piezas</b><br>Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b></div>`;
+            html += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">Total a Ingresar: <b>${totalPiezas} piezas</b><br>Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b></div>`;
+            contenedor.innerHTML = html;
         }
 
-        function procesarIngresoMultiple() {
+        async function procesarIngresoMultiple() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1106,6 +1125,7 @@
                 let registroHistorial = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
                 
                 let valorTotalIngresado = 0; 
+                let promesas = [];
 
                 carritoIngresos.forEach(item => {
                     const costoFinal = item.costoBase + transportePorPieza;
@@ -1129,30 +1149,39 @@
                         }
                     }
                     
-                    if(window.db && pObjToSave) window.setDoc(window.doc(window.db, "inventario", String(idFinalAsignado)), pObjToSave);
+                    if(window.db && pObjToSave) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(idFinalAsignado)), pObjToSave));
 
                     registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria });
                 });
                 
                 historialIngresos.push(registroHistorial);
-                if(window.db) window.setDoc(window.doc(window.db, "ingresos", String(registroHistorial.id)), registroHistorial);
+                if(window.db) promesas.push(window.setDoc(window.doc(window.db, "ingresos", String(registroHistorial.id)), registroHistorial));
+
+                if (promesas.length > 0) await Promise.all(promesas);
 
                 carritoIngresos = [];
                 document.getElementById('ingreso-transporte-global').value = ''; document.getElementById('inv-proveedor').value = ''; document.getElementById('inv-nit').value = ''; document.getElementById('inv-factura').value = '';
                 guardarDatos(); actualizarUI(); renderCarritoIngresos(); renderHistorialIngresos();
                 
                 alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${valorTotalIngresado.toFixed(2)}`);
+            } catch (error) {
+                console.error(error);
+                alert("Hubo un error al guardar el ingreso: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false; 
             }
         }
 
         function renderHistorialIngresos() {
             const cont = document.getElementById('lista-historial-ingresos');
-            cont.innerHTML = '';
             if(historialIngresos.length === 0) { cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ingresos recientes.</p>'; return; }
             
-            [...historialIngresos].reverse().forEach(reg => {
+            let data = [...historialIngresos].reverse();
+            const limite = document.getElementById('limite-historial-ingresos') ? document.getElementById('limite-historial-ingresos').value : '30';
+            if (limite === '30') data = data.slice(0, 30);
+
+            let html = '';
+            data.forEach(reg => {
                 if (reg.anulada) return; 
                 let totalGasto = 0; 
                 const resumen = reg.items.map(i => {
@@ -1164,7 +1193,7 @@
                     return info;
                 }).join(', ');
                 
-                cont.innerHTML += `
+                html += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">📅 ${reg.fecha}</p>
@@ -1179,6 +1208,7 @@
                     </div>
                 </div>`;
             });
+            cont.innerHTML = html;
         }
 
         function borrarIngreso(id) {
@@ -1249,7 +1279,7 @@
 
         function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
         
-        function guardarEdicionInventario() {
+        async function guardarEdicionInventario() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1273,12 +1303,14 @@
                     if(!p.isService) { p.stock = stock; p.min = min; }
                     p.costo = costo; p.proveedor = proveedor; p.categoria = categoria; p.lastModified = Date.now(); 
                     
-                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Firebase update
+                    if(window.db) await window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
                     
                     guardarDatos(); actualizarUI(); cerrarModalEditar(); 
                 }
+            } catch (error) {
+                alert("Hubo un error al guardar la edición: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false;
             }
         }
 
@@ -1291,14 +1323,13 @@
 
             if(confirm("¿Eliminar definitivamente del inventario?")) { 
                 inventario = inventario.filter(p => p.id !== id); 
-                if(window.db) window.deleteDoc(window.doc(window.db, "inventario", String(id))); // Firebase delete
+                if(window.db) window.deleteDoc(window.doc(window.db, "inventario", String(id))); 
                 guardarDatos(); actualizarUI(); 
             }
         }
 
         function renderInventario() {
             const contInv = document.getElementById('lista-inventario');
-            contInv.innerHTML = '';
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
             const catFiltro = document.getElementById('filtro-categoria') ? document.getElementById('filtro-categoria').value : 'todas';
             
@@ -1309,8 +1340,12 @@
                 return coincideTexto && coincideCat;
             });
             
-            if(invFiltrado.length === 0) contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
+            if(invFiltrado.length === 0) {
+                contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
+                return;
+            }
 
+            let html = '';
             invFiltrado.forEach(p => {
                 let minVal = p.min !== undefined ? p.min : 0;
                 let stockBajo = !p.isService && (p.stock <= minVal);
@@ -1318,8 +1353,9 @@
                 let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
                 let stockDisplay = p.isService ? '∞ (Servicio)' : p.stock;
 
-                contInv.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${stockDisplay}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar('${p.id}')" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto('${p.id}')" class="btn-sm btn-delete">Borrar</button></div></div>`;
+                html += `<div class="item-row"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${stockDisplay}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar('${p.id}')" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto('${p.id}')" class="btn-sm btn-delete">Borrar</button></div></div>`;
             });
+            contInv.innerHTML = html;
         }
 
         // ================= VENTA MÚLTIPLE =================
@@ -1402,22 +1438,24 @@
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
             let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoVentas.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
+            if (carritoVentas.length === 0) { 
+                contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
             } else {
-                contenedor.innerHTML = '';
+                let html = '';
                 carritoVentas.forEach(item => {
                     const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
                     const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoVenta(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
+                contenedor.innerHTML = html;
             }
             document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
         }
 
-        function procesarVentaMultiple() {
+        async function procesarVentaMultiple() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1430,11 +1468,13 @@
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
                 let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
+                let promesas = [];
+
                 carritoVentas.forEach(item => {
                     const p = inventario.find(x => x.id == item.idProd);
                     if(p && !item.isService) {
                         p.stock -= item.qty; p.lastModified = Date.now();
-                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Sincronizar stock
+                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
                     }
                     ingresoTotal += (item.qty * item.precioCobrado); costosProductos += (item.qty * item.costoBase); 
                     let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
@@ -1450,14 +1490,18 @@
 
                 const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                 ventas.push(nuevaVenta);
-                if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta); // Sincronizar venta
+                if(window.db) promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
+
+                if(promesas.length > 0) await Promise.all(promesas);
 
                 carritoVentas = []; document.getElementById('venta-tinta').value = ''; document.getElementById('venta-envio').value = ''; document.getElementById('buscador-venta-producto').value = ''; document.getElementById('venta-producto').value = ''; document.getElementById('venta-nombre').value = ''; document.getElementById('venta-nit').value = ''; document.getElementById('venta-factura').checked = false;
                 
                 renderCarritoVentas(); guardarDatos(); actualizarUI();
                 alert("💰 ¡Venta procesada con éxito!");
+            } catch (error) {
+                alert("Error al procesar la venta: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false; 
             }
         }
 
@@ -1504,7 +1548,7 @@
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
-                if(p.stock >= 0 || p.isService) { // NOTA: Mostramos incluso si tiene 0 para que pueda cotizarlo
+                if(p.stock >= 0 || p.isService) { 
                     hayResultados = true;
                     const div = document.createElement('div'); div.className = 'sugerencia-item';
                     let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
@@ -1536,7 +1580,6 @@
             if(!idProd || qty <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
             const prod = inventario.find(p => p.id == idProd);
             
-            // NUEVO: Alerta visual de inventario al cotizar
             if (!prod.isService) {
                 const stockActual = prod.stock;
                 if (stockActual <= 0) {
@@ -1569,9 +1612,10 @@
         function renderCarritoCotizacion() {
             const contenedor = document.getElementById('lista-carrito-cotizacion');
             let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoCotizacion.length === 0) { contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
+            if (carritoCotizacion.length === 0) { 
+                contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
             } else {
-                contenedor.innerHTML = '';
+                let html = '';
                 carritoCotizacion.forEach(item => {
                     const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
                     totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
@@ -1583,13 +1627,14 @@
                     const alertaStock = (!item.isService && stockActual < item.qty) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
                     const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
-                    contenedor.innerHTML += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
+                    html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${item.qty}x ${item.nombre} ${alertaStock}</p><p class="item-details">${detalleText}</p></div><button onclick="borrarDelCarritoCotizacion(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
                 });
+                contenedor.innerHTML = html;
             }
             document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
         }
 
-        function procesarCotizacion() {
+        async function procesarCotizacion() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1625,13 +1670,15 @@
 
                 const nuevaCotiz = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
                 historialCotizaciones.push(nuevaCotiz);
-                if(window.db) window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
+                if(window.db) await window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 renderCarritoCotizacion(); guardarDatos(); renderHistorialCotizaciones(); actualizarUI();
                 alert(resumen);
+            } catch (error) {
+                alert("Hubo un error al procesar la cotización: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false; 
             }
         }
 
@@ -1700,11 +1747,17 @@
         }
 
         function renderHistorialCotizaciones() {
-            const cont = document.getElementById('lista-historial-cotizaciones'); cont.innerHTML = ''; let hayVisibles = false;
-            [...historialCotizaciones].reverse().forEach(cot => {
+            const cont = document.getElementById('lista-historial-cotizaciones');
+            
+            let data = [...historialCotizaciones].reverse();
+            const limite = document.getElementById('limite-historial-cotizaciones') ? document.getElementById('limite-historial-cotizaciones').value : '30';
+            if (limite === '30') data = data.slice(0, 30);
+
+            let html = ''; let hayVisibles = false;
+            data.forEach(cot => {
                 if(cot.eliminada) return; hayVisibles = true;
                 const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', '); const textFactura = cot.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
-                cont.innerHTML += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                html += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen} ${textFactura}</p>
                         <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
@@ -1714,7 +1767,8 @@
                         <div style="display:flex; gap:5px; flex-wrap:wrap;"><button onclick="editarCotizacionPasada(${cot.id})" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button><button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button></div>
                     </div></div>`;
             });
-            if(!hayVisibles) cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas.</p>';
+            if(!hayVisibles) html = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas.</p>';
+            cont.innerHTML = html;
         }
 
         function editarCotizacionPasada(id) {
@@ -1741,7 +1795,7 @@
             }
         }
 
-        function venderCotizacionPasada(id) {
+        async function venderCotizacionPasada(id) {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1757,12 +1811,14 @@
                 if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
 
                 let costoProductosActualizado = 0;
+                let promesas = [];
+
                 cot.detalleItems.forEach(item => {
                     const p = inventario.find(x => x.id == item.idProd);
                     if(p && !item.isService) {
                         p.stock -= item.qty; p.lastModified = Date.now();
                         costoProductosActualizado += (item.qty * p.costo);
-                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Sincroniza stock
+                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
                     } else { costoProductosActualizado += (item.qty * item.costoBase); }
                 });
 
@@ -1774,18 +1830,26 @@
                 
                 const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
                 ventas.push(nuevaVenta);
-                if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta);
+                
+                if(window.db) {
+                    promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
+                    cot.eliminada = true;
+                    promesas.push(window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true}));
+                } else {
+                    cot.eliminada = true;
+                }
 
-                cot.eliminada = true;
-                if(window.db) window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true});
+                if(promesas.length > 0) await Promise.all(promesas);
 
                 guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas');
+            } catch (error) {
+                alert("Error al registrar venta: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false; 
             }
         }
 
-        function convertirCotizacionAVenta() {
+        async function convertirCotizacionAVenta() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
@@ -1803,13 +1867,14 @@
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
                 let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
+                let promesas = [];
                 
                 carritoCotizacion.forEach(item => {
                     const p = inventario.find(x => x.id == item.idProd);
                     if(p && !item.isService) {
                         p.stock -= item.qty; p.lastModified = Date.now();
                         costosProductosActualizados += (item.qty * p.costo);
-                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); // Sincroniza stock
+                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
                     } else { costosProductosActualizados += (item.qty * item.costoBase); }
                     
                     ingresoTotal += (item.qty * item.precioCobrado);
@@ -1824,29 +1889,38 @@
                 
                 const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                 ventas.push(nuevaVenta);
-                if(window.db) window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta);
+                if(window.db) promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
+
+                if (promesas.length > 0) await Promise.all(promesas);
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 
                 renderCarritoCotizacion(); guardarDatos(); actualizarUI(); alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado."); cambiarPestaña('ventas');
+            } catch(error) {
+                alert("Error al procesar: " + error.message);
             } finally {
-                setTimeout(() => { isProcessingTransaction = false; }, 1000);
+                isProcessingTransaction = false; 
             }
         }
 
         // ================= PESTAÑA ALERTAS / POR SURTIR =================
         function renderAlertas() {
-            const contAlertas = document.getElementById('lista-alertas-surtir'); contAlertas.innerHTML = '';
+            const contAlertas = document.getElementById('lista-alertas-surtir');
             let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
             
-            if(productosBajos.length === 0) { contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>'; return; }
+            if(productosBajos.length === 0) { 
+                contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>'; 
+                return; 
+            }
 
+            let html = '';
             productosBajos.forEach(p => {
-                contAlertas.innerHTML += `<div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
+                html += `<div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;"><p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "No especificado"}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span></div></div>`;
             });
+            contAlertas.innerHTML = html;
         }
 
         // ================= RETIROS Y BITÁCORA =================
@@ -1874,14 +1948,14 @@
         function renderHistorialRetiros() {
             const cont = document.getElementById('lista-retiros-historial');
             if(!cont) return;
-            cont.innerHTML = '';
             if(historialRetiros.length === 0) { 
                 cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay retiros registrados.</p>'; 
                 return; 
             }
             
+            let html = '';
             [...historialRetiros].reverse().slice(0, 50).forEach(r => { 
-                cont.innerHTML += `<div class="item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
+                html += `<div class="item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-red); font-size: 14px; margin:0 0 3px 0;">➖ Retiro: ${r.tipo}</p>
                         <p class="item-details" style="font-size: 12px;">📅 ${r.fecha}</p>
@@ -1889,6 +1963,7 @@
                     <div style="font-weight: bold; color: var(--text-dark); font-size: 15px;">Q ${r.monto.toFixed(2)}</div>
                 </div>`;
             });
+            cont.innerHTML = html;
         }
 
         // ================= REPORTES Y EXPORTACIÓN =================
@@ -1942,7 +2017,6 @@
         function renderResumenMensual() {
             const cont = document.getElementById('lista-resumen-mensual');
             if(!cont) return;
-            cont.innerHTML = '';
 
             if (ventas.length === 0) {
                 cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ventas registradas aún para el resumen.</p>';
@@ -1998,11 +2072,12 @@
                 }
             });
 
+            let html = '';
             llavesOrdenadas.forEach(llave => {
                 let data = agrupado[llave];
                 let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ Mes Récord</span>' : '';
 
-                cont.innerHTML += `
+                html += `
                 <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div>
@@ -2016,6 +2091,7 @@
                     </div>
                 </div>`;
             });
+            cont.innerHTML = html;
         }
 
         function actualizarListaClientes() {
@@ -2061,13 +2137,18 @@
             document.getElementById('dash-total-caja').innerText = 'Q ' + totalCaja.toFixed(2);
 
             actualizarListaCategorias(); renderInventario(); actualizarGraficoVentas(); renderResumenMensual(); actualizarListaClientes();
-            renderHistorialRetiros(); // Bitácora visible
+            renderHistorialRetiros(); 
 
-            const contVentas = document.getElementById('lista-ventas'); contVentas.innerHTML = '';
-            [...ventas].reverse().forEach(v => {
+            const contVentas = document.getElementById('lista-ventas');
+            let dataVentas = [...ventas].reverse();
+            const limitVentas = document.getElementById('limite-historial-ventas') ? document.getElementById('limite-historial-ventas').value : '30';
+            if(limitVentas === '30') dataVentas = dataVentas.slice(0, 30);
+
+            let htmlVentas = '';
+            dataVentas.forEach(v => {
                 if (v.anulada) return; 
                 const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
-                contVentas.innerHTML += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                htmlVentas += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems} ${textFactura}</p>
                         <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
@@ -2076,6 +2157,8 @@
                         <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre}` : ''}</div><span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span><span class="cost-text">📦 <b>Costo Mat./Serv:</b> Q${v.costosProductos.toFixed(2)}</span><span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span><span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}</span>
                     </div></div>`;
             });
+            contVentas.innerHTML = htmlVentas;
+
             renderHistorialCotizaciones(); renderHistorialIngresos();
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
