@@ -559,7 +559,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // IMPORTANTE: Se agregó 'enableIndexedDbPersistence' en la línea de abajo
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
@@ -574,6 +575,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // Habilitar Persistencia Offline de Firebase
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Múltiples pestañas abiertas, persistencia offline solo funciona en una.");
+            } else if (err.code == 'unimplemented') {
+                console.warn("El navegador no soporta persistencia offline.");
+            }
+        });
+
         window.db = db;
         window.setDoc = setDoc;
         window.doc = doc;
@@ -583,7 +593,10 @@
         window.deleteDoc = deleteDoc;
         window.updateDoc = updateDoc;
 
-        console.log("🔥 Firebase SubliCosturas Conectado (Modo Colecciones y Migración)");
+        console.log("🔥 Firebase SubliCosturas Conectado (Modo Colecciones y Persistencia Offline)");
+        
+        // Disparar evento para avisar al sistema que Firebase está listo
+        window.dispatchEvent(new Event('firebaseListo'));
     </script>
 
     <script>
@@ -814,7 +827,7 @@
 
         // ================= CÓDIGO DE LECTURA Y MIGRACIÓN AUTOMÁTICA =================
         async function cargarDatos() {
-            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos desde la base principal... ⏳</p>';
+            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos... ⏳</p>';
 
             if (window.db) {
                 try {
@@ -2163,12 +2176,27 @@
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
-        let intentosConexion = 0;
+        let appArrancada = false;
+
         function arrancarSistema() {
-            if (window.db) { cargarDatos(); } else if (intentosConexion > 6) { cargarDatos(); } else { intentosConexion++; setTimeout(arrancarSistema, 500); }
+            if (appArrancada) return;
+            appArrancada = true;
+            cargarDatos();
         }
 
-        arrancarSistema();
+        // Se detona cuando el módulo de Firebase (arriba) termina de conectarse
+        window.addEventListener('firebaseListo', () => {
+            console.log("Señal de Firebase recibida.");
+            arrancarSistema();
+        });
+
+        // Plan de Respaldo: Si pasan 5 segundos y no hay internet o está muy lento, arranca local
+        setTimeout(() => {
+            if (!appArrancada) {
+                console.warn("⚠️ Tiempo de espera de Firebase agotado (Internet lento/caído). Iniciando sistema en modo local/offline...");
+                arrancarSistema();
+            }
+        }, 5000);
     </script>
 </body>
 </html>
