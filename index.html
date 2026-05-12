@@ -35,7 +35,7 @@
         .sub-title { font-size: 15px; color: var(--text-dark); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
 
         /* Logo */
-        .logo-container { text-align: center; margin-bottom: 20px; }
+        .logo-container { text-align: center; margin-bottom: 20px; margin-top: 10px; }
         .logo-wrapper { position: relative; display: inline-block; }
         #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; background: white; padding: 5px;}
         .logo-edit-btn { background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color); border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 24px; font-weight: bold; align-items: center; justify-content: center; padding: 0; line-height: 1;}
@@ -134,6 +134,19 @@
     </div>
 
     <div class="container" id="main-app" style="display: none;">
+        
+        <!-- LOGO REUBICADO COMO ENCABEZADO PRINCIPAL -->
+        <div class="logo-container">
+            <div class="logo-wrapper">
+                <img id="logo-img" src="" alt="Logo SubliCosturas">
+                <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
+            </div>
+            <div id="logo-upload-wrapper" class="file-input-wrapper">
+                <button class="btn-upload">📸 Subir Logo de mi Marca</button>
+                <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
+            </div>
+        </div>
+
         <div class="tabs">
             <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
             <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
@@ -145,18 +158,6 @@
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
-                
-                <div class="logo-container">
-                    <div class="logo-wrapper">
-                        <img id="logo-img" src="" alt="Logo SubliCosturas">
-                        <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
-                    </div>
-                    <div id="logo-upload-wrapper" class="file-input-wrapper">
-                        <button class="btn-upload">📸 Subir Logo de mi Marca</button>
-                        <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
-                    </div>
-                </div>
-
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
                     <div class="dash-card bg-blue">
@@ -951,16 +952,7 @@
             actualizarUI();
         }
 
-        async function cambiarPestaña(pestaña, bypassPassword = false) {
-            // Protección por contraseña para Ingresos y Ventas
-            if (!bypassPassword && (pestaña === 'ingreso' || pestaña === 'ventas')) {
-                const pass = await solicitarPassword(`Ingrese la contraseña de seguridad para acceder a ${pestaña.toUpperCase()}:`);
-                if (pass !== "9090") {
-                    if (pass !== null) alert("❌ Contraseña incorrecta.");
-                    return; 
-                }
-            }
-
+        function cambiarPestaña(pestaña) {
             ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
                 document.getElementById('tab-' + p).classList.remove('active');
@@ -1243,6 +1235,9 @@
         }
 
         async function editarIngreso(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar este ingreso:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             const reg = historialIngresos.find(x => x.id === id);
             if(!reg || reg.anulada) return;
 
@@ -1301,11 +1296,14 @@
             guardarDatos(); 
             actualizarUI(); 
             renderCarritoIngresos();
-            cambiarPestaña('ingreso', true);
+            cambiarPestaña('ingreso');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function borrarIngreso(id) {
+        async function borrarIngreso(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para anular este ingreso:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             const reg = historialIngresos.find(x => x.id === id);
             if(reg && !reg.anulada) {
                 for (let item of reg.items) {
@@ -1600,6 +1598,9 @@
         }
 
         async function editarVenta(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta venta:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             const v = ventas.find(x => x.id === id);
             if(!v || v.anulada) return; 
 
@@ -1639,11 +1640,14 @@
             guardarDatos(); 
             actualizarUI();
             renderCarritoVentas();
-            cambiarPestaña('ventas', true);
+            cambiarPestaña('ventas');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function borrarVenta(id) {
+        async function borrarVenta(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para deshacer esta venta:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             const v = ventas.find(x => x.id === id);
             if(!v || v.anulada) return; 
             
@@ -1909,7 +1913,10 @@
             cont.innerHTML = html;
         }
 
-        function editarCotizacionPasada(id) {
+        async function editarCotizacionPasada(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta cotización:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             const cot = historialCotizaciones.find(c => c.id === id); if(!cot) return;
             if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial.")) return;
 
@@ -1922,7 +1929,10 @@
             guardarDatos(); renderCarritoCotizacion(); renderHistorialCotizaciones(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function borrarHistorialCotizacion(id) {
+        async function borrarHistorialCotizacion(id) {
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar esta cotización:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+
             if(confirm("¿Eliminar esta cotización del historial?")) {
                 const cot = historialCotizaciones.find(c => c.id === id);
                 if(cot) {
@@ -1979,7 +1989,7 @@
 
                 if(promesas.length > 0) await Promise.all(promesas);
 
-                guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas', true);
+                guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas');
             } catch (error) {
                 alert("Error al registrar venta: " + error.message);
             } finally {
@@ -2033,7 +2043,7 @@
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 
-                renderCarritoCotizacion(); guardarDatos(); actualizarUI(); alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado."); cambiarPestaña('ventas', true);
+                renderCarritoCotizacion(); guardarDatos(); actualizarUI(); alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado."); cambiarPestaña('ventas');
             } catch(error) {
                 alert("Error al procesar: " + error.message);
             } finally {
