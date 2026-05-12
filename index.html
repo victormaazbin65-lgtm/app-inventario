@@ -38,7 +38,7 @@
         .logo-container { text-align: center; margin-bottom: 20px; }
         .logo-wrapper { position: relative; display: inline-block; }
         #logo-img { max-width: 180px; max-height: 180px; border-radius: 15px; object-fit: contain; display: none; background: white; padding: 5px;}
-        .logo-edit-btn { background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color); border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 18px; align-items: center; justify-content: center; padding: 0;}
+        .logo-edit-btn { background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color); border-radius: 50%; width: 35px; height: 35px; position: absolute; bottom: -10px; right: -10px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-size: 24px; font-weight: bold; align-items: center; justify-content: center; padding: 0; line-height: 1;}
         .file-input-wrapper { display: inline-block; position: relative; overflow: hidden; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
         .btn-upload { background: var(--bg-color); color: var(--text-dark); padding: 8px 15px; border-radius: 8px; font-size: 12px; border: 1px solid var(--border-color); font-weight: bold;}
@@ -81,7 +81,7 @@
         .item-details { font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5; }
         .item-actions { display: flex; gap: 8px; flex-direction: row; flex-wrap: wrap;}
 
-        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: text-align: center;}
+        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center;}
         .btn-edit { background-color: #d97706; color: white; }
         .btn-delete { background-color: #991b1b; color: white; }
         .btn-sell { background-color: #1e3a8a; color: white; border: 1px solid var(--primary-blue); }
@@ -149,7 +149,7 @@
                 <div class="logo-container">
                     <div class="logo-wrapper">
                         <img id="logo-img" src="" alt="Logo SubliCosturas">
-                        <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">✏️</button>
+                        <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
                     </div>
                     <div id="logo-upload-wrapper" class="file-input-wrapper">
                         <button class="btn-upload">📸 Subir Logo de mi Marca</button>
@@ -510,9 +510,11 @@
         <div id="sec-alertas" style="display: none;">
             <div class="card">
                 <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Productos por Surtir</h3>
-                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px; margin-bottom: 15px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
                 
-                <div id="lista-alertas-surtir" style="margin-top: 15px;">
+                <button class="btn-main" style="background-color: var(--primary-green); margin-bottom: 15px; margin-top: 0;" onclick="exportarPorSurtirExcel()">📂 Exportar Lista a Excel</button>
+
+                <div id="lista-alertas-surtir">
                     <p class="item-details" style="text-align:center;">Cargando alertas...</p>
                 </div>
             </div>
@@ -559,7 +561,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // IMPORTANTE: Se agregó 'enableIndexedDbPersistence' en la línea de abajo
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -830,8 +831,8 @@
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos... ⏳</p>';
 
             if (window.db) {
+                // 1. INTENTO DE MIGRACIÓN DE DATOS VIEJOS (Aislado para que no bloquee si estamos offline)
                 try {
-                    // PASO 1: RESCATE DE DATOS ANTERIORES (MIGRACIÓN)
                     const docViejoRef = window.doc(window.db, "sistema", "datos_actuales");
                     const docViejoSnap = await window.getDoc(docViejoRef);
 
@@ -860,8 +861,12 @@
                             console.log("✅ Rescate de datos completado.");
                         }
                     }
+                } catch (e) {
+                    console.warn("⚠️ No se pudo verificar la migración de datos viejos. Posiblemente estés offline. Iniciando escucha de caché...");
+                }
 
-                    // PASO 2: ESCUCHAR LAS NUEVAS GAVETAS (COLECCIONES)
+                // 2. ESCUCHAR LAS GAVETAS (Esto se ejecuta SIEMPRE, incluso offline)
+                try {
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
@@ -921,10 +926,11 @@
                     mostrarLogo();
                     return; 
                 } catch (e) {
-                    console.error("Fallo la conexión a Firebase o la migración.", e);
+                    console.error("Fallo crítico al inicializar Firebase. Pasando a LocalStorage.", e);
                 }
             } 
 
+            // 3. RESPALDO LOCAL EXTREMO (Solo si Firebase falla por completo al cargar el script)
             try {
                 const dataInv = localStorage.getItem(KEY_INV);
                 if (dataInv) inventario = JSON.parse(dataInv) || [];
@@ -945,7 +951,16 @@
             actualizarUI();
         }
 
-        function cambiarPestaña(pestaña) {
+        async function cambiarPestaña(pestaña, bypassPassword = false) {
+            // Protección por contraseña para Ingresos y Ventas
+            if (!bypassPassword && (pestaña === 'ingreso' || pestaña === 'ventas')) {
+                const pass = await solicitarPassword(`Ingrese la contraseña de seguridad para acceder a ${pestaña.toUpperCase()}:`);
+                if (pass !== "9090") {
+                    if (pass !== null) alert("❌ Contraseña incorrecta.");
+                    return; 
+                }
+            }
+
             ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
                 document.getElementById('tab-' + p).classList.remove('active');
@@ -1210,7 +1225,10 @@
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">📅 ${reg.fecha}</p>
-                        <button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="editarIngreso(${reg.id})" class="btn-sm btn-edit">Editar</button>
+                            <button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button>
+                        </div>
                     </div>
                     <div class="item-details" style="font-size: 13px;">
                         <p style="margin: 0 0 8px 0; color: var(--text-light); line-height: 1.6;">${resumen}</p>
@@ -1222,6 +1240,69 @@
                 </div>`;
             });
             cont.innerHTML = html;
+        }
+
+        async function editarIngreso(id) {
+            const reg = historialIngresos.find(x => x.id === id);
+            if(!reg || reg.anulada) return;
+
+            // Validate stock has not been sold already
+            for (let item of reg.items) {
+                let p = inventario.find(inv => inv.id === item.idFinal);
+                if (p && p.stock < item.stock) {
+                    alert(`❌ ERROR: No puedes editar este ingreso. Ya vendiste parte de "${p.nombre}". Si lo editas, tu inventario quedaría en números negativos.`);
+                    return; 
+                }
+            }
+
+            if(!confirm("¿Deseas editar este ingreso? El stock se restará temporalmente del inventario y volverá a la lista de ingresos para que lo modifiques.")) return;
+            
+            // 1. Move to cart
+            carritoIngresos = reg.items.map(i => {
+                return {
+                    tempId: Date.now() + Math.random(),
+                    isNew: false, // We treat them as existing items being edited
+                    idOriginal: i.idFinal,
+                    nombre: i.nombre,
+                    stock: i.stock,
+                    min: 5, 
+                    costoBase: i.costoIngresado || 0,
+                    proveedor: i.proveedor || '',
+                    nit: i.nit || '',
+                    factura: i.factura || '',
+                    categoria: i.categoria || 'Otros'
+                };
+            });
+
+            // 2. Perform "Anular" math internally
+            reg.items.forEach(item => { 
+                let p = inventario.find(inv => inv.id === item.idFinal); 
+                if(p) { 
+                    if (item.costoIngresado !== undefined) {
+                        let valorActualTotal = p.stock * p.costo;
+                        let valorIngresoAnulado = item.stock * item.costoIngresado;
+                        p.stock -= item.stock;
+                        p.lastModified = Date.now();
+                        if (p.stock > 0) {
+                            p.costo = (valorActualTotal - valorIngresoAnulado) / p.stock;
+                            if (p.costo < 0) p.costo = 0; 
+                        } else { p.costo = 0; }
+                    } else {
+                        p.stock -= item.stock; 
+                        p.lastModified = Date.now();
+                    }
+                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
+                }
+            });
+            
+            reg.anulada = true; 
+            if(window.db) window.updateDoc(window.doc(window.db, "ingresos", String(reg.id)), {anulada: true});
+
+            guardarDatos(); 
+            actualizarUI(); 
+            renderCarritoIngresos();
+            cambiarPestaña('ingreso', true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function borrarIngreso(id) {
@@ -1516,6 +1597,50 @@
             } finally {
                 isProcessingTransaction = false; 
             }
+        }
+
+        async function editarVenta(id) {
+            const v = ventas.find(x => x.id === id);
+            if(!v || v.anulada) return; 
+
+            // Validations (same as deshacer)
+            if (fondos.costoProducto < v.costosProductos || fondos.costoLuzTinta < v.costoTinta || fondos.gananciaLibre < v.ganancia || (v.impuestoSAT && fondos.fondoImpuestos < v.impuestoSAT)) {
+                if(!confirm("⚠️ ADVERTENCIA: Ya has retirado fondos de esta venta. Reabrirla dejará tus fondos en NÚMEROS NEGATIVOS (en rojo) temporalmente hasta que la vuelvas a guardar.\n\n¿Aún así deseas editarla?")) return;
+            } else { 
+                if(!confirm("¿Editar esta venta? Los artículos regresarán temporalmente al inventario y se cargarán en tu carrito para modificar.")) return; 
+            }
+
+            // 1. Move data back to cart
+            carritoVentas = [...v.detalleItems].map(i => { return {...i, tempId: Date.now() + Math.random()}; });
+            document.getElementById('venta-tinta').value = v.costoTinta > 0 ? v.costoTinta : '';
+            document.getElementById('venta-envio').value = v.costoEnvio > 0 ? v.costoEnvio : '';
+            document.getElementById('venta-nombre').value = v.clienteNombre || '';
+            document.getElementById('venta-nit').value = v.clienteNit || '';
+            document.getElementById('venta-factura').checked = v.factura || false;
+
+            // 2. Undo logic silently
+            v.detalleItems.forEach(item => { 
+                const p = inventario.find(x => x.id == item.idProd); 
+                if(p) { 
+                    if(!item.isService) { p.stock += item.qty; p.lastModified = Date.now(); }
+                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
+                } else if (!item.isService) {
+                    let rec = { id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta editada", categoria: "Otros", lastModified: Date.now() };
+                    inventario.push(rec);
+                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
+                }
+            });
+            fondos.costoProducto -= v.costosProductos; fondos.costoLuzTinta -= v.costoTinta; fondos.gananciaLibre -= v.ganancia; 
+            if(v.impuestoSAT) fondos.fondoImpuestos -= v.impuestoSAT;
+            
+            v.anulada = true; 
+            if(window.db) window.updateDoc(window.doc(window.db, "ventas", String(v.id)), {anulada: true});
+
+            guardarDatos(); 
+            actualizarUI();
+            renderCarritoVentas();
+            cambiarPestaña('ventas', true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function borrarVenta(id) {
@@ -1854,7 +1979,7 @@
 
                 if(promesas.length > 0) await Promise.all(promesas);
 
-                guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas');
+                guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas', true);
             } catch (error) {
                 alert("Error al registrar venta: " + error.message);
             } finally {
@@ -1908,7 +2033,7 @@
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 
-                renderCarritoCotizacion(); guardarDatos(); actualizarUI(); alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado."); cambiarPestaña('ventas');
+                renderCarritoCotizacion(); guardarDatos(); actualizarUI(); alert("✅ ¡Cotización convertida a venta con éxito! El inventario ha sido actualizado."); cambiarPestaña('ventas', true);
             } catch(error) {
                 alert("Error al procesar: " + error.message);
             } finally {
@@ -1934,6 +2059,32 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "No especificado"}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span></div></div>`;
             });
             contAlertas.innerHTML = html;
+        }
+
+        function exportarPorSurtirExcel() {
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
+
+            if (productosBajos.length === 0) {
+                alert("No hay productos pendientes por surtir actualmente."); 
+                return;
+            }
+
+            let dataExp = productosBajos.map(p => ({
+                "Producto": p.nombre,
+                "Categoría": p.categoria || "Otros",
+                "Proveedor": p.proveedor || "No especificado",
+                "Stock Actual": p.stock,
+                "Mínimo de Alerta": p.min || 0,
+                "Costo Unitario (Q)": p.costo.toFixed(2)
+            }));
+
+            const libro = XLSX.utils.book_new();
+            const hoja = XLSX.utils.json_to_sheet(dataExp);
+            XLSX.utils.book_append_sheet(libro, hoja, "Articulos Por Surtir");
+            
+            const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+            XLSX.writeFile(libro, `SubliCosturas_Por_Surtir_${fecha}.xlsx`);
         }
 
         // ================= RETIROS Y BITÁCORA =================
@@ -2164,7 +2315,10 @@
                 htmlVentas += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems} ${textFactura}</p>
-                        <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="editarVenta(${v.id})" class="btn-sm btn-edit">Editar</button>
+                            <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
+                        </div>
                     </div>
                     <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                         <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre}` : ''}</div><span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span><span class="cost-text">📦 <b>Costo Mat./Serv:</b> Q${v.costosProductos.toFixed(2)}</span><span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span><span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}</span>
