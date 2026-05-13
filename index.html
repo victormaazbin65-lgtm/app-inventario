@@ -1718,7 +1718,13 @@
             v.detalleItems.forEach(item => { 
                 const p = inventario.find(x => x.id == item.idProd); 
                 if(p) { 
-                    if(!item.isService) { p.stock += item.qty; p.lastModified = Date.now(); }
+                    if(!item.isService) { 
+                        let valorActualEnBodega = p.stock * p.costo;
+                        let valorDevuelto = item.qty * item.costoBase;
+                        p.stock += item.qty; 
+                        p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        p.lastModified = Date.now(); 
+                    }
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                 } else if (!item.isService) {
                     let rec = { id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta editada", categoria: "Otros", lastModified: Date.now() };
@@ -1749,7 +1755,13 @@
             v.detalleItems.forEach(item => { 
                 const p = inventario.find(x => x.id == item.idProd); 
                 if(p) { 
-                    if(!item.isService) { p.stock += item.qty; p.lastModified = Date.now(); }
+                    if(!item.isService) { 
+                        let valorActualEnBodega = p.stock * p.costo;
+                        let valorDevuelto = item.qty * item.costoBase;
+                        p.stock += item.qty; 
+                        p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        p.lastModified = Date.now(); 
+                    }
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                 } else if (!item.isService) {
                     let rec = { id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta anulada", categoria: "Otros", lastModified: Date.now() };
