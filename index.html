@@ -135,6 +135,18 @@
 
     <div class="container" id="main-app" style="display: none;">
 
+        <!-- LOGO SUPERIOR GENERAL -->
+        <div class="logo-container" id="main-logo-container" style="display: block;">
+            <div class="logo-wrapper">
+                <img id="logo-img" src="" alt="Logo SubliCosturas">
+                <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
+            </div>
+            <div id="logo-upload-wrapper" class="file-input-wrapper">
+                <button class="btn-upload">📸 Subir Logo de mi Marca</button>
+                <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
+            </div>
+        </div>
+
         <div class="tabs">
             <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
             <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
@@ -145,18 +157,6 @@
         </div>
 
         <div id="sec-inicio" style="display: block;">
-            
-            <div class="logo-container">
-                <div class="logo-wrapper">
-                    <img id="logo-img" src="" alt="Logo SubliCosturas">
-                    <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
-                </div>
-                <div id="logo-upload-wrapper" class="file-input-wrapper">
-                    <button class="btn-upload">📸 Subir Logo de mi Marca</button>
-                    <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
-                </div>
-            </div>
-
             <div class="card">
                 <h3 class="section-title">Panel de Finanzas</h3>
                 <div class="dash-grid">
@@ -230,7 +230,6 @@
                         📂 Descargar Reporte Completo (Excel)
                     </button>
                     
-                    <!-- Botón temporal de Diagnóstico de Memoria -->
                     <button onclick="let t=0;for(let k in localStorage){if(localStorage.hasOwnProperty(k)){t+=(localStorage[k].length+k.length)*2;}}alert('🔥 TOTAL USADO: '+(t/1024/1024).toFixed(2)+' MB de 5.00 MB');" style="background-color: #4b5563; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; width: 100%;">
                         📊 Revisar Memoria del Dispositivo
                     </button>
@@ -538,6 +537,7 @@
 
     </div>
 
+    <!-- MODALES DE EDICIÓN Y SEGURIDAD -->
     <div id="modal-editar" class="modal-overlay">
         <div class="modal-card">
             <h3 class="modal-title">Editar Producto</h3>
@@ -569,6 +569,45 @@
             <div class="modal-btn-row">
                 <button class="btn-cancel" onclick="cerrarModalEditar()">Cancelar</button>
                 <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionInventario()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Renombrar Categoría -->
+    <div id="modal-renombrar-cat" class="modal-overlay" style="z-index: 10000;">
+        <div class="modal-card">
+            <h3 class="modal-title">✏️ Modificar Categoría</h3>
+            <div class="form-group">
+                <label>Selecciona la categoría a modificar:</label>
+                <select id="select-renombrar-cat"></select>
+            </div>
+            <div class="form-group">
+                <label>Nuevo nombre:</label>
+                <input type="text" id="input-nuevo-nombre-cat" placeholder="Escribe el nuevo nombre...">
+            </div>
+            <div class="modal-btn-row">
+                <button class="btn-cancel" onclick="document.getElementById('modal-renombrar-cat').style.display='none'">Cancelar</button>
+                <button style="background:var(--primary-blue); color:white;" onclick="confirmarRenombrarCat()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Eliminar Categoría -->
+    <div id="modal-eliminar-cat" class="modal-overlay" style="z-index: 10000;">
+        <div class="modal-card">
+            <h3 class="modal-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">🗑️ Eliminar Categoría</h3>
+            <div class="form-group">
+                <label>Selecciona la categoría a eliminar:</label>
+                <select id="select-eliminar-cat" onchange="actualizarDestinoEliminarCat()"></select>
+            </div>
+            <div class="form-group" id="grupo-destino-cat">
+                <label>Mover productos a esta categoría:</label>
+                <select id="select-destino-cat"></select>
+                <p style="font-size: 11px; color: var(--text-light); margin-top: 5px;">* Los productos no se borran, solo se cambian de carpeta.</p>
+            </div>
+            <div class="modal-btn-row">
+                <button class="btn-cancel" onclick="document.getElementById('modal-eliminar-cat').style.display='none'">Cancelar</button>
+                <button style="background:var(--primary-red); color:white;" onclick="confirmarEliminarCat()">Eliminar</button>
             </div>
         </div>
     </div>
@@ -635,11 +674,9 @@
 
         let isProcessingTransaction = false; 
 
-        // Variables vista de Inventario
         let vistaInventarioAZ = false;
         let categoriasExpandidas = {};
 
-        // Utilidad para extraer "YYYY-MM" de las fechas
         function getMesAnioFromDate(fechaString, timestamp) {
             if (timestamp) {
                 let d = new Date(timestamp);
@@ -655,7 +692,6 @@
             return null;
         }
 
-        // NUEVO: Formatear a nombre de mes
         function formatearMesAnio(ma) {
             if(!ma) return "";
             const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -663,7 +699,6 @@
             return meses[parseInt(mes, 10) - 1] + " " + anio;
         }
 
-        // Utilidad para llenar los dropdowns de meses
         function popularSelectMeses(datosArreglo, selectId) {
             const select = document.getElementById(selectId);
             if(!select) return;
@@ -782,28 +817,30 @@
             }
         }
 
-        async function renombrarCategoriaGlobalUI() {
-            let catNombres = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).join('\n- ');
-            
-            let catActual = prompt(`Escribe el nombre EXACTO de la categoría que vas a modificar.\n\nCategorías Existentes:\n- ${catNombres}`);
-            if(!catActual || catActual.trim() === "") return;
+        function renombrarCategoriaGlobalUI() {
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            if(cats.length === 0) return alert("No hay categorías creadas.");
+            const select = document.getElementById('select-renombrar-cat');
+            select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('input-nuevo-nombre-cat').value = '';
+            document.getElementById('modal-renombrar-cat').style.display = 'flex';
+        }
 
+        async function confirmarRenombrarCat() {
+            const catActual = document.getElementById('select-renombrar-cat').value;
+            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim();
+            if(!catActual || !nuevoNombre || nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
+            
+            document.getElementById('modal-renombrar-cat').style.display = 'none'; 
+            
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para renombrar:");
             if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
 
-            const nuevoNombre = prompt(`Estás a punto de renombrar la categoría "${catActual}".\n\nTodos los productos que tengan esta categoría cambiarán automáticamente.\n\nEscribe el nuevo nombre:`, catActual);
-            
-            if (!nuevoNombre || nuevoNombre.trim() === "" || nuevoNombre.trim() === catActual) {
-                return; 
-            }
-
-            const nombreLimpio = nuevoNombre.trim();
             let contador = 0;
-            
             inventario.forEach(p => {
                 const catProd = p.categoria || "Otros";
                 if (catProd === catActual) {
-                    p.categoria = nombreLimpio;
+                    p.categoria = nuevoNombre;
                     p.lastModified = Date.now();
                     contador++;
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
@@ -812,44 +849,57 @@
 
             let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
             customCats = customCats.filter(c => c !== catActual);
-            if(!customCats.includes(nombreLimpio)) customCats.push(nombreLimpio);
+            if(!customCats.includes(nuevoNombre)) customCats.push(nuevoNombre);
             localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
 
             guardarDatos(); actualizarUI();
             
-            if (contador > 0) {
-                alert(`✅ ¡Listo! La categoría se renombró a "${nombreLimpio}". Se actualizaron ${contador} productos automáticamente.`);
+            if (contador > 0) alert(`✅ ¡Listo! La categoría se renombró a "${nuevoNombre}". Se actualizaron ${contador} productos automáticamente.`);
+            else alert(`✅ La categoría "${catActual}" se cambió a "${nuevoNombre}".`);
+        }
+
+        function eliminarCategoriaGlobalUI() {
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            if(cats.length === 0) return alert("No hay categorías creadas.");
+            
+            const selectEliminar = document.getElementById('select-eliminar-cat');
+            selectEliminar.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            actualizarDestinoEliminarCat();
+            document.getElementById('modal-eliminar-cat').style.display = 'flex';
+        }
+
+        function actualizarDestinoEliminarCat() {
+            const aEliminar = document.getElementById('select-eliminar-cat').value;
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            const selectDestino = document.getElementById('select-destino-cat');
+            const prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === aEliminar);
+            
+            if(prodsAfectados.length === 0) {
+                document.getElementById('grupo-destino-cat').style.display = 'none';
             } else {
-                alert(`✅ La categoría "${catActual}" se cambió a "${nombreLimpio}".`);
+                document.getElementById('grupo-destino-cat').style.display = 'block';
+                selectDestino.innerHTML = cats.filter(c => c !== aEliminar).map(c => `<option value="${c}">${c}</option>`).join('');
+                if(selectDestino.options.length === 0) {
+                    selectDestino.innerHTML = `<option value="Otros">Otros</option>`;
+                }
             }
         }
 
-        async function eliminarCategoriaGlobalUI() {
-            let catNombres = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).join('\n- ');
-            
-            let catActual = prompt(`Escribe el nombre EXACTO de la categoría que vas a ELIMINAR.\n\nCategorías Existentes:\n- ${catNombres}`);
-            if(!catActual || catActual.trim() === "") return;
-
-            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
-
+        async function confirmarEliminarCat() {
+            const catActual = document.getElementById('select-eliminar-cat').value;
             let prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === catActual);
             let nuevaCategoria = "Otros";
 
             if (prodsAfectados.length > 0) {
-                let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-                let catNomsDisp = Array.from(new Set([...customCats, ...inventario.map(p=>p.categoria).filter(Boolean)])).filter(c => c !== catActual).join(', ');
-                
-                let inputUsuario = prompt(`⚠️ La categoría "${catActual}" tiene ${prodsAfectados.length} producto(s).\n\n¿A qué categoría deseas moverlos para no dejarlos huérfanos?\n(Categorías disponibles: ${catNomsDisp})\n\nEscribe el nombre de la categoría destino:`);
-                
-                if (inputUsuario === null || inputUsuario.trim() === "") {
-                    alert("❌ Eliminación cancelada. Debes escribir una categoría de destino válida para proteger tus productos.");
-                    return;
-                }
-                nuevaCategoria = inputUsuario.trim();
-            } else {
-                if(!confirm(`¿Estás seguro que deseas eliminar la categoría "${catActual}"? Está vacía.`)) return;
+                nuevaCategoria = document.getElementById('select-destino-cat').value;
+                if (!nuevaCategoria) return alert("Debes seleccionar un destino.");
             }
+            
+            document.getElementById('modal-eliminar-cat').style.display = 'none';
+
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar:");
+            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
 
             if (prodsAfectados.length > 0) {
                 inventario.forEach(p => {
@@ -870,11 +920,8 @@
 
             guardarDatos(); actualizarUI();
             
-            if (prodsAfectados.length > 0) {
-                alert(`✅ Categoría eliminada con éxito. Los ${prodsAfectados.length} productos fueron trasladados a "${nuevaCategoria}".`);
-            } else {
-                alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
-            }
+            if (prodsAfectados.length > 0) alert(`✅ Categoría eliminada con éxito. Los ${prodsAfectados.length} productos fueron trasladados a "${nuevaCategoria}".`);
+            else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
 
         async function cargarDatos() {
@@ -972,6 +1019,11 @@
         }
 
         function cambiarPestaña(pestaña) {
+            const logoCont = document.getElementById('main-logo-container');
+            if (logoCont) {
+                logoCont.style.display = (pestaña === 'inicio') ? 'block' : 'none';
+            }
+
             ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
                 document.getElementById('tab-' + p).classList.remove('active');
@@ -1468,10 +1520,8 @@
 
             let html = '';
             if (textoBuscado !== '' || vistaInventarioAZ) {
-                // Vista Plana A-Z
                 invFiltrado.forEach(p => { html += renderItemInventario(p); });
             } else {
-                // Vista Agrupada por Categorías
                 let agrupado = {};
                 invFiltrado.forEach(p => {
                     let c = p.categoria || 'Otros';
@@ -1480,7 +1530,6 @@
                 });
                 let catsOrdenadas = Object.keys(agrupado).sort();
                 catsOrdenadas.forEach(c => {
-                    // Por defecto colapsadas (cerradas) a menos que se hayan abierto expresamente
                     let expandido = categoriasExpandidas[c] === true; 
                     let flecha = expandido ? '▼' : '▶';
                     
@@ -2212,8 +2261,6 @@
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             
-            // LA MAGIA DE LA MEMORIA: Guardamos en LocalStorage únicamente los últimos 500 registros para 
-            // no superar nunca el límite de 5MB. En Firebase en la nube seguirá el historial completo infinito.
             localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-500)));
             localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-500)));
             localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-500)));
