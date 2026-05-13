@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    <!-- AQUÍ ESTÁ EL INPUT DE SEGURIDAD. Al tener type="password" automáticamente solo muestra puntos -->
+    <!-- AQUÍ ESTÁ EL INPUT DE SEGURIDAD -->
     <div id="modal-password" class="modal-overlay" style="z-index: 10000;">
         <div class="modal-card" style="max-width: 350px; text-align: center;">
             <h3 class="modal-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">🔒 Seguridad Requerida</h3>
@@ -804,7 +804,7 @@
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
             
-            const nombreLimpio = nueva.trim();
+            const nombreLimpio = nueva.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
             let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
             
             if(!customCats.includes(nombreLimpio)) {
@@ -819,7 +819,7 @@
         }
 
         function renombrarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
             if(cats.length === 0) return alert("No hay categorías creadas.");
             const select = document.getElementById('select-renombrar-cat');
             select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -829,7 +829,7 @@
 
         async function confirmarRenombrarCat() {
             const catActual = document.getElementById('select-renombrar-cat').value;
-            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim();
+            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
             if(!catActual || !nuevoNombre || nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
             
             document.getElementById('modal-renombrar-cat').style.display = 'none'; 
@@ -860,7 +860,7 @@
         }
 
         function eliminarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
             if(cats.length === 0) return alert("No hay categorías creadas.");
             
             const selectEliminar = document.getElementById('select-eliminar-cat');
@@ -872,7 +872,7 @@
 
         function actualizarDestinoEliminarCat() {
             const aEliminar = document.getElementById('select-eliminar-cat').value;
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)]));
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
             const selectDestino = document.getElementById('select-destino-cat');
             const prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === aEliminar);
             
@@ -882,7 +882,7 @@
                 document.getElementById('grupo-destino-cat').style.display = 'block';
                 selectDestino.innerHTML = cats.filter(c => c !== aEliminar).map(c => `<option value="${c}">${c}</option>`).join('');
                 if(selectDestino.options.length === 0) {
-                    selectDestino.innerHTML = `<option value="Otros">Otros</option>`;
+                    selectDestino.innerHTML = `<option value="OTROS">OTROS</option>`;
                 }
             }
         }
@@ -890,7 +890,7 @@
         async function confirmarEliminarCat() {
             const catActual = document.getElementById('select-eliminar-cat').value;
             let prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === catActual);
-            let nuevaCategoria = "Otros";
+            let nuevaCategoria = "OTROS";
 
             if (prodsAfectados.length > 0) {
                 nuevaCategoria = document.getElementById('select-destino-cat').value;
@@ -1095,7 +1095,7 @@
             document.getElementById('ingreso-producto-id').value = '';
             document.getElementById('inv-nombre').value = '';
             
-            if(document.getElementById('inv-categoria')) document.getElementById('inv-categoria').value = 'Otros';
+            if(document.getElementById('inv-categoria')) document.getElementById('inv-categoria').value = 'OTROS';
             if(document.getElementById('inv-categoria-nueva')) {
                 document.getElementById('inv-categoria-nueva').style.display = 'none';
                 document.getElementById('inv-categoria-nueva').value = '';
@@ -1139,22 +1139,22 @@
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
             const stock = parseInt(document.getElementById('inv-stock').value) || 0;
-            const proveedor = document.getElementById('inv-proveedor').value.trim() || 'No especificado';
+            const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO'; // CORRECCIÓN: MAYÚSCULAS
             const nit = document.getElementById('inv-nit').value.trim() || '';
-            const factura = document.getElementById('inv-factura').value.trim() || '';
+            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; // CORRECCIÓN: MAYÚSCULAS
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value) || 0;
             
             if (stock <= 0 || costoIngresado < 0) { alert("⚠️ La Cantidad debe ser mayor a 0 y el Costo no puede ser negativo."); return; }
             
             let costoBase = tipoCosto === 'total' ? costoIngresado / stock : costoIngresado;
-            let nombreProd = ""; let minStock = 5; let categoria = "Otros"; let selectId = null;
+            let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null;
 
             if (modo === 'nuevo') {
-                nombreProd = document.getElementById('inv-nombre').value.trim();
+                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
-                categoria = catElegida === 'nueva' ? (document.getElementById('inv-categoria-nueva').value.trim() || "Otros") : catElegida;
+                categoria = catElegida === 'nueva' ? (document.getElementById('inv-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
                 
                 if(minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
@@ -1163,9 +1163,9 @@
                 const idExistente = document.getElementById('ingreso-producto-id').value;
                 if(!idExistente) { alert("⚠️ Por favor, busca y selecciona un producto existente de la lista."); return; }
                 const prod = inventario.find(p => p.id == idExistente);
-                nombreProd = prod ? prod.nombre : "Producto";
+                nombreProd = prod ? prod.nombre : "PRODUCTO";
                 minStock = prod && prod.min !== undefined ? prod.min : 5;
-                categoria = prod && prod.categoria ? prod.categoria : "Otros";
+                categoria = prod && prod.categoria ? prod.categoria : "OTROS";
                 selectId = idExistente;
             }
             
@@ -1173,7 +1173,7 @@
             
             document.getElementById('inv-stock').value = ''; document.getElementById('inv-costo').value = ''; document.getElementById('inv-nombre').value = ''; document.getElementById('buscador-ingreso-producto').value = ''; document.getElementById('ingreso-producto-id').value = '';
             if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
-            document.getElementById('inv-categoria').value = 'Otros'; document.getElementById('inv-categoria-nueva').style.display = 'none'; document.getElementById('inv-categoria-nueva').value = '';
+            document.getElementById('inv-categoria').value = 'OTROS'; document.getElementById('inv-categoria-nueva').style.display = 'none'; document.getElementById('inv-categoria-nueva').value = '';
             
             renderCarritoIngresos();
         }
@@ -1190,7 +1190,7 @@
 
             carritoIngresos.forEach(item => {
                 totalPiezas += item.stock; costoTotalPreview += (item.stock * item.costoBase);
-                let provText = item.proveedor !== 'No especificado' ? ` | Prov: ${item.proveedor}` : '';
+                let provText = item.proveedor !== 'NO ESPECIFICADO' ? ` | Prov: ${item.proveedor}` : '';
                 let facText = item.factura ? ` | Fac: ${item.factura}` : '';
                 html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${item.nombre}</p><p class="item-details">+${item.stock} piezas | Q${item.costoBase.toFixed(2)} c/u${provText}${facText}</p></div><button onclick="borrarDelCarritoIngreso(${item.tempId})" class="btn-sm btn-delete">X</button></div>`;
             });
@@ -1229,9 +1229,11 @@
                             const valorViejo = pObjToSave.stock * pObjToSave.costo;
                             const valorNuevo = item.stock * costoFinal;
                             pObjToSave.stock += item.stock;
-                            pObjToSave.costo = (valorViejo + valorNuevo) / pObjToSave.stock;
+                            if(pObjToSave.stock > 0) {
+                                pObjToSave.costo = (valorViejo + valorNuevo) / pObjToSave.stock;
+                            }
                             pObjToSave.lastModified = Date.now();
-                            if(item.proveedor !== "No especificado") pObjToSave.proveedor = item.proveedor;
+                            if(item.proveedor !== "NO ESPECIFICADO") pObjToSave.proveedor = item.proveedor;
                         }
                     }
                     
@@ -1281,7 +1283,7 @@
                 const resumen = reg.items.map(i => {
                     totalGasto += (i.stock * (i.costoIngresado || 0)); 
                     let info = `+${i.stock}x ${i.nombre}`;
-                    if (i.proveedor && i.proveedor !== "No especificado") info += ` (${i.proveedor})`;
+                    if (i.proveedor && i.proveedor !== "NO ESPECIFICADO") info += ` (${i.proveedor})`;
                     if (i.factura) info += ` [Fac: ${i.factura}]`;
                     if (i.nit) info += ` [NIT: ${i.nit}]`;
                     return info;
@@ -1337,7 +1339,7 @@
                     proveedor: i.proveedor || '',
                     nit: i.nit || '',
                     factura: i.factura || '',
-                    categoria: i.categoria || 'Otros'
+                    categoria: i.categoria || 'OTROS'
                 };
             });
 
@@ -1429,8 +1431,8 @@
             } else { document.getElementById('edit-stock').disabled = false; document.getElementById('edit-min').disabled = false; }
 
             const selectCat = document.getElementById('edit-categoria');
-            selectCat.value = prod.categoria || 'Otros';
-            if(selectCat.value === "") selectCat.value = 'Otros'; 
+            selectCat.value = prod.categoria || 'OTROS';
+            if(selectCat.value === "") selectCat.value = 'OTROS'; 
             
             document.getElementById('edit-categoria-nueva').style.display = 'none'; document.getElementById('edit-categoria-nueva').value = '';
             document.getElementById('modal-editar').style.display = 'flex';
@@ -1443,16 +1445,16 @@
             isProcessingTransaction = true;
             try {
                 const id = document.getElementById('edit-id').value;
-                const nombre = document.getElementById('edit-nombre').value.trim();
+                const nombre = document.getElementById('edit-nombre').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
                 const stock = parseInt(document.getElementById('edit-stock').value) || 0;
                 const min = parseInt(document.getElementById('edit-min').value) || 0;
                 const tipoCosto = document.getElementById('edit-tipo-costo').value;
                 const costoIngresado = parseFloat(document.getElementById('edit-costo').value) || 0;
                 const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
-                const proveedor = document.getElementById('edit-proveedor').value.trim();
+                const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
                 
                 let catElegida = document.getElementById('edit-categoria').value;
-                let categoria = catElegida === 'nueva' ? (document.getElementById('edit-categoria-nueva').value.trim() || "Otros") : catElegida;
+                let categoria = catElegida === 'nueva' ? (document.getElementById('edit-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
                 
                 if(!nombre || stock < 0 || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
                 
@@ -1504,14 +1506,14 @@
             let stockStyle = stockBajo ? 'color: var(--primary-red); font-weight: bold;' : '';
             let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
             let stockDisplay = p.isService ? '∞ (Servicio)' : p.stock;
-            return `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding-bottom:10px; margin-bottom:10px;"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${stockDisplay}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'Otros'}</p></div><div class="item-actions"><button onclick="abrirModalEditar('${p.id}')" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto('${p.id}')" class="btn-sm btn-delete">Borrar</button></div></div>`;
+            return `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding-bottom:10px; margin-bottom:10px;"><div class="item-info"><p class="item-title">${p.nombre}</p><p class="item-details">Stock: <b style="${stockStyle}">${stockDisplay}${alertaText}</b> | Costo: Q${p.costo.toFixed(2)} | Cat: ${p.categoria || 'OTROS'}</p></div><div class="item-actions"><button onclick="abrirModalEditar('${p.id}')" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto('${p.id}')" class="btn-sm btn-delete">Borrar</button></div></div>`;
         }
 
         function renderInventario() {
             const contInv = document.getElementById('lista-inventario');
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
             
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
             
             if(invFiltrado.length === 0) {
@@ -1525,11 +1527,11 @@
             } else {
                 let agrupado = {};
                 invFiltrado.forEach(p => {
-                    let c = p.categoria || 'Otros';
+                    let c = (p.categoria || 'OTROS').toUpperCase();
                     if(!agrupado[c]) agrupado[c] = [];
                     agrupado[c].push(p);
                 });
-                let catsOrdenadas = Object.keys(agrupado).sort();
+                let catsOrdenadas = Object.keys(agrupado).sort(); // ORDEN ALFABÉTICO CATEGORÍAS
                 catsOrdenadas.forEach(c => {
                     let expandido = categoriasExpandidas[c] === true; 
                     let flecha = expandido ? '▼' : '▶';
@@ -1539,7 +1541,8 @@
                     
                     if(expandido) {
                         html += `<div style="padding: 15px; background: var(--bg-color);">`;
-                        agrupado[c].forEach(p => { html += renderItemInventario(p); });
+                        // Asegurar orden interno de los productos en la categoría
+                        agrupado[c].sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(p => { html += renderItemInventario(p); });
                         html += `</div>`;
                     }
                     html += `</div>`;
@@ -1558,7 +1561,7 @@
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO SUGERENCIAS
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
@@ -1607,8 +1610,8 @@
             if (prod.isService) {
                 const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
                 if (!customName || customName.trim() === "") return; 
-                nombreVenta = "🎨 " + customName.trim();
-                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
+                nombreVenta = "🎨 " + customName.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
                 costoVenta = parseFloat(customCostoStr) || 0;
             } else {
@@ -1653,7 +1656,7 @@
                 const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
                 const pideFactura = document.getElementById('venta-factura').checked;
-                const clienteNombre = document.getElementById('venta-nombre').value.trim() || 'C/F';
+                const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F'; // CORRECCIÓN: MAYÚSCULAS
                 const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
@@ -1722,12 +1725,14 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        if(p.stock > 0) { // CORRECCIÓN: PROTECCIÓN MATEMÁTICA
+                             p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        }
                         p.lastModified = Date.now(); 
                     }
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                 } else if (!item.isService) {
-                    let rec = { id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta editada", categoria: "Otros", lastModified: Date.now() };
+                    let rec = { id: item.idProd, nombre: (item.nombre + " (DEVUELTO)").toUpperCase(), stock: item.qty, costo: item.costoBase, min: 0, proveedor: "RECUPERADO DE VENTA EDITADA", categoria: "OTROS", lastModified: Date.now() };
                     inventario.push(rec);
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
                 }
@@ -1759,12 +1764,14 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        if(p.stock > 0) { // CORRECCIÓN: PROTECCIÓN MATEMÁTICA
+                             p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                        }
                         p.lastModified = Date.now(); 
                     }
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                 } else if (!item.isService) {
-                    let rec = { id: item.idProd, nombre: item.nombre + " (Devuelto)", stock: item.qty, costo: item.costoBase, min: 0, proveedor: "Recuperado de venta anulada", categoria: "Otros", lastModified: Date.now() };
+                    let rec = { id: item.idProd, nombre: (item.nombre + " (DEVUELTO)").toUpperCase(), stock: item.qty, costo: item.costoBase, min: 0, proveedor: "RECUPERADO DE VENTA ANULADA", categoria: "OTROS", lastModified: Date.now() };
                     inventario.push(rec);
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
                 }
@@ -1788,7 +1795,7 @@
             if(!mostrarTodo) hiddenId.value = '';
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO SUGERENCIAS
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
@@ -1839,8 +1846,8 @@
             if (prod.isService) {
                 const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
                 if (!customName || customName.trim() === "") return; 
-                nombreVenta = "🎨 " + customName.trim();
-                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
+                nombreVenta = "🎨 " + customName.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
                 costoVenta = parseFloat(customCostoStr) || 0;
             }
@@ -1887,7 +1894,7 @@
                 const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = document.getElementById('cotiza-nombre').value.trim() || 'C/F';
+                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; // CORRECCIÓN: MAYÚSCULAS
                 const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
 
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
@@ -1967,7 +1974,7 @@
             ctx.font = '16px Arial'; ctx.fillStyle = '#6b7280'; ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 75);
             ctx.fillStyle = '#374151'; let offsetX = 150; let offsetY = 100;
             
-            if(nombre !== '') { ctx.fillText('Cliente: ' + nombre, offsetX, offsetY); offsetY += 20; }
+            if(nombre !== '') { ctx.fillText('CLIENTE: ' + nombre.toUpperCase(), offsetX, offsetY); offsetY += 20; }
             ctx.fillText('NIT: ' + nit, offsetX, offsetY);
 
             let y = 170; ctx.fillStyle = '#1f2937'; ctx.font = 'bold 18px Arial';
@@ -2063,7 +2070,7 @@
                 for (let item of cot.detalleItems) { if (item.isService) continue; stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty; }
                 for (let idProd in stockRequerido) {
                     const prod = inventario.find(p => p.id == idProd);
-                    if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'Desconocido'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
+                    if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'DESCONOCIDO'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
                 }
 
                 if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
@@ -2116,12 +2123,12 @@
                 for (let item of carritoCotizacion) { if (item.isService) continue; stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty; }
                 for (let idProd in stockRequerido) {
                     const prod = inventario.find(p => p.id == idProd);
-                    if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'Desconocido'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
+                    if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'DESCONOCIDO'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
                 }
 
                 if(!confirm("¿Seguro que deseas convertir esta cotización en una venta real? Se descontará de tu inventario.")) return;
 
-                const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0; const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0; const pideFactura = document.getElementById('cotiza-factura').checked; const clienteNombre = document.getElementById('cotiza-nombre').value.trim() || 'C/F'; const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
+                const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0; const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0; const pideFactura = document.getElementById('cotiza-factura').checked; const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
                 let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
@@ -2164,7 +2171,7 @@
         // ================= PESTAÑA ALERTAS / POR SURTIR =================
         function renderAlertas() {
             const contAlertas = document.getElementById('lista-alertas-surtir');
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO ALERTAS
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
             
             if(productosBajos.length === 0) { 
@@ -2176,7 +2183,7 @@
             productosBajos.forEach(p => {
                 html += `<div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;"><p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "No especificado"}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span></div></div>`;
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "NO ESPECIFICADO"}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span></div></div>`;
             });
             contAlertas.innerHTML = html;
         }
@@ -2192,8 +2199,8 @@
 
             let dataExp = productosBajos.map(p => ({
                 "Producto": p.nombre,
-                "Categoría": p.categoria || "Otros",
-                "Proveedor": p.proveedor || "No especificado",
+                "Categoría": p.categoria || "OTROS",
+                "Proveedor": p.proveedor || "NO ESPECIFICADO",
                 "Stock Actual": p.stock,
                 "Mínimo de Alerta": p.min || 0,
                 "Costo Unitario (Q)": p.costo.toFixed(2)
@@ -2214,7 +2221,7 @@
                 id: Date.now(), 
                 timestamp: Date.now(), 
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                tipo: tipo, 
+                tipo: tipo.toUpperCase(), // CORRECCIÓN: MAYÚSCULAS
                 monto: val 
             };
             historialRetiros.push(nuevoRetiro);
@@ -2252,10 +2259,10 @@
 
         // ================= REPORTES Y EXPORTACIÓN =================
         function generarReporteExcel() {
-            const inv = inventario; 
+            const inv = inventario.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
             const vent = ventas.filter(v => !v.anulada); 
             const fnd = fondos; 
-            let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+            let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
             const ret = historialRetiros;
             
             const libro = XLSX.utils.book_new();
@@ -2263,9 +2270,9 @@
             const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen); XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Categoría": p.categoria || "Otros", "Existencias (Stock)": p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": p.proveedor || "No especificado", "Valor en Bodega (Q)": (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
-            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": v.clienteNombre || "C/F", "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "Sí" : "No", "Detalle de Artículos": v.resumenItems, "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
-            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo, "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
+            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Categoría": (p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": (p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
+            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": (v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": v.resumenItems.toUpperCase(), "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
+            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo.toUpperCase(), "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
@@ -2352,22 +2359,22 @@
             let html = '';
             llavesOrdenadas.forEach(llave => {
                 let data = agrupado[llave];
-                let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ Mes Récord</span>' : '';
+                let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ MES RÉCORD</span>' : '';
 
                 html += `
                 <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div>
-                            <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 15px;">📊 ${data.mesTexto} ${estrellaHTML}</p>
-                            <p class="item-details" style="margin-top: 5px;">Artículos vendidos: <b>${data.items}</b></p>
+                            <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 15px;">📊 ${data.mesTexto.toUpperCase()} ${estrellaHTML}</p>
+                            <p class="item-details" style="margin-top: 5px;">ARTÍCULOS VENDIDOS: <b>${data.items}</b></p>
                         </div>
                     </div>
                     <div style="font-size: 13px; color: var(--text-light); margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px;"><span>Ingresos Brutos:</span> <span style="color: var(--text-dark); font-weight: bold;">Q${data.totalVendido.toFixed(2)}</span></div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Costo de Materiales:</span> <span>Q${data.costosMateriales.toFixed(2)}</span></div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Gastos (Luz/Tinta/Envío):</span> <span>Q${data.gastosOperativos.toFixed(2)}</span></div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Impuestos (SAT):</span> <span>Q${data.impuestos.toFixed(2)}</span></div>
-                        <div style="display:flex; justify-content:space-between; color: var(--primary-green); font-weight: bold; font-size: 15px; margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;"><span>Ganancia Libre Real:</span> <span>Q${data.ganancia.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px;"><span>INGRESOS BRUTOS:</span> <span style="color: var(--text-dark); font-weight: bold;">Q${data.totalVendido.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) COSTO DE MATERIALES:</span> <span>Q${data.costosMateriales.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) GASTOS (LUZ/TINTA/ENVÍO):</span> <span>Q${data.gastosOperativos.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) IMPUESTOS (SAT):</span> <span>Q${data.impuestos.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; color: var(--primary-green); font-weight: bold; font-size: 15px; margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;"><span>GANANCIA LIBRE REAL:</span> <span>Q${data.ganancia.toFixed(2)}</span></div>
                     </div>
                 </div>`;
             });
@@ -2376,20 +2383,21 @@
 
         function actualizarListaClientes() {
             const dl = document.getElementById('lista-clientes'); if(!dl) return; const clientesUnicos = new Set();
-            ventas.forEach(v => { if(v.clienteNombre && v.clienteNombre !== "C/F" && v.clienteNombre !== "") clientesUnicos.add(v.clienteNombre); });
-            historialCotizaciones.forEach(c => { if(c.clienteNombre && c.clienteNombre !== "C/F" && c.clienteNombre !== "") clientesUnicos.add(c.clienteNombre); });
-            dl.innerHTML = ''; clientesUnicos.forEach(c => { dl.innerHTML += `<option value="${c}">`; });
+            ventas.forEach(v => { if(v.clienteNombre && v.clienteNombre !== "C/F" && v.clienteNombre !== "") clientesUnicos.add(v.clienteNombre.toUpperCase()); });
+            historialCotizaciones.forEach(c => { if(c.clienteNombre && c.clienteNombre !== "C/F" && c.clienteNombre !== "") clientesUnicos.add(c.clienteNombre.toUpperCase()); });
+            dl.innerHTML = ''; 
+            Array.from(clientesUnicos).sort().forEach(c => { dl.innerHTML += `<option value="${c}">`; }); // ORDEN ALFABÉTICO CLIENTES
         }
 
         function actualizarListaCategorias() {
             const selectInv = document.getElementById('inv-categoria'); const selectEdit = document.getElementById('edit-categoria'); 
             if(!selectInv || !selectEdit ) return;
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats')); if (!customCats) { customCats = ["Cerámica", "Insumos", "Otros", "Textil"]; localStorage.setItem('subli_custom_cats', JSON.stringify(customCats)); }
-            const categoriasUnicas = new Set([...customCats]);
-            inventario.forEach(p => { if(p.categoria && p.categoria !== "") { categoriasUnicas.add(p.categoria); } });
-            let categoriasArray = Array.from(categoriasUnicas).sort((a, b) => a.localeCompare(b));
-            let optionsHTML = ''; categoriasArray.forEach(c => { let label = c === 'Ceramica' ? 'Cerámica' : c; optionsHTML += `<option value="${c}">${label}</option>`; });
-            optionsHTML += `<option value="nueva">➕ Crear Nueva Categoría...</option>`;
+            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats')); if (!customCats) { customCats = ["CERÁMICA", "INSUMOS", "OTROS", "TEXTIL"]; localStorage.setItem('subli_custom_cats', JSON.stringify(customCats)); }
+            const categoriasUnicas = new Set([...customCats.map(c => c.toUpperCase())]);
+            inventario.forEach(p => { if(p.categoria && p.categoria !== "") { categoriasUnicas.add(p.categoria.toUpperCase()); } });
+            let categoriasArray = Array.from(categoriasUnicas).sort(); // ORDEN ALFABÉTICO SELECTORES
+            let optionsHTML = ''; categoriasArray.forEach(c => { optionsHTML += `<option value="${c}">${c}</option>`; });
+            optionsHTML += `<option value="nueva">➕ CREAR NUEVA CATEGORÍA...</option>`;
             let valInv = selectInv.value; let valEdit = selectEdit.value;
             selectInv.innerHTML = optionsHTML; selectEdit.innerHTML = optionsHTML;
             if([...selectInv.options].some(o => o.value === valInv)) selectInv.value = valInv;
@@ -2399,7 +2407,7 @@
         function actualizarUI() {
             const ID_CREACION = "srv_creacion_01"; let existeCreacion = inventario.find(p => p.id === ID_CREACION);
             if (!existeCreacion) {
-                let rec = { id: ID_CREACION, nombre: "CREACIÓN (Servicio/Diseño)", stock: 9999, min: 0, costo: 0, proveedor: "Servicio Interno", categoria: "Servicios", lastModified: Date.now(), isService: true };
+                let rec = { id: ID_CREACION, nombre: "CREACIÓN (SERVICIO/DISEÑO)", stock: 9999, min: 0, costo: 0, proveedor: "SERVICIO INTERNO", categoria: "SERVICIOS", lastModified: Date.now(), isService: true };
                 inventario.push(rec);
                 if(window.db && datosCargadosDeLaNube) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
             }
@@ -2416,7 +2424,7 @@
             actualizarListaCategorias(); renderInventario(); actualizarGraficoVentas(); renderResumenMensual(); actualizarListaClientes();
             renderHistorialRetiros(); 
 
-            // RENDER HISTORIAL VENTAS AVANZADO
+            // RENDER HISTORIAL VENTAS
             const contVentas = document.getElementById('lista-ventas');
             
             popularSelectMeses(ventas, 'filtro-mes-ventas');
@@ -2436,17 +2444,17 @@
                 let htmlVentas = '';
                 dataVentas.forEach(v => {
                     if (v.anulada) return; 
-                    const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
+                    const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(CON FACTURA)</span>` : '';
                     htmlVentas += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                            <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems} ${textFactura}</p>
+                            <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems.toUpperCase()} ${textFactura}</p>
                             <div style="display:flex; gap:5px;">
-                                <button onclick="editarVenta(${v.id})" class="btn-sm btn-edit">Editar</button>
-                                <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">Deshacer</button>
+                                <button onclick="editarVenta(${v.id})" class="btn-sm btn-edit">EDITAR</button>
+                                <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">DESHACER</button>
                             </div>
                         </div>
                         <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                            <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre}` : ''}</div><span style="color: var(--text-dark);">💵 <b>Cobrado:</b> Q${v.ingresoTotal.toFixed(2)}</span><span class="cost-text">📦 <b>Costo Mat./Serv:</b> Q${v.costosProductos.toFixed(2)}</span><span class="cost-text">💡 <b>Luz/Tinta:</b> Q${v.costoTinta.toFixed(2)}</span><span class="cost-text">🚚 <b>Envío:</b> Q${v.costoEnvio.toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>Impuesto:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">Ganancia Neta Libre: Q${v.ganancia.toFixed(2)}</span>
+                            <div>📅 ${v.fecha}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${v.clienteNombre.toUpperCase()}` : ''}</div><span style="color: var(--text-dark);">💵 <b>COBRADO:</b> Q${v.ingresoTotal.toFixed(2)}</span><span class="cost-text">📦 <b>COSTO MAT./SERV:</b> Q${v.costosProductos.toFixed(2)}</span><span class="cost-text">💡 <b>LUZ/TINTA:</b> Q${v.costoTinta.toFixed(2)}</span><span class="cost-text">🚚 <b>ENVÍO:</b> Q${v.costoEnvio.toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>IMPUESTO:</b> Q${(v.impuestoSAT||0).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">GANANCIA NETA LIBRE: Q${v.ganancia.toFixed(2)}</span>
                         </div></div>`;
                 });
                 contVentas.innerHTML = htmlVentas;
