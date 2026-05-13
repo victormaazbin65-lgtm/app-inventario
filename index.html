@@ -146,7 +146,6 @@
 
         <div id="sec-inicio" style="display: block;">
             
-            <!-- LOGO REUBICADO SÓLO EN RESUMEN -->
             <div class="logo-container">
                 <div class="logo-wrapper">
                     <img id="logo-img" src="" alt="Logo SubliCosturas">
@@ -221,7 +220,7 @@
 
                 <div class="card" style="margin-top: 25px;">
                     <h3 class="section-title">📅 Resumen Mensual de Ventas</h3>
-                    <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos por mes (Solo para control visual).</p>
+                    <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos por mes y desglose de movimientos.</p>
                     <div id="lista-resumen-mensual">
                         </div>
                 </div>
@@ -656,6 +655,14 @@
             return null;
         }
 
+        // NUEVO: Formatear a nombre de mes
+        function formatearMesAnio(ma) {
+            if(!ma) return "";
+            const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            let [anio, mes] = ma.split('-');
+            return meses[parseInt(mes, 10) - 1] + " " + anio;
+        }
+
         // Utilidad para llenar los dropdowns de meses
         function popularSelectMeses(datosArreglo, selectId) {
             const select = document.getElementById(selectId);
@@ -668,7 +675,7 @@
             });
             let opcionesHTML = '<option value="todos">Todos los meses</option>';
             Array.from(mesesUnicos).sort().reverse().forEach(ma => {
-                opcionesHTML += `<option value="${ma}">${ma}</option>`;
+                opcionesHTML += `<option value="${ma}">${formatearMesAnio(ma)}</option>`;
             });
             select.innerHTML = opcionesHTML;
             if(Array.from(select.options).some(o => o.value === actualVal)) select.value = actualVal;
@@ -1434,7 +1441,7 @@
         }
 
         function toggleCategoriaInv(cat) {
-            categoriasExpandidas[cat] = categoriasExpandidas[cat] === false ? true : false;
+            categoriasExpandidas[cat] = !categoriasExpandidas[cat];
             renderInventario();
         }
 
@@ -1473,8 +1480,8 @@
                 });
                 let catsOrdenadas = Object.keys(agrupado).sort();
                 catsOrdenadas.forEach(c => {
-                    // Por defecto expandidas
-                    let expandido = categoriasExpandidas[c] !== false; 
+                    // Por defecto colapsadas (cerradas) a menos que se hayan abierto expresamente
+                    let expandido = categoriasExpandidas[c] === true; 
                     let flecha = expandido ? '▼' : '▶';
                     
                     html += `<div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: var(--shadow);">`;
@@ -2183,8 +2190,12 @@
 
         // ================= REPORTES Y EXPORTACIÓN =================
         function generarReporteExcel() {
-            const inv = JSON.parse(localStorage.getItem(KEY_INV)) || []; const vent = (JSON.parse(localStorage.getItem(KEY_VENTAS)) || []).filter(v => !v.anulada); const fnd = JSON.parse(localStorage.getItem(KEY_FONDOS)) || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
-            const ret = JSON.parse(localStorage.getItem(KEY_RETIROS)) || [];
+            const inv = inventario; 
+            const vent = ventas.filter(v => !v.anulada); 
+            const fnd = fondos; 
+            let valorInv = inv.reduce((sum, p) => sum + (p.stock * p.costo), 0);
+            const ret = historialRetiros;
+            
             const libro = XLSX.utils.book_new();
             
             const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }];
@@ -2201,12 +2212,12 @@
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             
-            // LA MAGIA DE LA MEMORIA: Guardamos en LocalStorage únicamente los últimos 50 registros para 
+            // LA MAGIA DE LA MEMORIA: Guardamos en LocalStorage únicamente los últimos 500 registros para 
             // no superar nunca el límite de 5MB. En Firebase en la nube seguirá el historial completo infinito.
-            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-50)));
-            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-50)));
-            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-50)));
-            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros.slice(-50)));
+            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-500)));
+            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-500)));
+            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-500)));
+            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros.slice(-500)));
 
             if(window.db && datosCargadosDeLaNube) {
                 try {
@@ -2242,21 +2253,20 @@
             }
 
             let agrupado = {};
-            const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
+            
             ventas.forEach(v => {
                 if (v.anulada) return;
                 
                 let llave = getMesAnioFromDate(v.fecha, v.timestamp);
                 if(!llave) return;
                 
-                let anio = llave.split('-')[0];
-                let mes = parseInt(llave.split('-')[1], 10);
-
-                if(!agrupado[llave]) agrupado[llave] = { mesTexto: mesesNombres[mes-1] + " " + anio, totalVendido: 0, ganancia: 0, items: 0 };
+                if(!agrupado[llave]) agrupado[llave] = { mesTexto: formatearMesAnio(llave), totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0 };
 
                 agrupado[llave].totalVendido += v.ingresoTotal;
                 agrupado[llave].ganancia += v.ganancia;
+                agrupado[llave].costosMateriales += v.costosProductos || 0;
+                agrupado[llave].gastosOperativos += (v.costoTinta || 0) + (v.costoEnvio || 0);
+                agrupado[llave].impuestos += v.impuestoSAT || 0;
 
                 v.detalleItems.forEach(item => {
                     if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty;
@@ -2285,16 +2295,19 @@
                 let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ Mes Récord</span>' : '';
 
                 html += `
-                <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div>
                             <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 15px;">📊 ${data.mesTexto} ${estrellaHTML}</p>
                             <p class="item-details" style="margin-top: 5px;">Artículos vendidos: <b>${data.items}</b></p>
                         </div>
-                        <div style="text-align: right;">
-                            <p style="margin: 0; color: var(--text-dark); font-weight: bold; font-size: 16px;">Total: Q${data.totalVendido.toFixed(2)}</p>
-                            <p style="margin: 2px 0 0 0; color: var(--primary-green); font-size: 12px; font-weight: bold;">Ganancia Neta: Q${data.ganancia.toFixed(2)}</p>
-                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-light); margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px;"><span>Ingresos Brutos:</span> <span style="color: var(--text-dark); font-weight: bold;">Q${data.totalVendido.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Costo de Materiales:</span> <span>Q${data.costosMateriales.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Gastos (Luz/Tinta/Envío):</span> <span>Q${data.gastosOperativos.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; color: var(--primary-red);"><span>(-) Impuestos (SAT):</span> <span>Q${data.impuestos.toFixed(2)}</span></div>
+                        <div style="display:flex; justify-content:space-between; color: var(--primary-green); font-weight: bold; font-size: 15px; margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;"><span>Ganancia Libre Real:</span> <span>Q${data.ganancia.toFixed(2)}</span></div>
                     </div>
                 </div>`;
             });
