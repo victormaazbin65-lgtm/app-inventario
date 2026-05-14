@@ -220,8 +220,8 @@
                 </div>
 
                 <div class="card" style="margin-top: 25px;">
-                    <h3 class="section-title">📅 Resumen Mensual de Ventas</h3>
-                    <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos por mes y desglose de movimientos.</p>
+                    <h3 class="section-title">📅 Resumen Maestro Mensual</h3>
+                    <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos sincronizados desde la nube.</p>
                     <div id="lista-resumen-mensual">
                         </div>
                 </div>
@@ -403,18 +403,22 @@
 
                 <h4 class="sub-title">3. Gastos y Facturación</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00"></div>
-                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()"></div>
+                    <div class="form-group">
+                        <label>Pago a Mensajero/Envío (Q)</label>
+                        <input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()">
+                        <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
-                        <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;">
+                        <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;" onchange="renderCarritoVentas()">
                         El cliente pide Factura (Separar 5% para SAT del total)
                     </label>
                 </div>
 
-                <div class="cart-total" id="venta-total-preview">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div>
 
@@ -484,18 +488,22 @@
 
                 <h4 class="sub-title">3. Gastos de Producción / Envío</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" min="0" placeholder="0.00"></div>
-                    <div class="form-group"><label>Pago a Mensajero/Envío (Q)</label><input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00"></div>
+                    <div class="form-group"><label>Fondo de Tinta/Luz (Q)</label><input type="number" id="cotiza-tinta" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoCotizacion()"></div>
+                    <div class="form-group">
+                        <label>Pago a Mensajero/Envío (Q)</label>
+                        <input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoCotizacion()">
+                        <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 10px; background: rgba(139, 92, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-purple); margin: 0; font-weight: bold;">
-                        <input type="checkbox" id="cotiza-factura" style="width: 20px; height: 20px;">
+                        <input type="checkbox" id="cotiza-factura" style="width: 20px; height: 20px;" onchange="renderCarritoCotizacion()">
                         Incluir Factura (Aplica 5% de retención para la SAT)
                     </label>
                 </div>
 
-                <div class="cart-total" id="cotiza-total-preview">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
                 
                 <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
                     <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
@@ -617,7 +625,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // IMPORTACIONES AÑADIDAS: runTransaction, query, orderBy, limit
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, enableIndexedDbPersistence, runTransaction, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
@@ -648,6 +657,11 @@
         window.collection = collection;
         window.deleteDoc = deleteDoc;
         window.updateDoc = updateDoc;
+        // EXPORTAR HERRAMIENTAS NUEVAS
+        window.runTransaction = runTransaction;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.limit = limit;
 
         console.log("🔥 Firebase SubliCosturas Conectado");
         window.dispatchEvent(new Event('firebaseListo'));
@@ -660,12 +674,15 @@
         const KEY_INGRESOS = 'subli_ingresos_v10';
         const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
         const KEY_RETIROS = 'subli_retiros_v10'; 
+        
+        const ALERTA_MARGEN_MINIMO = 0.10; // 10% DE MARGEN MÍNIMO
 
         let inventario = [];
         let ventas = [];
         let historialIngresos = [];
         let historialCotizaciones = [];
         let historialRetiros = []; 
+        let resumenMensualNube = []; // NUEVO ARREGLO PARA RESUMEN MAESTRO
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let datosCargadosDeLaNube = false; 
         
@@ -804,7 +821,7 @@
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
             
-            const nombreLimpio = nueva.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+            const nombreLimpio = nueva.trim().toUpperCase(); 
             let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
             
             if(!customCats.includes(nombreLimpio)) {
@@ -819,7 +836,7 @@
         }
 
         function renombrarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             if(cats.length === 0) return alert("No hay categorías creadas.");
             const select = document.getElementById('select-renombrar-cat');
             select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -829,7 +846,7 @@
 
         async function confirmarRenombrarCat() {
             const catActual = document.getElementById('select-renombrar-cat').value;
-            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim().toUpperCase(); 
             if(!catActual || !nuevoNombre || nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
             
             document.getElementById('modal-renombrar-cat').style.display = 'none'; 
@@ -860,7 +877,7 @@
         }
 
         function eliminarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             if(cats.length === 0) return alert("No hay categorías creadas.");
             
             const selectEliminar = document.getElementById('select-eliminar-cat');
@@ -872,7 +889,7 @@
 
         function actualizarDestinoEliminarCat() {
             const aEliminar = document.getElementById('select-eliminar-cat').value;
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); // ORDEN ALFABÉTICO
+            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             const selectDestino = document.getElementById('select-destino-cat');
             const prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === aEliminar);
             
@@ -930,6 +947,7 @@
 
             if (window.db) {
                 try {
+                    // MIGRACIÓN v10 A NUBE
                     const docViejoRef = window.doc(window.db, "sistema", "datos_actuales");
                     const docViejoSnap = await window.getDoc(docViejoRef);
 
@@ -975,28 +993,37 @@
                         if(temp.length > 0) { inventario = temp; actualizarUI(); }
                     });
 
-                    window.onSnapshot(window.collection(window.db, "ventas"), (snap) => {
+                    // LIMITANDO DESCARGA HISTORIAL A 50 REGISTROS (Ahorro cuota Firebase)
+                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0) { ventas = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
-                    window.onSnapshot(window.collection(window.db, "ingresos"), (snap) => {
+                    window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0) { historialIngresos = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
-                    window.onSnapshot(window.collection(window.db, "cotizaciones"), (snap) => {
+                    window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0) { historialCotizaciones = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
-                    window.onSnapshot(window.collection(window.db, "retiros"), (snap) => {
+                    window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = [];
                         snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0) { historialRetiros = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                    });
+                    
+                    // ESCUCHANDO RESUMEN MAESTRO
+                    window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
+                        let temp = [];
+                        snap.forEach(d => temp.push({ id: d.id, ...d.data() }));
+                        resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); 
+                        actualizarUI();
                     });
                     
                     datosCargadosDeLaNube = true; 
@@ -1006,6 +1033,7 @@
                 }
             } 
 
+            // Carga local fallback
             try {
                 const dataInv = localStorage.getItem(KEY_INV); if (dataInv) inventario = JSON.parse(dataInv) || [];
                 const dataVent = localStorage.getItem(KEY_VENTAS); if (dataVent) ventas = JSON.parse(dataVent) || [];
@@ -1139,9 +1167,9 @@
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
             const stock = parseInt(document.getElementById('inv-stock').value) || 0;
-            const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO'; // CORRECCIÓN: MAYÚSCULAS
+            const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO'; 
             const nit = document.getElementById('inv-nit').value.trim() || '';
-            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; // CORRECCIÓN: MAYÚSCULAS
+            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; 
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value) || 0;
             
@@ -1151,7 +1179,7 @@
             let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null;
 
             if (modo === 'nuevo') {
-                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); 
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
                 categoria = catElegida === 'nueva' ? (document.getElementById('inv-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
@@ -1317,11 +1345,17 @@
             const reg = historialIngresos.find(x => x.id === id);
             if(!reg || reg.anulada) return;
 
+            // VALIDACIÓN MATEMÁTICA PROTEGIDA
             for (let item of reg.items) {
                 let p = inventario.find(inv => inv.id === item.idFinal);
-                if (p && p.stock < item.stock) {
-                    alert(`❌ ERROR: No puedes editar este ingreso. Ya vendiste parte de "${p.nombre}". Si lo editas, tu inventario quedaría en números negativos.`);
-                    return; 
+                if (p) {
+                    let valorActualTotal = p.stock * p.costo;
+                    let valorIngresoAnulado = item.stock * (item.costoIngresado || 0);
+                    
+                    if (p.stock < item.stock || valorActualTotal < valorIngresoAnulado) {
+                        alert(`❌ ERROR MATEMÁTICO: No puedes editar este ingreso. Ya vendiste parte de "${p.nombre}" y el costo se promedió. Si lo editas, tu inventario o costo quedaría en negativo. Haz un ajuste manual si es necesario.`);
+                        return; 
+                    }
                 }
             }
 
@@ -1375,11 +1409,17 @@
 
             const reg = historialIngresos.find(x => x.id === id);
             if(reg && !reg.anulada) {
+                // VALIDACIÓN MATEMÁTICA PROTEGIDA
                 for (let item of reg.items) {
                     let p = inventario.find(inv => inv.id === item.idFinal);
-                    if (p && p.stock < item.stock) {
-                        alert(`❌ ERROR: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}". Si lo anulas ahora, tu inventario quedaría en números negativos.`);
-                        return; 
+                    if (p) {
+                        let valorActualTotal = p.stock * p.costo;
+                        let valorIngresoAnulado = item.stock * (item.costoIngresado || 0);
+
+                        if (p.stock < item.stock || valorActualTotal < valorIngresoAnulado) {
+                            alert(`❌ ERROR MATEMÁTICO: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}" y el costo se promedió. Si lo anulas ahora, tu costo de bodega quedaría en números negativos.`);
+                            return; 
+                        }
                     }
                 }
 
@@ -1445,13 +1485,13 @@
             isProcessingTransaction = true;
             try {
                 const id = document.getElementById('edit-id').value;
-                const nombre = document.getElementById('edit-nombre').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                const nombre = document.getElementById('edit-nombre').value.trim().toUpperCase(); 
                 const stock = parseInt(document.getElementById('edit-stock').value) || 0;
                 const min = parseInt(document.getElementById('edit-min').value) || 0;
                 const tipoCosto = document.getElementById('edit-tipo-costo').value;
                 const costoIngresado = parseFloat(document.getElementById('edit-costo').value) || 0;
                 const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
-                const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase(); 
                 
                 let catElegida = document.getElementById('edit-categoria').value;
                 let categoria = catElegida === 'nueva' ? (document.getElementById('edit-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
@@ -1541,7 +1581,6 @@
                     
                     if(expandido) {
                         html += `<div style="padding: 15px; background: var(--bg-color);">`;
-                        // Asegurar orden interno de los productos en la categoría
                         agrupado[c].sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(p => { html += renderItemInventario(p); });
                         html += `</div>`;
                     }
@@ -1561,7 +1600,7 @@
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO SUGERENCIAS
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); 
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
@@ -1610,7 +1649,7 @@
             if (prod.isService) {
                 const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
                 if (!customName || customName.trim() === "") return; 
-                nombreVenta = "🎨 " + customName.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                nombreVenta = "🎨 " + customName.trim().toUpperCase(); 
                 const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
                 costoVenta = parseFloat(customCostoStr) || 0;
@@ -1645,7 +1684,23 @@
                 });
                 contenedor.innerHTML = html;
             }
-            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
+
+            // ALARMA MARGEN 10%
+            const pideFactura = document.getElementById('venta-factura')?.checked || false;
+            const costoTinta = parseFloat(document.getElementById('venta-tinta')?.value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('venta-envio')?.value) || 0;
+            
+            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
+            let gastosExtra = costoTinta + costoEnvio;
+            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
+            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
+
+            let warningHTML = '';
+            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
+                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            }
+
+            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarVentaMultiple() {
@@ -1656,43 +1711,126 @@
                 const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
                 const pideFactura = document.getElementById('venta-factura').checked;
-                const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F'; // CORRECCIÓN: MAYÚSCULAS
+                const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F'; 
                 const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
-                let ingresoTotal = 0; let costosProductos = 0; let itemsResumen = [];
-                let promesas = [];
+                let itemsResumen = [];
+                const nuevaVentaId = Date.now();
+                const timestampActual = Date.now();
+                const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
 
-                carritoVentas.forEach(item => {
-                    const p = inventario.find(x => x.id == item.idProd);
-                    if(p && !item.isService) {
-                        p.stock -= item.qty; p.lastModified = Date.now();
-                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
+                let ventaProcesada = false;
+
+                // 🌟 LÓGICA DE TRANSACCIONES SEGURAS PARA PREVENIR ERRORES SIMULTÁNEOS
+                if (window.db && navigator.onLine) {
+                    try {
+                        await window.runTransaction(window.db, async (t) => {
+                            let prodsRefs = [];
+                            // 1. Leer todo el inventario necesario primero
+                            for (let item of carritoVentas) {
+                                if (!item.isService) {
+                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
+                                    let pSnap = await t.get(pRef);
+                                    if (!pSnap.exists()) throw new Error(`El producto ${item.nombre} fue borrado.`);
+                                    if (pSnap.data().stock < item.qty) throw new Error(`Stock insuficiente para ${item.nombre}.`);
+                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
+                                }
+                            }
+
+                            // 2. Leer configuraciones maestras
+                            const configRef = window.doc(window.db, "sistema", "config");
+                            const configSnap = await t.get(configRef);
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+
+                            const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
+                            const resumenSnap = await t.get(resumenRef);
+                            let dbResumen = resumenSnap.exists() ? resumenSnap.data() : { totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0, mesTexto: formatearMesAnio(mesAnio) };
+
+                            // 3. Cálculos de la transacción
+                            let transIngresoTotal = 0; let transCostosProductos = 0; let transItemsCount = 0;
+
+                            for (let pData of prodsRefs) {
+                                let prodData = pData.snap.data();
+                                prodData.stock -= pData.item.qty;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty; // 🔴 HISTORIAL ROTACIÓN
+                                prodData.lastModified = timestampActual;
+                                t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
+                                
+                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                if (localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
+                            }
+
+                            carritoVentas.forEach(item => {
+                                transIngresoTotal += (item.qty * item.precioCobrado);
+                                let baseCosto = item.isService ? item.costoBase : inventario.find(x => x.id == item.idProd)?.costo || 0;
+                                transCostosProductos += (item.qty * baseCosto);
+                                if (item.rol === 'principal' || item.rol === 'combo') transItemsCount += item.qty;
+                                let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
+                                itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
+                            });
+
+                            let impuestoSAT = pideFactura ? (transIngresoTotal * 0.05) : 0;
+                            const totalCostosOperativos = transCostosProductos + costoTinta + costoEnvio + impuestoSAT;
+                            const gananciaNeta = transIngresoTotal - totalCostosOperativos;
+
+                            // Actualizar Fondos Cloud
+                            dbFondos.costoProducto += transCostosProductos; dbFondos.costoLuzTinta += costoTinta; dbFondos.gananciaLibre += gananciaNeta; dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + impuestoSAT;
+                            // Actualizar Maestro Mensual Cloud
+                            dbResumen.totalVendido += transIngresoTotal; dbResumen.ganancia += gananciaNeta; dbResumen.costosMateriales += transCostosProductos; dbResumen.gastosOperativos += (costoTinta + costoEnvio); dbResumen.impuestos += impuestoSAT; dbResumen.items += transItemsCount;
+
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+
+                            // 4. Inyectar todo seguro en la base de datos
+                            t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
+                            t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
+                            t.set(resumenRef, dbResumen);
+                            
+                            fondos = dbFondos; 
+                            ventas.push(nuevaVenta);
+                            ventaProcesada = true;
+                        });
+                    } catch (err) {
+                        console.warn("Transacción falló (Probablemente estás Offline). Activando Fallback Offline...");
+                        ventaProcesada = false;
                     }
-                    ingresoTotal += (item.qty * item.precioCobrado); costosProductos += (item.qty * item.costoBase); 
-                    let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
-                    itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
-                });
-                
-                let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const totalCostosOperativos = costosProductos + costoTinta + costoEnvio + impuestoSAT;
-                const gananciaNeta = ingresoTotal - totalCostosOperativos;
-                
-                fondos.costoProducto += costosProductos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta;
-                fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
+                }
 
-                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
-                ventas.push(nuevaVenta);
-                if(window.db) promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
-
-                if(promesas.length > 0) await Promise.all(promesas);
+                // ⚠️ FALLBACK OFFLINE (Si no hay internet, guarda localmente y sincroniza después)
+                if (!ventaProcesada) {
+                    let localIngreso = 0; let localCostos = 0;
+                    let promesasOffline = [];
+                    
+                    carritoVentas.forEach(item => {
+                        const p = inventario.find(x => x.id == item.idProd);
+                        if(p && !item.isService) {
+                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
+                            if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
+                        }
+                        localIngreso += (item.qty * item.precioCobrado); localCostos += (item.qty * item.costoBase); 
+                        let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
+                        itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
+                    });
+                    
+                    let impuestoSAT = pideFactura ? (localIngreso * 0.05) : 0;
+                    const totalCostosOperativos = localCostos + costoTinta + costoEnvio + impuestoSAT;
+                    const gananciaNeta = localIngreso - totalCostosOperativos;
+                    
+                    fondos.costoProducto += localCostos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
+                    
+                    const nuevaVentaOffline = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: localIngreso, costosProductos: localCostos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                    ventas.push(nuevaVentaOffline);
+                    
+                    if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaOffline.id)), nuevaVentaOffline));
+                    if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e => console.log("Se enviará al recuperar conexión."));
+                }
 
                 carritoVentas = []; document.getElementById('venta-tinta').value = ''; document.getElementById('venta-envio').value = ''; document.getElementById('buscador-venta-producto').value = ''; document.getElementById('venta-producto').value = ''; document.getElementById('venta-nombre').value = ''; document.getElementById('venta-nit').value = ''; document.getElementById('venta-factura').checked = false;
                 
                 renderCarritoVentas(); guardarDatos(); actualizarUI();
                 alert("💰 ¡Venta procesada con éxito!");
             } catch (error) {
-                alert("Error al procesar la venta: " + error.message);
+                alert("Error crítico al procesar la venta: " + error.message);
             } finally {
                 isProcessingTransaction = false; 
             }
@@ -1725,7 +1863,10 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        if(p.stock > 0) { // CORRECCIÓN: PROTECCIÓN MATEMÁTICA
+                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; // Deshacer rotación
+                        if (p.ventasTotales < 0) p.ventasTotales = 0;
+                        
+                        if(p.stock > 0) {
                              p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
                         }
                         p.lastModified = Date.now(); 
@@ -1764,7 +1905,9 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        if(p.stock > 0) { // CORRECCIÓN: PROTECCIÓN MATEMÁTICA
+                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; // Deshacer rotación
+                        if (p.ventasTotales < 0) p.ventasTotales = 0;
+                        if(p.stock > 0) { 
                              p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
                         }
                         p.lastModified = Date.now(); 
@@ -1795,7 +1938,7 @@
             if(!mostrarTodo) hiddenId.value = '';
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO SUGERENCIAS
+            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); 
             let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
@@ -1846,7 +1989,7 @@
             if (prod.isService) {
                 const customName = prompt("Has seleccionado un servicio de CREACIÓN.\n\nEscribe el detalle (Ej. Diseño de Logo, Edición de foto):");
                 if (!customName || customName.trim() === "") return; 
-                nombreVenta = "🎨 " + customName.trim().toUpperCase(); // CORRECCIÓN: MAYÚSCULAS
+                nombreVenta = "🎨 " + customName.trim().toUpperCase(); 
                 const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
                 costoVenta = parseFloat(customCostoStr) || 0;
@@ -1883,7 +2026,23 @@
                 });
                 contenedor.innerHTML = html;
             }
-            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>`;
+
+            // ALARMA MARGEN 10%
+            const pideFactura = document.getElementById('cotiza-factura')?.checked || false;
+            const costoTinta = parseFloat(document.getElementById('cotiza-tinta')?.value) || 0;
+            const costoEnvio = parseFloat(document.getElementById('cotiza-envio')?.value) || 0;
+            
+            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
+            let gastosExtra = costoTinta + costoEnvio;
+            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
+            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
+
+            let warningHTML = '';
+            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
+                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre calculada es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            }
+
+            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarCotizacion() {
@@ -1894,7 +2053,7 @@
                 const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; // CORRECCIÓN: MAYÚSCULAS
+                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; 
                 const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
 
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
@@ -1953,7 +2112,12 @@
 
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             ctx.font = '18px Arial'; let alturaExtra = 0;
-            principales.forEach(item => { let textWidth = ctx.measureText(item.nombre).width; let lineas = Math.max(1, Math.ceil(textWidth / 340)); alturaExtra += (lineas * 22) + 20; });
+            principales.forEach(item => { 
+                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; // LÓGICA DE LIMPIEZA
+                let textWidth = ctx.measureText(nombreLimpio).width; 
+                let lineas = Math.max(1, Math.ceil(textWidth / 340)); 
+                alturaExtra += (lineas * 22) + 20; 
+            });
 
             const widthBase = 600; const heightBase = 350 + alturaExtra; const scale = 2;
             canvas.width = widthBase * scale; canvas.height = heightBase * scale;
@@ -1985,10 +2149,11 @@
             let tieneCombo = principales.some(item => item.rol === 'combo');
 
             principales.forEach(item => {
+                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; // LIMPIEZA DE ICONO
                 ctx.fillStyle = '#374151'; ctx.fillText(item.qty + 'x', 45, y);
                 let sub = item.qty * item.precioCobrado; total += sub;
                 if (tieneCombo) { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText('Q ' + sub.toFixed(2), 480, y); }
-                ctx.fillStyle = '#1f2937'; let lineasUsadas = wrapTextCotizacion(ctx, item.nombre, 120, y, 340, 22);
+                ctx.fillStyle = '#1f2937'; let lineasUsadas = wrapTextCotizacion(ctx, nombreLimpio, 120, y, 340, 22);
                 y += (lineasUsadas * 22) + 20;
             });
 
@@ -2075,36 +2240,106 @@
 
                 if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
 
-                let costoProductosActualizado = 0;
-                let promesas = [];
+                const nuevaVentaId = Date.now();
+                const timestampActual = Date.now();
+                const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
+                let ventaProcesada = false;
 
-                cot.detalleItems.forEach(item => {
-                    const p = inventario.find(x => x.id == item.idProd);
-                    if(p && !item.isService) {
-                        p.stock -= item.qty; p.lastModified = Date.now();
-                        costoProductosActualizado += (item.qty * p.costo);
-                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
-                    } else { costoProductosActualizado += (item.qty * item.costoBase); }
-                });
+                // 🌟 TRANSACCIÓN SEGURA CLOUD
+                if(window.db && navigator.onLine) {
+                    try {
+                        await window.runTransaction(window.db, async (t) => {
+                            let prodsRefs = [];
+                            for (let item of cot.detalleItems) {
+                                if (!item.isService) {
+                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
+                                    let pSnap = await t.get(pRef);
+                                    if (!pSnap.exists() || pSnap.data().stock < item.qty) throw new Error("Stock insuficiente.");
+                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
+                                }
+                            }
 
-                const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + cot.costoEnvio + (cot.impuestoSAT || 0);
-                const gananciaNetaActualizada = cot.ingresoTotal - totalCostosOperativos;
+                            const configRef = window.doc(window.db, "sistema", "config");
+                            const configSnap = await t.get(configRef);
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : fondos;
 
-                fondos.costoProducto += costoProductosActualizado; fondos.costoLuzTinta += cot.costoTinta; fondos.gananciaLibre += gananciaNetaActualizada;
-                if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
-                
-                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
-                ventas.push(nuevaVenta);
-                
-                if(window.db) {
-                    promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
-                    cot.eliminada = true;
-                    promesas.push(window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true}));
-                } else {
-                    cot.eliminada = true;
+                            const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
+                            const resumenSnap = await t.get(resumenRef);
+                            let dbResumen = resumenSnap.exists() ? resumenSnap.data() : { totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0, mesTexto: formatearMesAnio(mesAnio) };
+
+                            let costoProductosActualizado = 0; let transItemsCount = 0;
+                            
+                            for (let pData of prodsRefs) {
+                                let prodData = pData.snap.data();
+                                prodData.stock -= pData.item.qty;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty;
+                                prodData.lastModified = timestampActual;
+                                t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
+                                costoProductosActualizado += (pData.item.qty * prodData.costo);
+
+                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                if(localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
+                            }
+
+                            cot.detalleItems.forEach(item => {
+                                if(item.isService) costoProductosActualizado += (item.qty * item.costoBase);
+                                if(item.rol === 'principal' || item.rol === 'combo') transItemsCount += item.qty;
+                            });
+
+                            const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + (cot.costoEnvio || 0) + (cot.impuestoSAT || 0);
+                            const gananciaNetaActualizada = cot.ingresoTotal - totalCostosOperativos;
+
+                            dbFondos.costoProducto += costoProductosActualizado; dbFondos.costoLuzTinta += cot.costoTinta; dbFondos.gananciaLibre += gananciaNetaActualizada;
+                            if(cot.impuestoSAT) dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + cot.impuestoSAT;
+
+                            dbResumen.totalVendido += cot.ingresoTotal; dbResumen.ganancia += gananciaNetaActualizada; dbResumen.costosMateriales += costoProductosActualizado; dbResumen.gastosOperativos += (cot.costoTinta + (cot.costoEnvio||0)); dbResumen.impuestos += (cot.impuestoSAT||0); dbResumen.items += transItemsCount;
+
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+
+                            t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
+                            t.update(window.doc(window.db, "cotizaciones", String(cot.id)), { eliminada: true });
+                            t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
+                            t.set(resumenRef, dbResumen);
+
+                            fondos = dbFondos; cot.eliminada = true; ventas.push(nuevaVenta);
+                            ventaProcesada = true;
+                        });
+                    } catch(err) {
+                        console.warn("Transacción Cotización falló. Fallback local activado.");
+                        ventaProcesada = false;
+                    }
                 }
 
-                if(promesas.length > 0) await Promise.all(promesas);
+                // ⚠️ FALLBACK OFFLINE LOCAL
+                if(!ventaProcesada) {
+                    let costoProductosActualizado = 0;
+                    let promesasOffline = [];
+
+                    cot.detalleItems.forEach(item => {
+                        const p = inventario.find(x => x.id == item.idProd);
+                        if(p && !item.isService) {
+                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
+                            costoProductosActualizado += (item.qty * p.costo);
+                            if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
+                        } else { costoProductosActualizado += (item.qty * item.costoBase); }
+                    });
+
+                    const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + (cot.costoEnvio || 0) + (cot.impuestoSAT || 0);
+                    const gananciaNetaActualizada = cot.ingresoTotal - totalCostosOperativos;
+
+                    fondos.costoProducto += costoProductosActualizado; fondos.costoLuzTinta += cot.costoTinta; fondos.gananciaLibre += gananciaNetaActualizada;
+                    if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
+                    
+                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+                    ventas.push(nuevaVenta);
+                    cot.eliminada = true;
+                    
+                    if(window.db) {
+                        promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
+                        promesasOffline.push(window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true}));
+                    }
+                    if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
+                }
 
                 guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas');
             } catch (error) {
@@ -2132,31 +2367,103 @@
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
                 let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
-                let promesas = [];
+                const nuevaVentaId = Date.now();
+                const timestampActual = Date.now();
+                const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
                 
-                carritoCotizacion.forEach(item => {
-                    const p = inventario.find(x => x.id == item.idProd);
-                    if(p && !item.isService) {
-                        p.stock -= item.qty; p.lastModified = Date.now();
-                        costosProductosActualizados += (item.qty * p.costo);
-                        if(window.db) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
-                    } else { costosProductosActualizados += (item.qty * item.costoBase); }
-                    
-                    ingresoTotal += (item.qty * item.precioCobrado);
-                    let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
-                });
-                
-                let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const totalCostosOperativos = costosProductosActualizados + costoTinta + costoEnvio + impuestoSAT;
-                const gananciaNetaActualizada = ingresoTotal - totalCostosOperativos;
-                
-                fondos.costoProducto += costosProductosActualizados; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNetaActualizada; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
-                
-                const nuevaVenta = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
-                ventas.push(nuevaVenta);
-                if(window.db) promesas.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVenta.id)), nuevaVenta));
+                let ventaProcesada = false;
 
-                if (promesas.length > 0) await Promise.all(promesas);
+                // 🌟 LÓGICA DE TRANSACCIÓN CLOUD
+                if(window.db && navigator.onLine) {
+                    try {
+                        await window.runTransaction(window.db, async (t) => {
+                            let prodsRefs = [];
+                            for (let item of carritoCotizacion) {
+                                if (!item.isService) {
+                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
+                                    let pSnap = await t.get(pRef);
+                                    if (!pSnap.exists() || pSnap.data().stock < item.qty) throw new Error("Stock insuficiente");
+                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
+                                }
+                            }
+
+                            const configRef = window.doc(window.db, "sistema", "config");
+                            const configSnap = await t.get(configRef);
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : fondos;
+
+                            const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
+                            const resumenSnap = await t.get(resumenRef);
+                            let dbResumen = resumenSnap.exists() ? resumenSnap.data() : { totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0, mesTexto: formatearMesAnio(mesAnio) };
+
+                            let transIngresoTotal = 0; let transCostosProductos = 0; let transItemsCount = 0;
+
+                            for(let pData of prodsRefs) {
+                                let prodData = pData.snap.data();
+                                prodData.stock -= pData.item.qty;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty;
+                                prodData.lastModified = timestampActual;
+                                t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
+                                transCostosProductos += (pData.item.qty * prodData.costo);
+                                
+                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                if(localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
+                            }
+
+                            carritoCotizacion.forEach(item => {
+                                transIngresoTotal += (item.qty * item.precioCobrado);
+                                if(item.isService) transCostosProductos += (item.qty * item.costoBase);
+                                if(item.rol === 'principal' || item.rol === 'combo') transItemsCount += item.qty;
+                                let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
+                            });
+
+                            let impuestoSAT = pideFactura ? (transIngresoTotal * 0.05) : 0;
+                            const totalCostosOperativos = transCostosProductos + costoTinta + costoEnvio + impuestoSAT;
+                            const gananciaNetaActualizada = transIngresoTotal - totalCostosOperativos;
+
+                            dbFondos.costoProducto += transCostosProductos; dbFondos.costoLuzTinta += costoTinta; dbFondos.gananciaLibre += gananciaNetaActualizada; dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + impuestoSAT;
+                            dbResumen.totalVendido += transIngresoTotal; dbResumen.ganancia += gananciaNetaActualizada; dbResumen.costosMateriales += transCostosProductos; dbResumen.gastosOperativos += (costoTinta + costoEnvio); dbResumen.impuestos += impuestoSAT; dbResumen.items += transItemsCount;
+
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+
+                            t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
+                            t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
+                            t.set(resumenRef, dbResumen);
+
+                            fondos = dbFondos; ventas.push(nuevaVenta); ventaProcesada = true;
+                        });
+                    } catch (err) {
+                        console.warn("Transacción falló, usando Fallback...");
+                        ventaProcesada = false;
+                    }
+                }
+
+                // ⚠️ FALLBACK OFFLINE LOCAL
+                if(!ventaProcesada) {
+                    let promesasOffline = [];
+                    carritoCotizacion.forEach(item => {
+                        const p = inventario.find(x => x.id == item.idProd);
+                        if(p && !item.isService) {
+                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
+                            costosProductosActualizados += (item.qty * p.costo);
+                            if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
+                        } else { costosProductosActualizados += (item.qty * item.costoBase); }
+                        
+                        ingresoTotal += (item.qty * item.precioCobrado);
+                        let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
+                    });
+                    
+                    let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+                    const totalCostosOperativos = costosProductosActualizados + costoTinta + costoEnvio + impuestoSAT;
+                    const gananciaNetaActualizada = ingresoTotal - totalCostosOperativos;
+                    
+                    fondos.costoProducto += costosProductosActualizados; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNetaActualizada; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
+                    
+                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                    ventas.push(nuevaVenta);
+                    if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
+
+                    if (promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
+                }
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 
@@ -2171,7 +2478,8 @@
         // ================= PESTAÑA ALERTAS / POR SURTIR =================
         function renderAlertas() {
             const contAlertas = document.getElementById('lista-alertas-surtir');
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO ALERTAS
+            // ORDENAMIENTO POR ROTACIÓN (ventasTotales)
+            let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0)); 
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
             
             if(productosBajos.length === 0) { 
@@ -2182,14 +2490,14 @@
             let html = '';
             productosBajos.forEach(p => {
                 html += `<div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;"><p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p></div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;"><p class="item-title" style="color: var(--primary-red); margin: 0;">${p.nombre}</p> <span style="color: var(--primary-orange); font-size: 13px; font-weight: bold;">🔥 Rotación: ${p.ventasTotales || 0} vendidas</span></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${p.stock}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${p.min || 0}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${p.proveedor || "NO ESPECIFICADO"}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${p.costo.toFixed(2)}</span></div></div>`;
             });
             contAlertas.innerHTML = html;
         }
 
         function exportarPorSurtirExcel() {
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
 
             if (productosBajos.length === 0) {
@@ -2199,6 +2507,7 @@
 
             let dataExp = productosBajos.map(p => ({
                 "Producto": p.nombre,
+                "Ventas Históricas": p.ventasTotales || 0,
                 "Categoría": p.categoria || "OTROS",
                 "Proveedor": p.proveedor || "NO ESPECIFICADO",
                 "Stock Actual": p.stock,
@@ -2221,7 +2530,7 @@
                 id: Date.now(), 
                 timestamp: Date.now(), 
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                tipo: tipo.toUpperCase(), // CORRECCIÓN: MAYÚSCULAS
+                tipo: tipo.toUpperCase(), 
                 monto: val 
             };
             historialRetiros.push(nuevoRetiro);
@@ -2270,7 +2579,7 @@
             const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen); XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Categoría": (p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": (p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
+            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Ventas Históricas": p.ventasTotales || 0, "Categoría": (p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": (p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
             if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": (v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": v.resumenItems.toUpperCase(), "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
             if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo.toUpperCase(), "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
@@ -2314,53 +2623,35 @@
             const cont = document.getElementById('lista-resumen-mensual');
             if(!cont) return;
 
-            if (ventas.length === 0) {
-                cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay ventas registradas aún para el resumen.</p>';
+            let dataToUse = [];
+
+            // Usar Master Summary de la nube si existe, de lo contrario construir desde ventas locales (Fallback)
+            if (resumenMensualNube && resumenMensualNube.length > 0) {
+                dataToUse = resumenMensualNube;
+            } else {
+                let agrupado = {};
+                ventas.forEach(v => {
+                    if (v.anulada) return;
+                    let llave = getMesAnioFromDate(v.fecha, v.timestamp);
+                    if(!llave) return;
+                    if(!agrupado[llave]) agrupado[llave] = { id: llave, mesTexto: formatearMesAnio(llave), totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0 };
+                    agrupado[llave].totalVendido += v.ingresoTotal; agrupado[llave].ganancia += v.ganancia; agrupado[llave].costosMateriales += v.costosProductos || 0; agrupado[llave].gastosOperativos += (v.costoTinta || 0) + (v.costoEnvio || 0); agrupado[llave].impuestos += v.impuestoSAT || 0;
+                    v.detalleItems.forEach(item => { if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty; });
+                });
+                dataToUse = Object.values(agrupado).sort((a,b) => b.id.localeCompare(a.id));
+            }
+
+            if (dataToUse.length === 0) {
+                cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay datos de ventas válidos.</p>';
                 return;
             }
 
-            let agrupado = {};
-            
-            ventas.forEach(v => {
-                if (v.anulada) return;
-                
-                let llave = getMesAnioFromDate(v.fecha, v.timestamp);
-                if(!llave) return;
-                
-                if(!agrupado[llave]) agrupado[llave] = { mesTexto: formatearMesAnio(llave), totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0 };
-
-                agrupado[llave].totalVendido += v.ingresoTotal;
-                agrupado[llave].ganancia += v.ganancia;
-                agrupado[llave].costosMateriales += v.costosProductos || 0;
-                agrupado[llave].gastosOperativos += (v.costoTinta || 0) + (v.costoEnvio || 0);
-                agrupado[llave].impuestos += v.impuestoSAT || 0;
-
-                v.detalleItems.forEach(item => {
-                    if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += item.qty;
-                });
-            });
-
-            let llavesOrdenadas = Object.keys(agrupado).sort().reverse(); 
-
-            if(llavesOrdenadas.length === 0) {
-                 cont.innerHTML = '<p class="item-details" style="text-align:center;">No hay datos de ventas válidos.</p>';
-                 return;
-            }
-
-            let mesEstrella = '';
-            let maxVentas = -1;
-            llavesOrdenadas.forEach(llave => {
-                if(agrupado[llave].totalVendido > maxVentas) {
-                    maxVentas = agrupado[llave].totalVendido;
-                    mesEstrella = llave;
-                }
-            });
+            let mesEstrella = ''; let maxVentas = -1;
+            dataToUse.forEach(d => { if(d.totalVendido > maxVentas) { maxVentas = d.totalVendido; mesEstrella = d.id; } });
 
             let html = '';
-            llavesOrdenadas.forEach(llave => {
-                let data = agrupado[llave];
-                let estrellaHTML = (llave === mesEstrella && llavesOrdenadas.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ MES RÉCORD</span>' : '';
-
+            dataToUse.forEach(data => {
+                let estrellaHTML = (data.id === mesEstrella && dataToUse.length > 1) ? '<span style="color:var(--primary-orange); font-size:12px; margin-left:5px;">⭐ MES RÉCORD</span>' : '';
                 html += `
                 <div class="item-row" style="background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
