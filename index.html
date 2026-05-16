@@ -1388,8 +1388,8 @@
                         p.stock -= item.stock;
                         p.lastModified = Date.now();
                         if (p.stock > 0) {
-                            p.costo = (valorActualTotal - valorIngresoAnulado) / p.stock;
-                            if (p.costo < 0) p.costo = 0; 
+                            let nuevoCosto = (valorActualTotal - valorIngresoAnulado) / p.stock;
+                            p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0; 
                         } else { p.costo = 0; }
                     } else {
                         p.stock -= item.stock; 
@@ -1436,8 +1436,8 @@
                             p.stock -= item.stock;
                             p.lastModified = Date.now();
                             if (p.stock > 0) {
-                                p.costo = (valorActualTotal - valorIngresoAnulado) / p.stock;
-                                if (p.costo < 0) p.costo = 0; 
+                                let nuevoCosto = (valorActualTotal - valorIngresoAnulado) / p.stock;
+                                p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0; 
                             } else { p.costo = 0; }
                         } else {
                             p.stock -= item.stock; 
@@ -1823,7 +1823,10 @@
                     const nuevaVentaOffline = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: localIngreso, costosProductos: localCostos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                     ventas.push(nuevaVentaOffline);
                     
-                    if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaOffline.id)), nuevaVentaOffline));
+                    if(window.db) {
+                        promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaOffline.id)), nuevaVentaOffline));
+                        promesasOffline.push(window.updateDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, ultimaActualizacion: timestampActual }));
+                    }
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e => console.log("Se enviará al recuperar conexión."));
                 }
 
@@ -1869,7 +1872,8 @@
                         if (p.ventasTotales < 0) p.ventasTotales = 0;
                         
                         if(p.stock > 0) {
-                             p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                             let nuevoCosto = (valorActualEnBodega + valorDevuelto) / p.stock;
+                             p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0;
                         }
                         p.lastModified = Date.now(); 
                     }
@@ -1884,7 +1888,10 @@
             if(v.impuestoSAT) fondos.fondoImpuestos -= v.impuestoSAT;
             
             v.anulada = true; 
-            if(window.db) window.updateDoc(window.doc(window.db, "ventas", String(v.id)), {anulada: true});
+            if(window.db) {
+                window.updateDoc(window.doc(window.db, "ventas", String(v.id)), {anulada: true});
+                window.updateDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, ultimaActualizacion: Date.now() });
+            }
 
             guardarDatos(); actualizarUI(); renderCarritoVentas(); cambiarPestaña('ventas'); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1910,7 +1917,8 @@
                         p.ventasTotales = (p.ventasTotales || 0) - item.qty; // Deshacer rotación
                         if (p.ventasTotales < 0) p.ventasTotales = 0;
                         if(p.stock > 0) { 
-                             p.costo = (valorActualEnBodega + valorDevuelto) / p.stock;
+                             let nuevoCosto = (valorActualEnBodega + valorDevuelto) / p.stock;
+                             p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0;
                         }
                         p.lastModified = Date.now(); 
                     }
@@ -1925,7 +1933,10 @@
             if(v.impuestoSAT) fondos.fondoImpuestos -= v.impuestoSAT;
             
             v.anulada = true; 
-            if(window.db) window.updateDoc(window.doc(window.db, "ventas", String(v.id)), {anulada: true});
+            if(window.db) {
+                window.updateDoc(window.doc(window.db, "ventas", String(v.id)), {anulada: true});
+                window.updateDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, ultimaActualizacion: Date.now() });
+            }
 
             guardarDatos(); actualizarUI();
         }
@@ -2339,6 +2350,7 @@
                     if(window.db) {
                         promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
                         promesasOffline.push(window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true}));
+                        promesasOffline.push(window.updateDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, ultimaActualizacion: timestampActual }));
                     }
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
@@ -2462,7 +2474,10 @@
                     
                     const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                     ventas.push(nuevaVenta);
-                    if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
+                    if(window.db) {
+                        promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
+                        promesasOffline.push(window.updateDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, ultimaActualizacion: timestampActual }));
+                    }
 
                     if (promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
@@ -2542,10 +2557,10 @@
             alert(`✅ Se han retirado Q ${val.toFixed(2)} exitosamente.`);
         }
 
-        function retirarCostoProducto() { let val = parseFloat(document.getElementById('ret-prod').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > fondos.costoProducto) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para surtir?")) { procesarRetiro("Fondo de Productos (Surtir)", val, "costoProducto"); document.getElementById('ret-prod').value = ''; } }
-        function retirarCostoLuz() { let val = parseFloat(document.getElementById('ret-luz').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > fondos.costoLuzTinta) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para pagos de luz/tinta?")) { procesarRetiro("Fondo Luz y Tinta", val, "costoLuzTinta"); document.getElementById('ret-luz').value = ''; } }
-        function retirarGanancia() { let val = parseFloat(document.getElementById('ret-ganancia').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > fondos.gananciaLibre) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " de la ganancia libre?")) { procesarRetiro("Ganancia Libre", val, "gananciaLibre"); document.getElementById('ret-ganancia').value = ''; } }
-        function retirarImpuesto() { let val = parseFloat(document.getElementById('ret-impuesto').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > (fondos.fondoImpuestos||0)) return alert("El monto a retirar supera el fondo disponible en SAT"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para pago de impuestos?")) { procesarRetiro("Pago Impuestos (SAT)", val, "fondoImpuestos"); document.getElementById('ret-impuesto').value = ''; } }
+        function retirarCostoProducto() { let val = parseFloat(document.getElementById('ret-prod').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > (Math.round(fondos.costoProducto * 100) / 100 + 0.01)) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para surtir?")) { procesarRetiro("Fondo de Productos (Surtir)", val, "costoProducto"); document.getElementById('ret-prod').value = ''; } }
+        function retirarCostoLuz() { let val = parseFloat(document.getElementById('ret-luz').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > (Math.round(fondos.costoLuzTinta * 100) / 100 + 0.01)) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para pagos de luz/tinta?")) { procesarRetiro("Fondo Luz y Tinta", val, "costoLuzTinta"); document.getElementById('ret-luz').value = ''; } }
+        function retirarGanancia() { let val = parseFloat(document.getElementById('ret-ganancia').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > (Math.round(fondos.gananciaLibre * 100) / 100 + 0.01)) return alert("El monto a retirar supera el fondo disponible"); if(confirm("¿Retirar Q " + val.toFixed(2) + " de la ganancia libre?")) { procesarRetiro("Ganancia Libre", val, "gananciaLibre"); document.getElementById('ret-ganancia').value = ''; } }
+        function retirarImpuesto() { let val = parseFloat(document.getElementById('ret-impuesto').value) || 0; if(val <= 0) return alert("Ingrese un monto válido mayor a 0"); if(val > (Math.round((fondos.fondoImpuestos||0) * 100) / 100 + 0.01)) return alert("El monto a retirar supera el fondo disponible en SAT"); if(confirm("¿Retirar Q " + val.toFixed(2) + " para pago de impuestos?")) { procesarRetiro("Pago Impuestos (SAT)", val, "fondoImpuestos"); document.getElementById('ret-impuesto').value = ''; } }
 
         function renderHistorialRetiros() {
             const cont = document.getElementById('lista-retiros-historial');
