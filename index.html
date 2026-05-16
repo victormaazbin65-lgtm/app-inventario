@@ -107,6 +107,17 @@
         .sugerencia-item:hover { background-color: var(--primary-blue); color: white; }
         .sugerencia-item:hover span { color: white !important; }
         .sugerencia-item:last-child { border-bottom: none; }
+        
+        /* Quitar flechas de los inputs numéricos para evitar errores al hacer scroll */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield; /* Para Firefox */
+            appearance: textfield;
+        }
     </style>
 </head>
 <body>
@@ -121,7 +132,6 @@
         </div>
     </div>
 
-    <!-- AQUÍ ESTÁ EL INPUT DE SEGURIDAD -->
     <div id="modal-password" class="modal-overlay" style="z-index: 10000;">
         <div class="modal-card" style="max-width: 350px; text-align: center;">
             <h3 class="modal-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">🔒 Seguridad Requerida</h3>
@@ -136,7 +146,6 @@
 
     <div class="container" id="main-app" style="display: none;">
 
-        <!-- LOGO SUPERIOR GENERAL -->
         <div class="logo-container" id="main-logo-container" style="display: block;">
             <div class="logo-wrapper">
                 <img id="logo-img" src="" alt="Logo SubliCosturas">
@@ -546,7 +555,6 @@
 
     </div>
 
-    <!-- MODALES DE EDICIÓN Y SEGURIDAD -->
     <div id="modal-editar" class="modal-overlay">
         <div class="modal-card">
             <h3 class="modal-title">Editar Producto</h3>
@@ -582,7 +590,6 @@
         </div>
     </div>
 
-    <!-- Modal Renombrar Categoría -->
     <div id="modal-renombrar-cat" class="modal-overlay" style="z-index: 10000;">
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modificar Categoría</h3>
@@ -601,7 +608,6 @@
         </div>
     </div>
 
-    <!-- Modal Eliminar Categoría -->
     <div id="modal-eliminar-cat" class="modal-overlay" style="z-index: 10000;">
         <div class="modal-card">
             <h3 class="modal-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">🗑️ Eliminar Categoría</h3>
@@ -694,6 +700,11 @@
 
         let isProcessingTransaction = false; 
 
+        // Solución a errores de precisión matemática
+        function redondear(num) {
+            return Math.round((num + Number.EPSILON) * 100) / 100;
+        }
+
         let vistaInventarioAZ = false;
         let categoriasExpandidas = {};
 
@@ -759,6 +770,7 @@
                     resolve(val);
                 };
                 newCancel.onclick = () => {
+                    const val = input.value;
                     modal.style.display = 'none';
                     resolve(null);
                 };
@@ -1830,12 +1842,35 @@
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e => console.log("Se enviará al recuperar conexión."));
                 }
 
-                carritoVentas = []; document.getElementById('venta-tinta').value = ''; document.getElementById('venta-envio').value = ''; document.getElementById('buscador-venta-producto').value = ''; document.getElementById('venta-producto').value = ''; document.getElementById('venta-nombre').value = ''; document.getElementById('venta-nit').value = ''; document.getElementById('venta-factura').checked = false;
-                
-                renderCarritoVentas(); guardarDatos(); actualizarUI();
-                alert("💰 ¡Venta procesada con éxito!");
+                // LIMPIEZA SEGURA Y REDONDEO
+                if (ventaProcesada || (!ventaProcesada && carritoVentas.length > 0)) {
+                    fondos.costoProducto = redondear(fondos.costoProducto);
+                    fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
+                    fondos.gananciaLibre = redondear(fondos.gananciaLibre);
+                    if (fondos.fondoImpuestos) fondos.fondoImpuestos = redondear(fondos.fondoImpuestos);
+
+                    carritoVentas = []; 
+                    document.getElementById('venta-tinta').value = ''; 
+                    document.getElementById('venta-envio').value = ''; 
+                    document.getElementById('buscador-venta-producto').value = ''; 
+                    document.getElementById('venta-producto').value = ''; 
+                    document.getElementById('venta-nombre').value = ''; 
+                    document.getElementById('venta-nit').value = ''; 
+                    document.getElementById('venta-factura').checked = false;
+                    
+                    renderCarritoVentas(); 
+                    guardarDatos(); 
+                    actualizarUI();
+                    
+                    if (navigator.onLine) {
+                        alert("💰 ¡Venta procesada y sincronizada con éxito!");
+                    } else {
+                        alert("📡 Sin conexión: Venta guardada localmente. Se sincronizará sola al volver el internet.");
+                    }
+                }
+
             } catch (error) {
-                alert("Error crítico al procesar la venta: " + error.message);
+                alert("Hubo un problema y tus datos siguen en el carrito. Intenta de nuevo. Error: " + error.message);
             } finally {
                 isProcessingTransaction = false; 
             }
@@ -2781,14 +2816,22 @@
             cargarDatos();
         }
 
-        window.addEventListener('firebaseListo', () => {
-            console.log("Señal de Firebase recibida.");
+        function verificarArranque() {
+            console.log("Señal de Firebase recibida o base de datos ya lista.");
             arrancarSistema();
-        });
+        }
+
+        // Si la base de datos ya se conectó rapidísimo, arranca de inmediato.
+        if (window.db) {
+            verificarArranque();
+        } else {
+            // Si no, espera pacientemente la señal
+            window.addEventListener('firebaseListo', verificarArranque);
+        }
 
         setTimeout(() => {
             if (!appArrancada) {
-                console.warn("⚠️ Tiempo de espera de Firebase agotado (Internet lento/caído). Iniciando sistema en modo local/offline...");
+                console.warn("⚠️ Tiempo de espera agotado (Modo Offline detectado). Arrancando sistema...");
                 arrancarSistema();
             }
         }, 5000);
