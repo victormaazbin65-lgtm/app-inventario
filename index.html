@@ -81,7 +81,7 @@
         .item-details { font-size: 13px; color: var(--text-light); margin: 0; line-height: 1.5; }
         .item-actions { display: flex; gap: 8px; flex-direction: row; flex-wrap: wrap;}
 
-        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: text-align: center;}
+        .btn-sm { padding: 6px 10px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; text-align: center; cursor: pointer;}
         .btn-edit { background-color: #d97706; color: white; }
         .btn-delete { background-color: #991b1b; color: white; }
         .btn-sell { background-color: #1e3a8a; color: white; border: 1px solid var(--primary-blue); }
@@ -231,7 +231,7 @@
                         📂 Descargar Reporte Completo (Excel)
                     </button>
                     
-                    <button onclick="let t=0;for(let k in localStorage){if(localStorage.hasOwnProperty(k)){t+=(localStorage[k].length+k.length)*2;}}alert('🔥 TOTAL USADO: '+(t/1024/1024).toFixed(2)+' MB de 5.00 MB');" style="background-color: #4b5563; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; width: 100%;">
+                    <button onclick="let t=0; Object.keys(localStorage).forEach(k => { let val = localStorage.getItem(k); if(val) t += (val.length + k.length) * 2; }); alert('🔥 TOTAL USADO: '+(t/1024/1024).toFixed(2)+' MB de 5.00 MB');" style="background-color: #4b5563; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; width: 100%;">
                         📊 Revisar Memoria del Dispositivo
                     </button>
                 </div>
@@ -625,8 +625,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        // IMPORTACIONES AÑADIDAS: runTransaction, query, orderBy, limit
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, enableIndexedDbPersistence, runTransaction, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, orderBy, limit, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
@@ -639,14 +638,10 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Múltiples pestañas abiertas, persistencia offline solo funciona en una.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("El navegador no soporta persistencia offline.");
-            }
+        
+        // FIX DE CONEXIÓN: Habilitando caché offline para Firebase v10+
+        const db = initializeFirestore(app, {
+          localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
         });
 
         window.db = db;
@@ -657,7 +652,6 @@
         window.collection = collection;
         window.deleteDoc = deleteDoc;
         window.updateDoc = updateDoc;
-        // EXPORTAR HERRAMIENTAS NUEVAS
         window.runTransaction = runTransaction;
         window.query = query;
         window.orderBy = orderBy;
@@ -668,6 +662,14 @@
     </script>
 
     <script>
+        // Función de seguridad Anti-Inyección de código
+        function escaparHTML(texto) {
+            return texto ? texto.replace(/[&<>'"]/g, function(tag) {
+                const chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+                return chars[tag] || tag;
+            }) : '';
+        }
+
         const KEY_INV = 'subli_inv_v10';
         const KEY_VENTAS = 'subli_vent_v10';
         const KEY_FONDOS = 'subli_fondos_v10';
@@ -682,7 +684,7 @@
         let historialIngresos = [];
         let historialCotizaciones = [];
         let historialRetiros = []; 
-        let resumenMensualNube = []; // NUEVO ARREGLO PARA RESUMEN MAESTRO
+        let resumenMensualNube = []; 
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let datosCargadosDeLaNube = false; 
         
@@ -1140,8 +1142,8 @@
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-            let invFiltrado = invOrdenado.filter(p => !p.isService && p.nombre.toLowerCase().includes(textoBuscado));
+            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+            let invFiltrado = invOrdenado.filter(p => !p.isService && (p.nombre || '').toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -1167,9 +1169,9 @@
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
             const stock = parseInt(document.getElementById('inv-stock').value) || 0;
-            const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO'; 
-            const nit = document.getElementById('inv-nit').value.trim() || '';
-            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; 
+            const proveedor = escaparHTML(document.getElementById('inv-proveedor').value.trim().toUpperCase()) || 'NO ESPECIFICADO'; 
+            const nit = escaparHTML(document.getElementById('inv-nit').value.trim()) || '';
+            const factura = escaparHTML(document.getElementById('inv-factura').value.trim().toUpperCase()) || ''; 
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value) || 0;
             
@@ -1179,10 +1181,10 @@
             let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null;
 
             if (modo === 'nuevo') {
-                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); 
+                nombreProd = escaparHTML(document.getElementById('inv-nombre').value.trim().toUpperCase()); 
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
-                categoria = catElegida === 'nueva' ? (document.getElementById('inv-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
+                categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('inv-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
                 
                 if(minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
@@ -1485,16 +1487,16 @@
             isProcessingTransaction = true;
             try {
                 const id = document.getElementById('edit-id').value;
-                const nombre = document.getElementById('edit-nombre').value.trim().toUpperCase(); 
+                const nombre = escaparHTML(document.getElementById('edit-nombre').value.trim().toUpperCase()); 
                 const stock = parseInt(document.getElementById('edit-stock').value) || 0;
                 const min = parseInt(document.getElementById('edit-min').value) || 0;
                 const tipoCosto = document.getElementById('edit-tipo-costo').value;
                 const costoIngresado = parseFloat(document.getElementById('edit-costo').value) || 0;
                 const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
-                const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase(); 
+                const proveedor = escaparHTML(document.getElementById('edit-proveedor').value.trim().toUpperCase()); 
                 
                 let catElegida = document.getElementById('edit-categoria').value;
-                let categoria = catElegida === 'nueva' ? (document.getElementById('edit-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
+                let categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('edit-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
                 
                 if(!nombre || stock < 0 || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
                 
@@ -1553,8 +1555,8 @@
             const contInv = document.getElementById('lista-inventario');
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
             
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); // ORDEN ALFABÉTICO
-            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); // ORDEN ALFABÉTICO
+            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
             
             if(invFiltrado.length === 0) {
                 contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
@@ -1581,7 +1583,7 @@
                     
                     if(expandido) {
                         html += `<div style="padding: 15px; background: var(--bg-color);">`;
-                        agrupado[c].sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(p => { html += renderItemInventario(p); });
+                        agrupado[c].sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')).forEach(p => { html += renderItemInventario(p); });
                         html += `</div>`;
                     }
                     html += `</div>`;
@@ -1600,8 +1602,8 @@
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); 
-            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
+            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -1711,8 +1713,8 @@
                 const costoTinta = parseFloat(document.getElementById('venta-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('venta-envio').value) || 0;
                 const pideFactura = document.getElementById('venta-factura').checked;
-                const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F'; 
-                const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
+                const clienteNombre = escaparHTML(document.getElementById('venta-nombre').value.trim().toUpperCase()) || 'C/F'; 
+                const clienteNit = escaparHTML(document.getElementById('venta-nit').value.trim()) || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
                 let itemsResumen = [];
@@ -1938,8 +1940,8 @@
             if(!mostrarTodo) hiddenId.value = '';
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre)); 
-            let invFiltrado = invOrdenado.filter(p => p.nombre.toLowerCase().includes(textoBuscado));
+            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
+            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -2053,8 +2055,8 @@
                 const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0;
                 const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0;
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; 
-                const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
+                const clienteNombre = escaparHTML(document.getElementById('cotiza-nombre').value.trim().toUpperCase()) || 'C/F'; 
+                const clienteNit = escaparHTML(document.getElementById('cotiza-nit').value.trim()) || 'C/F';
 
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
@@ -2363,7 +2365,7 @@
 
                 if(!confirm("¿Seguro que deseas convertir esta cotización en una venta real? Se descontará de tu inventario.")) return;
 
-                const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0; const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0; const pideFactura = document.getElementById('cotiza-factura').checked; const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
+                const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0; const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0; const pideFactura = document.getElementById('cotiza-factura').checked; const clienteNombre = escaparHTML(document.getElementById('cotiza-nombre').value.trim().toUpperCase()) || 'C/F'; const clienteNit = escaparHTML(document.getElementById('cotiza-nit').value.trim()) || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
                 let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
@@ -2568,7 +2570,7 @@
 
         // ================= REPORTES Y EXPORTACIÓN =================
         function generarReporteExcel() {
-            const inv = inventario.sort((a,b) => a.nombre.localeCompare(b.nombre)); 
+            const inv = inventario.sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '')); 
             const vent = ventas.filter(v => !v.anulada); 
             const fnd = fondos; 
             let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
@@ -2590,10 +2592,11 @@
             localStorage.setItem(KEY_INV, JSON.stringify(inventario));
             localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
             
-            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-500)));
-            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-500)));
-            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-500)));
-            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros.slice(-500)));
+            // Limitando a los últimos 100 registros para evitar colgar la memoria local
+            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-100)));
+            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-100)));
+            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-100)));
+            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros.slice(-100)));
 
             if(window.db && datosCargadosDeLaNube) {
                 try {
