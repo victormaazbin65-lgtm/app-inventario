@@ -139,7 +139,7 @@
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
             <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
-            <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su contraseña para acceder al sistema</p>
+            <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su PIN para acceder al sistema</p>
             <input type="password" id="login-pass" placeholder="••••" style="margin-bottom: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; width: 80%; margin-left: auto; margin-right: auto; display: block;" onkeydown="if(event.key === 'Enter') verificarLogin()">
             <button class="btn-main" onclick="verificarLogin()" style="width: 80%;">Entrar al Sistema</button>
         </div>
@@ -177,6 +177,7 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
+            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Usuarios</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
@@ -263,6 +264,32 @@
                 </p>
             </div>
         </div>
+
+        <!-- ================= SECCIÓN DE USUARIOS (NUEVO) ================= -->
+        <div id="sec-ajustes" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">👥 Administración de Usuarios</h3>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren ventas sin tener acceso a tus finanzas ni inventario. Ideal para dar acceso a través de dispositivos como Smart TV, Celulares y Tablets.</p>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre (Ej. Carlos)</label><input type="text" id="nuevo-user-nombre" placeholder="Nombre del Empleado"></div>
+                    <div class="form-group"><label>PIN de Acceso</label><input type="password" id="nuevo-user-pin" placeholder="Numérico (Ej. 1234)"></div>
+                </div>
+                <div class="form-group">
+                    <label>Nivel de Permisos</label>
+                    <select id="nuevo-user-rol">
+                        <option value="empleado">🛒 Empleado (Solo Accesos a Ventas y Cotizaciones)</option>
+                        <option value="dueno">👑 Dueño (Acceso Total al Sistema)</option>
+                    </select>
+                </div>
+                <button class="btn-main btn-green" onclick="crearUsuario()">➕ Crear Usuario</button>
+            </div>
+            
+            <div class="card">
+                <h3 class="section-title">📋 Usuarios Activos</h3>
+                <div id="lista-usuarios"></div>
+            </div>
+        </div>
+        <!-- ============================================================== -->
 
         <div id="sec-ingreso" style="display: none;">
             <div class="card">
@@ -713,6 +740,132 @@
 
         let isProcessingTransaction = false; 
 
+        // ================= NUEVO: SISTEMAS DE USUARIOS Y PERMISOS =================
+        let usuarios = JSON.parse(localStorage.getItem('subli_usuarios')) || [];
+        let currentUserRole = null;
+        let inactividadTimer;
+        const TIEMPO_INACTIVIDAD = 15 * 60 * 1000; // 15 minutos en milisegundos
+
+        function esDueno(pin) {
+            if (btoa(pin) === 'MTAxMA==' || pin === '9090') return true;
+            return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
+        }
+        
+        function esEmpleado(pin) {
+            return usuarios.some(u => u.pin === pin && u.rol === 'empleado');
+        }
+
+        function verificarLogin() {
+            const pass = document.getElementById('login-pass').value;
+            if (esDueno(pass) || esEmpleado(pass)) {
+                currentUserRole = esDueno(pass) ? 'dueno' : 'empleado';
+                
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('login-pass').value = '';
+                
+                aplicarPermisos(currentUserRole);
+                reiniciarTemporizador();
+            } else {
+                alert('Contraseña o PIN incorrecto. Intente de nuevo.');
+                document.getElementById('login-pass').value = '';
+            }
+        }
+
+        function aplicarPermisos(rol) {
+            const tabsPrivados = ['tab-inicio', 'tab-ingreso', 'tab-inventario', 'tab-alertas', 'tab-ajustes'];
+            
+            if (rol === 'dueno') {
+                tabsPrivados.forEach(id => {
+                    if (document.getElementById(id)) document.getElementById(id).style.display = 'block';
+                });
+                cambiarPestaña('inicio');
+            } else { // Rol empleado
+                tabsPrivados.forEach(id => {
+                    if (document.getElementById(id)) document.getElementById(id).style.display = 'none';
+                });
+                cambiarPestaña('ventas');
+            }
+        }
+
+        function crearUsuario() {
+            const nombre = document.getElementById('nuevo-user-nombre').value.trim();
+            const pin = document.getElementById('nuevo-user-pin').value.trim();
+            const rol = document.getElementById('nuevo-user-rol').value;
+
+            if(!nombre || !pin) return alert('Completa todos los campos');
+            if(pin === '1010' || pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso. Elige otro.');
+
+            usuarios.push({ id: Date.now(), nombre, pin, rol });
+            localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+            if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
+            
+            document.getElementById('nuevo-user-nombre').value = '';
+            document.getElementById('nuevo-user-pin').value = '';
+            renderUsuarios();
+            alert('Usuario creado exitosamente');
+        }
+
+        function borrarUsuario(id) {
+            if(confirm('¿Eliminar definitivamente este usuario?')) {
+                usuarios = usuarios.filter(u => u.id !== id);
+                localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+                if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
+                renderUsuarios();
+            }
+        }
+
+        function renderUsuarios() {
+            const container = document.getElementById('lista-usuarios');
+            if(!container) return;
+            let html = `
+            <div class="item-row" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                <div class="item-info">
+                    <p class="item-title" style="color: var(--primary-blue);">👑 Dueño Principal</p>
+                    <p class="item-details">PIN: **** (Inborrable por Sistema)</p>
+                </div>
+            </div>`;
+            
+            usuarios.forEach((u) => {
+                const icono = u.rol === 'dueno' ? '👑' : '🛒';
+                const rolName = u.rol === 'dueno' ? 'Dueño' : 'Empleado';
+                html += `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding: 10px 0;">
+                    <div class="item-info">
+                        <p class="item-title">${icono} ${u.nombre} (${rolName})</p>
+                        <p class="item-details">PIN: ${u.rol === 'dueno' ? '****' : u.pin}</p>
+                    </div>
+                    <button onclick="borrarUsuario(${u.id})" class="btn-sm btn-delete">Borrar</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function ocultarModales() {
+            const modales = document.querySelectorAll('.modal-overlay');
+            modales.forEach(m => m.style.display = 'none');
+        }
+
+        function bloquearSistema() {
+            if (document.getElementById('main-app').style.display === 'block') {
+                ocultarModales();
+                currentUserRole = null;
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('login-pass').value = '';
+                document.getElementById('login-pass').focus();
+                alert("🔒 El sistema se ha bloqueado por inactividad (15 minutos) para proteger tus datos.");
+            }
+        }
+
+        function reiniciarTemporizador() {
+            if (document.getElementById('main-app').style.display === 'block') {
+                clearTimeout(inactividadTimer);
+                inactividadTimer = setTimeout(bloquearSistema, TIEMPO_INACTIVIDAD);
+            }
+        }
+
+        // ==============================================================================
+
         // Solución a errores de precisión matemática
         function redondear(num) {
             return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -780,7 +933,12 @@
                 newConfirm.onclick = () => {
                     const val = input.value;
                     modal.style.display = 'none';
-                    resolve(val);
+                    // NUEVO: Verificamos si es dueño para engañar al sistema y pasar "9090"
+                    if (esDueno(val)) {
+                        resolve("9090");
+                    } else {
+                        resolve(val);
+                    }
                 };
                 newCancel.onclick = () => {
                     const val = input.value;
@@ -792,17 +950,6 @@
                     if(e.key === 'Escape') newCancel.click();
                 }
             });
-        }
-
-        function verificarLogin() {
-            const pass = document.getElementById('login-pass').value;
-            if(btoa(pass) === 'MTAxMA==') {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-            } else {
-                alert('Contraseña incorrecta. Intente de nuevo.');
-                document.getElementById('login-pass').value = '';
-            }
         }
 
         document.addEventListener('click', function(e) {
@@ -996,7 +1143,7 @@
                             ventas.forEach(v => window.setDoc(window.doc(window.db, "ventas", String(v.id)), v));
                             historialIngresos.forEach(i => window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i));
                             historialCotizaciones.forEach(c => window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c));
-                            await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date() });
+                            await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios });
 
                             await window.updateDoc(docViejoRef, { migrado_v10: true });
                         }
@@ -1010,6 +1157,16 @@
                             fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                             let nubeCustomCats = data.customCats || [];
                             if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                            
+                            // NUEVO: Sincronizar usuarios desde Firebase
+                            if (data.usuarios) {
+                                usuarios = data.usuarios;
+                                localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+                                if(document.getElementById('sec-ajustes') && document.getElementById('sec-ajustes').style.display === 'block') {
+                                    renderUsuarios();
+                                }
+                            }
+                            
                             actualizarUI();
                         }
                     });
@@ -1080,9 +1237,10 @@
                 logoCont.style.display = (pestaña === 'inicio') ? 'block' : 'none';
             }
 
-            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas'].forEach(p => {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'].forEach(p => {
                 document.getElementById('sec-' + p).style.display = 'none';
-                document.getElementById('tab-' + p).classList.remove('active');
+                const tabBtn = document.getElementById('tab-' + p);
+                if(tabBtn) tabBtn.classList.remove('active');
             });
             document.getElementById('sec-' + pestaña).style.display = 'block';
             document.getElementById('tab-' + pestaña).classList.add('active');
@@ -1091,7 +1249,8 @@
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
             if(pestaña === 'inventario') renderInventario(); 
             if(pestaña === 'cotizacion') renderHistorialCotizaciones(); 
-            if(pestaña === 'alertas') renderAlertas(); 
+            if(pestaña === 'alertas') renderAlertas();
+            if(pestaña === 'ajustes') renderUsuarios();
         }
 
         function cargarLogo(event) {
@@ -2383,6 +2542,8 @@
                             costoProductosActualizado += (item.qty * p.costo);
                             if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
                         } else { costoProductosActualizado += (item.qty * item.costoBase); }
+                        
+                        let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; 
                     });
 
                     const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + (cot.costoEnvio || 0) + (cot.impuestoSAT || 0);
@@ -2667,6 +2828,7 @@
                     await window.setDoc(window.doc(window.db, "sistema", "config"), { 
                         fondos: fondos, 
                         customCats: customCatsToSave,
+                        usuarios: usuarios,
                         ultimaActualizacion: new Date() 
                     });
                 } catch (e) {
@@ -2834,11 +2996,14 @@
             arrancarSistema();
         }
 
-        // Si la base de datos ya se conectó rapidísimo, arranca de inmediato.
+        // EVENTOS PARA EL AUTO-BLOQUEO POR INACTIVIDAD (NUEVO)
+        ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt => 
+            document.addEventListener(evt, reiniciarTemporizador, true)
+        );
+
         if (window.db) {
             verificarArranque();
         } else {
-            // Si no, espera pacientemente la señal
             window.addEventListener('firebaseListo', verificarArranque);
         }
 
