@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
+    <!-- NUEVO: Enlaces PWA para que sea instalable -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827">
+    <link rel="apple-touch-icon" href="logo.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -118,9 +123,17 @@
             -moz-appearance: textfield; /* Para Firefox */
             appearance: textfield;
         }
+        
+        /* NUEVO: Botón Flotante Instalación PWA */
+        #btn-instalar-pwa { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: var(--primary-green); color: white; border: none; padding: 15px 25px; border-radius: 50px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; transition: 0.3s; }
+        #btn-instalar-pwa:hover { background: #059669; transform: scale(1.05); }
     </style>
 </head>
 <body>
+
+    <!-- NUEVO: Botón de instalación que aparecerá cuando sea instalable -->
+    <button id="btn-instalar-pwa">📲 Instalar App</button>
+
     <datalist id="lista-clientes"></datalist>
 
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -2835,6 +2848,40 @@
                 arrancarSistema();
             }
         }, 5000);
+
+        // ================= NUEVO: SISTEMA DE INSTALACIÓN PWA =================
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('btn-instalar-pwa');
+            if (installBtn) installBtn.style.display = 'block';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const installBtn = document.getElementById('btn-instalar-pwa');
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installBtn.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    }
+                });
+            }
+        });
+
+        // Registrar el Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('✅ Service Worker registrado para funcionamiento Offline.', reg.scope))
+                .catch(err => console.error('❌ Error al registrar Service Worker.', err));
+            });
+        }
     </script>
 </body>
 </html>
