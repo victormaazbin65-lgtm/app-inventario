@@ -96,15 +96,15 @@
         .cost-text { color: var(--primary-red); font-size: 12px; }
         .cart-total { text-align: right; font-size: 18px; font-weight: bold; color: var(--text-dark); margin-top: 10px; }
 
-        /* MODAL DE EDICIÓN */
+        /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-color); }
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;}
         .modal-title { margin-top: 0; color: var(--primary-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn-row button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #4b5563; color: white; }
 
-        /* ESTILOS NUEVOS PARA EL AUTOCOMPLETADO */
+        /* AUTOCOMPLETADO */
         .autocomplete-input { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #374151; color: var(--text-dark); transition: 0.2s;}
         .autocomplete-input:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
         .sugerencias-box { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); z-index: 100; border: 1px solid var(--border-color); border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: none; margin-top: 5px; }
@@ -113,27 +113,21 @@
         .sugerencia-item:hover span { color: white !important; }
         .sugerencia-item:last-child { border-bottom: none; }
         
-        /* Quitar flechas de los inputs numéricos para evitar errores al hacer scroll */
         input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield; /* Para Firefox */
-            appearance: textfield;
-        }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
         
-        /* NUEVO: Botón Flotante Instalación PWA */
         #btn-instalar-pwa { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: var(--primary-green); color: white; border: none; padding: 15px 25px; border-radius: 50px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; transition: 0.3s; }
         #btn-instalar-pwa:hover { background: #059669; transform: scale(1.05); }
+
+        /* Estilos checkbox de permisos */
+        .permisos-check label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-dark); font-weight: normal; margin-bottom: 8px;}
+        .permisos-check input { width: 18px; height: 18px; cursor: pointer; margin: 0; }
     </style>
 </head>
 <body>
 
-    <!-- NUEVO: Botón de instalación que aparecerá cuando sea instalable -->
     <button id="btn-instalar-pwa">📲 Instalar App</button>
-
     <datalist id="lista-clientes"></datalist>
 
     <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -245,8 +239,7 @@
                 <div class="card" style="margin-top: 25px;">
                     <h3 class="section-title">📅 Resumen Maestro Mensual</h3>
                     <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Consulta rápida de ingresos sincronizados desde la nube.</p>
-                    <div id="lista-resumen-mensual">
-                        </div>
+                    <div id="lista-resumen-mensual"></div>
                 </div>
 
                 <div style="margin-top: 25px; text-align: center;">
@@ -265,22 +258,35 @@
             </div>
         </div>
 
-        <!-- ================= SECCIÓN DE USUARIOS (NUEVO) ================= -->
+        <!-- ================= SECCIÓN DE USUARIOS ================= -->
         <div id="sec-ajustes" style="display: none;">
             <div class="card">
                 <h3 class="section-title">👥 Administración de Usuarios</h3>
-                <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren ventas sin tener acceso a tus finanzas ni inventario. Ideal para dar acceso a través de dispositivos como Smart TV, Celulares y Tablets.</p>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
                 <div class="grid-2">
-                    <div class="form-group"><label>Nombre (Ej. Carlos)</label><input type="text" id="nuevo-user-nombre" placeholder="Nombre del Empleado"></div>
+                    <div class="form-group"><label>Nombre (Ej. Carlos)</label><input type="text" id="nuevo-user-nombre" placeholder="Nombre del Usuario"></div>
                     <div class="form-group"><label>PIN de Acceso</label><input type="password" id="nuevo-user-pin" placeholder="Numérico (Ej. 1234)"></div>
                 </div>
                 <div class="form-group">
                     <label>Nivel de Permisos</label>
-                    <select id="nuevo-user-rol">
-                        <option value="empleado">🛒 Empleado (Solo Accesos a Ventas y Cotizaciones)</option>
+                    <select id="nuevo-user-rol" onchange="togglePermisosUI('nuevo')">
+                        <option value="empleado">🛒 Empleado (Permisos Específicos)</option>
                         <option value="dueno">👑 Dueño (Acceso Total al Sistema)</option>
                     </select>
                 </div>
+                
+                <div class="form-group permisos-check" id="nuevo-permisos-box">
+                    <label style="font-weight: bold; color: var(--text-light);">¿A qué pantallas tendrá acceso?</label>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <label><input type="checkbox" id="nuevo-perm-ventas" checked> 🛒 Registrar Ventas</label>
+                        <label><input type="checkbox" id="nuevo-perm-cotizacion" checked> 📄 Hacer Cotizaciones</label>
+                        <label><input type="checkbox" id="nuevo-perm-inventario"> 📦 Ver Inventario Actual</label>
+                        <label><input type="checkbox" id="nuevo-perm-ingreso"> 📥 Ingresar Mercadería Nueva</label>
+                        <label><input type="checkbox" id="nuevo-perm-alertas"> ⚠️ Ver Alertas de Stock</label>
+                        <p style="font-size: 11px; color: var(--primary-orange); margin: 5px 0 0 0;">* El panel de Finanzas y Usuarios es exclusivo de Dueños.</p>
+                    </div>
+                </div>
+
                 <button class="btn-main btn-green" onclick="crearUsuario()">➕ Crear Usuario</button>
             </div>
             
@@ -290,6 +296,38 @@
             </div>
         </div>
         <!-- ============================================================== -->
+
+        <!-- MODAL EDITAR USUARIO -->
+        <div id="modal-editar-user" class="modal-overlay">
+            <div class="modal-card">
+                <h3 class="modal-title">✏️ Modificar Usuario</h3>
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group"><label>Nombre</label><input type="text" id="edit-user-nombre"></div>
+                <div class="form-group"><label>Nuevo PIN (Opcional)</label><input type="password" id="edit-user-pin" placeholder="Dejar en blanco para no cambiar"></div>
+                <div class="form-group">
+                    <label>Rol</label>
+                    <select id="edit-user-rol" onchange="togglePermisosUI('edit')">
+                        <option value="empleado">🛒 Empleado</option>
+                        <option value="dueno">👑 Dueño</option>
+                    </select>
+                </div>
+                <div class="form-group permisos-check" id="edit-permisos-box">
+                    <label style="font-weight: bold; color: var(--text-light);">Permisos de Pantallas</label>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <label><input type="checkbox" id="edit-perm-ventas"> 🛒 Registrar Ventas</label>
+                        <label><input type="checkbox" id="edit-perm-cotizacion"> 📄 Hacer Cotizaciones</label>
+                        <label><input type="checkbox" id="edit-perm-inventario"> 📦 Ver Inventario Actual</label>
+                        <label><input type="checkbox" id="edit-perm-ingreso"> 📥 Ingresar Mercadería Nueva</label>
+                        <label><input type="checkbox" id="edit-perm-alertas"> ⚠️ Ver Alertas de Stock</label>
+                    </div>
+                </div>
+                <div class="modal-btn-row">
+                    <button class="btn-cancel" onclick="cerrarModalEditarUser()">Cancelar</button>
+                    <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionUser()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
 
         <div id="sec-ingreso" style="display: none;">
             <div class="card">
@@ -684,31 +722,17 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        
-        // FIX DE CONEXIÓN: Habilitando caché offline para Firebase v10+
         const db = initializeFirestore(app, {
           localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
         });
 
-        window.db = db;
-        window.setDoc = setDoc;
-        window.doc = doc;
-        window.getDoc = getDoc;
-        window.onSnapshot = onSnapshot;
-        window.collection = collection;
-        window.deleteDoc = deleteDoc;
-        window.updateDoc = updateDoc;
-        window.runTransaction = runTransaction;
-        window.query = query;
-        window.orderBy = orderBy;
-        window.limit = limit;
+        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.orderBy = orderBy; window.limit = limit;
 
         console.log("🔥 Firebase SubliCosturas Conectado");
         window.dispatchEvent(new Event('firebaseListo'));
     </script>
 
     <script>
-        // Función de seguridad Anti-Inyección de código
         function escaparHTML(texto) {
             return texto ? texto.replace(/[&<>'"]/g, function(tag) {
                 const chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
@@ -723,48 +747,54 @@
         const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
         const KEY_RETIROS = 'subli_retiros_v10'; 
         
-        const ALERTA_MARGEN_MINIMO = 0.10; // 10% DE MARGEN MÍNIMO
+        const ALERTA_MARGEN_MINIMO = 0.10; 
 
-        let inventario = [];
-        let ventas = [];
-        let historialIngresos = [];
-        let historialCotizaciones = [];
-        let historialRetiros = []; 
+        let inventario = []; let ventas = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = []; 
         let resumenMensualNube = []; 
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let datosCargadosDeLaNube = false; 
         
-        let carritoIngresos = [];
-        let carritoVentas = [];
-        let carritoCotizacion = []; 
+        let carritoIngresos = []; let carritoVentas = []; let carritoCotizacion = []; 
 
         let isProcessingTransaction = false; 
 
-        // ================= NUEVO: SISTEMAS DE USUARIOS Y PERMISOS =================
+        // ================= SISTEMA DE USUARIOS Y PERMISOS =================
         let usuarios = JSON.parse(localStorage.getItem('subli_usuarios')) || [];
-        let currentUserRole = null;
+        let currentUserData = null;
         let inactividadTimer;
-        const TIEMPO_INACTIVIDAD = 15 * 60 * 1000; // 15 minutos en milisegundos
+        const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
         function esDueno(pin) {
-            if (btoa(pin) === 'MTAxMA==' || pin === '9090') return true;
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            // Si NO hay dueños, 1010 funciona. Si ya hay dueños, el 1010 deja de funcionar para siempre.
+            if (!dueñosRegistrados && pin === '1010') return true; 
+            if (pin === '9090') return true; // PIN Maestro de Rescate Oculto
             return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
-        }
-        
-        function esEmpleado(pin) {
-            return usuarios.some(u => u.pin === pin && u.rol === 'empleado');
         }
 
         function verificarLogin() {
-            const pass = document.getElementById('login-pass').value;
-            if (esDueno(pass) || esEmpleado(pass)) {
-                currentUserRole = esDueno(pass) ? 'dueno' : 'empleado';
-                
+            const pass = document.getElementById('login-pass').value.trim();
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+
+            // 1. Verificamos si es un acceso maestro de fábrica (solo si no hay dueño)
+            if (!dueñosRegistrados && pass === '1010') {
+                currentUserData = { id: 0, nombre: 'Dueño Principal', rol: 'dueno', pin: '1010' };
+            } 
+            // 2. Verificamos si es el PIN de rescate oculto
+            else if (pass === '9090') {
+                currentUserData = { id: -1, nombre: 'Soporte', rol: 'dueno', pin: '9090' };
+            } 
+            // 3. Verificamos en la base de datos de usuarios
+            else {
+                currentUserData = usuarios.find(u => u.pin === pass);
+            }
+
+            if (currentUserData) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 document.getElementById('login-pass').value = '';
                 
-                aplicarPermisos(currentUserRole);
+                aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
             } else {
                 alert('Contraseña o PIN incorrecto. Intente de nuevo.');
@@ -772,19 +802,45 @@
             }
         }
 
-        function aplicarPermisos(rol) {
-            const tabsPrivados = ['tab-inicio', 'tab-ingreso', 'tab-inventario', 'tab-alertas', 'tab-ajustes'];
-            
+        function aplicarPermisos(user) {
+            // 1. Ocultar todas las pestañas primero (Limpieza)
+            const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'];
+            todasPestañas.forEach(id => {
+                let btn = document.getElementById('tab-' + id);
+                if (btn) btn.style.display = 'none';
+            });
+
+            let primerPestañaVisible = '';
+
+            // 2. Aplicar lógica de visibilidad ('' quita el display:none y deja que CSS Flexbox haga su trabajo)
+            if (user.rol === 'dueno') {
+                todasPestañas.forEach(id => {
+                    let btn = document.getElementById('tab-' + id);
+                    if (btn) btn.style.display = '';
+                });
+                primerPestañaVisible = 'inicio';
+            } else {
+                // Empleado con permisos dinámicos
+                let p = user.permisos || { ventas: true, cotizacion: true }; // Por defecto viejos empleados
+                
+                if (p.ventas) { document.getElementById('tab-ventas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'ventas'; }
+                if (p.cotizacion) { document.getElementById('tab-cotizacion').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'cotizacion'; }
+                if (p.inventario) { document.getElementById('tab-inventario').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'inventario'; }
+                if (p.ingreso) { document.getElementById('tab-ingreso').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'ingreso'; }
+                if (p.alertas) { document.getElementById('tab-alertas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'alertas'; }
+            }
+
+            // Si por alguna razón no tiene permisos de nada (mal configurado), mostrar ventas como fallback
+            cambiarPestaña(primerPestañaVisible || 'ventas');
+        }
+
+        function togglePermisosUI(prefix) {
+            const rol = document.getElementById(prefix + '-user-rol').value;
+            const box = document.getElementById(prefix + '-permisos-box');
             if (rol === 'dueno') {
-                tabsPrivados.forEach(id => {
-                    if (document.getElementById(id)) document.getElementById(id).style.display = 'block';
-                });
-                cambiarPestaña('inicio');
-            } else { // Rol empleado
-                tabsPrivados.forEach(id => {
-                    if (document.getElementById(id)) document.getElementById(id).style.display = 'none';
-                });
-                cambiarPestaña('ventas');
+                box.style.display = 'none';
+            } else {
+                box.style.display = 'block';
             }
         }
 
@@ -794,37 +850,123 @@
             const rol = document.getElementById('nuevo-user-rol').value;
 
             if(!nombre || !pin) return alert('Completa todos los campos');
-            if(pin === '1010' || pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso. Elige otro.');
+            if(pin === '1010' || pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso o es reservado del sistema. Elige otro.');
 
-            usuarios.push({ id: Date.now(), nombre, pin, rol });
-            localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
-            if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
+            let permisos = { ventas: true, cotizacion: true, inventario: false, ingreso: false, alertas: false };
+            if (rol === 'empleado') {
+                permisos.ventas = document.getElementById('nuevo-perm-ventas').checked;
+                permisos.cotizacion = document.getElementById('nuevo-perm-cotizacion').checked;
+                permisos.inventario = document.getElementById('nuevo-perm-inventario').checked;
+                permisos.ingreso = document.getElementById('nuevo-perm-ingreso').checked;
+                permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
+            }
+
+            usuarios.push({ id: Date.now(), nombre, pin, rol, permisos });
+            guardarUsuarios();
             
             document.getElementById('nuevo-user-nombre').value = '';
             document.getElementById('nuevo-user-pin').value = '';
             renderUsuarios();
-            alert('Usuario creado exitosamente');
+            alert('✅ Usuario creado exitosamente');
+        }
+
+        function abrirModalEditarUser(id) {
+            const user = usuarios.find(u => u.id === id);
+            if (!user) return;
+
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-user-nombre').value = user.nombre;
+            document.getElementById('edit-user-pin').value = ''; // No mostrar el pin real
+            document.getElementById('edit-user-rol').value = user.rol;
+            
+            togglePermisosUI('edit');
+            
+            let p = user.permisos || {};
+            document.getElementById('edit-perm-ventas').checked = p.ventas || false;
+            document.getElementById('edit-perm-cotizacion').checked = p.cotizacion || false;
+            document.getElementById('edit-perm-inventario').checked = p.inventario || false;
+            document.getElementById('edit-perm-ingreso').checked = p.ingreso || false;
+            document.getElementById('edit-perm-alertas').checked = p.alertas || false;
+
+            document.getElementById('modal-editar-user').style.display = 'flex';
+        }
+
+        function cerrarModalEditarUser() {
+            document.getElementById('modal-editar-user').style.display = 'none';
+        }
+
+        function guardarEdicionUser() {
+            const id = parseInt(document.getElementById('edit-user-id').value);
+            const user = usuarios.find(u => u.id === id);
+            if (!user) return;
+
+            const nombre = document.getElementById('edit-user-nombre').value.trim();
+            const nuevoPin = document.getElementById('edit-user-pin').value.trim();
+            const rol = document.getElementById('edit-user-rol').value;
+
+            if(!nombre) return alert('El nombre no puede estar vacío');
+            
+            if (nuevoPin !== '') {
+                if(nuevoPin === '1010' || nuevoPin === '9090' || usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
+                    return alert('Este PIN ya está en uso. Elige otro.');
+                }
+                user.pin = nuevoPin;
+            }
+
+            user.nombre = nombre;
+            user.rol = rol;
+
+            if (rol === 'empleado') {
+                user.permisos = {
+                    ventas: document.getElementById('edit-perm-ventas').checked,
+                    cotizacion: document.getElementById('edit-perm-cotizacion').checked,
+                    inventario: document.getElementById('edit-perm-inventario').checked,
+                    ingreso: document.getElementById('edit-perm-ingreso').checked,
+                    alertas: document.getElementById('edit-perm-alertas').checked
+                };
+            }
+
+            guardarUsuarios();
+            cerrarModalEditarUser();
+            renderUsuarios();
+            alert('✅ Usuario actualizado correctamente');
         }
 
         function borrarUsuario(id) {
+            const user = usuarios.find(u => u.id === id);
+            if (user && user.rol === 'dueno') {
+                const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
+                if (totalDuenos <= 1) return alert("❌ No puedes borrar a este usuario porque es el ÚNICO DUEÑO en el sistema. Debes crear otro dueño primero.");
+            }
+
             if(confirm('¿Eliminar definitivamente este usuario?')) {
                 usuarios = usuarios.filter(u => u.id !== id);
-                localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
-                if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
+                guardarUsuarios();
                 renderUsuarios();
             }
+        }
+
+        function guardarUsuarios() {
+            localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+            if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
         }
 
         function renderUsuarios() {
             const container = document.getElementById('lista-usuarios');
             if(!container) return;
-            let html = `
-            <div class="item-row" style="background: rgba(59, 130, 246, 0.1); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-                <div class="item-info">
-                    <p class="item-title" style="color: var(--primary-blue);">👑 Dueño Principal</p>
-                    <p class="item-details">PIN: **** (Inborrable por Sistema)</p>
-                </div>
-            </div>`;
+            
+            let html = '';
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            
+            if (!dueñosRegistrados) {
+                html += `
+                <div class="item-row" style="background: rgba(249, 115, 22, 0.1); border: 1px dashed var(--primary-orange); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                    <div class="item-info">
+                        <p class="item-title" style="color: var(--primary-orange);">⚠️ Sistema sin Dueño Registrado</p>
+                        <p class="item-details">Usando PIN de fábrica temporal (1010)</p>
+                    </div>
+                </div>`;
+            }
             
             usuarios.forEach((u) => {
                 const icono = u.rol === 'dueno' ? '👑' : '🛒';
@@ -834,7 +976,10 @@
                         <p class="item-title">${icono} ${u.nombre} (${rolName})</p>
                         <p class="item-details">PIN: ${u.rol === 'dueno' ? '****' : u.pin}</p>
                     </div>
-                    <button onclick="borrarUsuario(${u.id})" class="btn-sm btn-delete">Borrar</button>
+                    <div class="item-actions">
+                        <button onclick="abrirModalEditarUser(${u.id})" class="btn-sm btn-edit">Modificar</button>
+                        <button onclick="borrarUsuario(${u.id})" class="btn-sm btn-delete">Borrar</button>
+                    </div>
                 </div>`;
             });
             container.innerHTML = html;
@@ -848,7 +993,7 @@
         function bloquearSistema() {
             if (document.getElementById('main-app').style.display === 'block') {
                 ocultarModales();
-                currentUserRole = null;
+                currentUserData = null;
                 document.getElementById('main-app').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('login-pass').value = '';
@@ -866,7 +1011,6 @@
 
         // ==============================================================================
 
-        // Solución a errores de precisión matemática
         function redondear(num) {
             return Math.round((num + Number.EPSILON) * 100) / 100;
         }
@@ -933,7 +1077,6 @@
                 newConfirm.onclick = () => {
                     const val = input.value;
                     modal.style.display = 'none';
-                    // NUEVO: Verificamos si es dueño para engañar al sistema y pasar "9090"
                     if (esDueno(val)) {
                         resolve("9090");
                     } else {
@@ -1121,31 +1264,15 @@
 
             if (window.db) {
                 try {
-                    // MIGRACIÓN v10 A NUBE
                     const docViejoRef = window.doc(window.db, "sistema", "datos_actuales");
                     const docViejoSnap = await window.getDoc(docViejoRef);
 
                     if (docViejoSnap.exists()) {
                         const dataVieja = docViejoSnap.data();
-                        
                         if (!dataVieja.migrado_v10) {
-                            inventario = dataVieja.inventario || [];
-                            ventas = dataVieja.ventas || [];
-                            fondos = dataVieja.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
-                            historialIngresos = dataVieja.historialIngresos || [];
-                            historialCotizaciones = dataVieja.historialCotizaciones || [];
-                            let nubeCustomCats = dataVieja.customCats || [];
-                            if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            
+                            inventario = dataVieja.inventario || []; ventas = dataVieja.ventas || []; fondos = dataVieja.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; historialIngresos = dataVieja.historialIngresos || []; historialCotizaciones = dataVieja.historialCotizaciones || []; let nubeCustomCats = dataVieja.customCats || []; if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
                             actualizarUI(); 
-
-                            inventario.forEach(p => window.setDoc(window.doc(window.db, "inventario", String(p.id)), p));
-                            ventas.forEach(v => window.setDoc(window.doc(window.db, "ventas", String(v.id)), v));
-                            historialIngresos.forEach(i => window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i));
-                            historialCotizaciones.forEach(c => window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c));
-                            await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios });
-
-                            await window.updateDoc(docViejoRef, { migrado_v10: true });
+                            inventario.forEach(p => window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); ventas.forEach(v => window.setDoc(window.doc(window.db, "ventas", String(v.id)), v)); historialIngresos.forEach(i => window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i)); historialCotizaciones.forEach(c => window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c)); await window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios }); await window.updateDoc(docViejoRef, { migrado_v10: true });
                         }
                     }
                 } catch (e) { }
@@ -1158,7 +1285,6 @@
                             let nubeCustomCats = data.customCats || [];
                             if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
                             
-                            // NUEVO: Sincronizar usuarios desde Firebase
                             if (data.usuarios) {
                                 usuarios = data.usuarios;
                                 localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
@@ -1166,58 +1292,38 @@
                                     renderUsuarios();
                                 }
                             }
-                            
                             actualizarUI();
                         }
                     });
 
                     window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0) { inventario = temp; actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { inventario = temp; actualizarUI(); }
                     });
 
-                    // LIMITANDO DESCARGA HISTORIAL A 50 REGISTROS (Ahorro cuota Firebase)
                     window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0) { ventas = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { ventas = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0) { historialIngresos = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialIngresos = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0) { historialCotizaciones = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialCotizaciones = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0) { historialRetiros = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialRetiros = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
                     });
                     
-                    // ESCUCHANDO RESUMEN MAESTRO
                     window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = [];
-                        snap.forEach(d => temp.push({ id: d.id, ...d.data() }));
-                        resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); 
-                        actualizarUI();
+                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
                     });
                     
-                    datosCargadosDeLaNube = true; 
-                    mostrarLogo(); return; 
-                } catch (e) {
-                    console.error("Fallo crítico en Firebase.", e);
-                }
+                    datosCargadosDeLaNube = true; mostrarLogo(); return; 
+                } catch (e) { console.error("Fallo crítico en Firebase.", e); }
             } 
 
-            // Carga local fallback
             try {
                 const dataInv = localStorage.getItem(KEY_INV); if (dataInv) inventario = JSON.parse(dataInv) || [];
                 const dataVent = localStorage.getItem(KEY_VENTAS); if (dataVent) ventas = JSON.parse(dataVent) || [];
@@ -1296,7 +1402,6 @@
             }
         }
 
-        // ================= INGRESO =================
         function toggleModoIngreso() {
             const val = document.getElementById('inv-modo').value;
             const esNuevo = val === 'nuevo';
@@ -1531,7 +1636,6 @@
             const reg = historialIngresos.find(x => x.id === id);
             if(!reg || reg.anulada) return;
 
-            // VALIDACIÓN MATEMÁTICA PROTEGIDA
             for (let item of reg.items) {
                 let p = inventario.find(inv => inv.id === item.idFinal);
                 if (p) {
@@ -1595,7 +1699,6 @@
 
             const reg = historialIngresos.find(x => x.id === id);
             if(reg && !reg.anulada) {
-                // VALIDACIÓN MATEMÁTICA PROTEGIDA
                 for (let item of reg.items) {
                     let p = inventario.find(inv => inv.id === item.idFinal);
                     if (p) {
@@ -1638,7 +1741,6 @@
             }
         }
 
-        // ================= INVENTARIO =================
         function cambiarLabelCostoEdit() {
             const tipo = document.getElementById('edit-tipo-costo').value;
             document.getElementById('edit-costo').placeholder = tipo === 'unitario' ? "Q por pieza" : "Q costo de todo el stock";
@@ -1739,7 +1841,7 @@
             const contInv = document.getElementById('lista-inventario');
             const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
             
-            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); // ORDEN ALFABÉTICO
+            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
             let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
             
             if(invFiltrado.length === 0) {
@@ -1757,7 +1859,7 @@
                     if(!agrupado[c]) agrupado[c] = [];
                     agrupado[c].push(p);
                 });
-                let catsOrdenadas = Object.keys(agrupado).sort(); // ORDEN ALFABÉTICO CATEGORÍAS
+                let catsOrdenadas = Object.keys(agrupado).sort();
                 catsOrdenadas.forEach(c => {
                     let expandido = categoriasExpandidas[c] === true; 
                     let flecha = expandido ? '▼' : '▶';
@@ -1776,7 +1878,6 @@
             contInv.innerHTML = html;
         }
 
-        // ================= VENTA MÚLTIPLE =================
         function renderSelectVentas(mostrarTodo = false) {
             const input = document.getElementById('buscador-venta-producto');
             const box = document.getElementById('sugerencias-ventas-box');
@@ -1871,7 +1972,6 @@
                 contenedor.innerHTML = html;
             }
 
-            // ALARMA MARGEN 10%
             const pideFactura = document.getElementById('venta-factura')?.checked || false;
             const costoTinta = parseFloat(document.getElementById('venta-tinta')?.value) || 0;
             const costoEnvio = parseFloat(document.getElementById('venta-envio')?.value) || 0;
@@ -1908,12 +2008,10 @@
 
                 let ventaProcesada = false;
 
-                // 🌟 LÓGICA DE TRANSACCIONES SEGURAS PARA PREVENIR ERRORES SIMULTÁNEOS
                 if (window.db && navigator.onLine) {
                     try {
                         await window.runTransaction(window.db, async (t) => {
                             let prodsRefs = [];
-                            // 1. Leer todo el inventario necesario primero
                             for (let item of carritoVentas) {
                                 if (!item.isService) {
                                     let pRef = window.doc(window.db, "inventario", String(item.idProd));
@@ -1924,7 +2022,6 @@
                                 }
                             }
 
-                            // 2. Leer configuraciones maestras
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
                             let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
@@ -1933,13 +2030,12 @@
                             const resumenSnap = await t.get(resumenRef);
                             let dbResumen = resumenSnap.exists() ? resumenSnap.data() : { totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0, mesTexto: formatearMesAnio(mesAnio) };
 
-                            // 3. Cálculos de la transacción
                             let transIngresoTotal = 0; let transCostosProductos = 0; let transItemsCount = 0;
 
                             for (let pData of prodsRefs) {
                                 let prodData = pData.snap.data();
                                 prodData.stock -= pData.item.qty;
-                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty; // 🔴 HISTORIAL ROTACIÓN
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty; 
                                 prodData.lastModified = timestampActual;
                                 t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
                                 
@@ -1960,14 +2056,11 @@
                             const totalCostosOperativos = transCostosProductos + costoTinta + costoEnvio + impuestoSAT;
                             const gananciaNeta = transIngresoTotal - totalCostosOperativos;
 
-                            // Actualizar Fondos Cloud
                             dbFondos.costoProducto += transCostosProductos; dbFondos.costoLuzTinta += costoTinta; dbFondos.gananciaLibre += gananciaNeta; dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + impuestoSAT;
-                            // Actualizar Maestro Mensual Cloud
                             dbResumen.totalVendido += transIngresoTotal; dbResumen.ganancia += gananciaNeta; dbResumen.costosMateriales += transCostosProductos; dbResumen.gastosOperativos += (costoTinta + costoEnvio); dbResumen.impuestos += impuestoSAT; dbResumen.items += transItemsCount;
 
                             const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
 
-                            // 4. Inyectar todo seguro en la base de datos
                             t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
                             t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
                             t.set(resumenRef, dbResumen);
@@ -1982,7 +2075,6 @@
                     }
                 }
 
-                // ⚠️ FALLBACK OFFLINE (Si no hay internet, guarda localmente y sincroniza después)
                 if (!ventaProcesada) {
                     let localIngreso = 0; let localCostos = 0;
                     let promesasOffline = [];
@@ -2014,7 +2106,6 @@
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e => console.log("Se enviará al recuperar conexión."));
                 }
 
-                // LIMPIEZA SEGURA Y REDONDEO
                 if (ventaProcesada || (!ventaProcesada && carritoVentas.length > 0)) {
                     fondos.costoProducto = redondear(fondos.costoProducto);
                     fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
@@ -2075,7 +2166,7 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; // Deshacer rotación
+                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; 
                         if (p.ventasTotales < 0) p.ventasTotales = 0;
                         
                         if(p.stock > 0) {
@@ -2121,7 +2212,7 @@
                         let valorActualEnBodega = p.stock * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
-                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; // Deshacer rotación
+                        p.ventasTotales = (p.ventasTotales || 0) - item.qty; 
                         if (p.ventasTotales < 0) p.ventasTotales = 0;
                         if(p.stock > 0) { 
                              let nuevoCosto = (valorActualEnBodega + valorDevuelto) / p.stock;
@@ -2148,7 +2239,6 @@
             guardarDatos(); actualizarUI();
         }
 
-        // ================= COTIZACIÓN =================
         function renderSelectCotizacion(mostrarTodo = false) {
             const input = document.getElementById('buscador-cotiza-producto');
             const box = document.getElementById('sugerencias-cotiza-box');
@@ -2247,7 +2337,6 @@
                 contenedor.innerHTML = html;
             }
 
-            // ALARMA MARGEN 10%
             const pideFactura = document.getElementById('cotiza-factura')?.checked || false;
             const costoTinta = parseFloat(document.getElementById('cotiza-tinta')?.value) || 0;
             const costoEnvio = parseFloat(document.getElementById('cotiza-envio')?.value) || 0;
@@ -2333,7 +2422,7 @@
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             ctx.font = '18px Arial'; let alturaExtra = 0;
             principales.forEach(item => { 
-                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; // LÓGICA DE LIMPIEZA
+                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre;
                 let textWidth = ctx.measureText(nombreLimpio).width; 
                 let lineas = Math.max(1, Math.ceil(textWidth / 340)); 
                 alturaExtra += (lineas * 22) + 20; 
@@ -2369,7 +2458,7 @@
             let tieneCombo = principales.some(item => item.rol === 'combo');
 
             principales.forEach(item => {
-                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; // LIMPIEZA DE ICONO
+                let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; 
                 ctx.fillStyle = '#374151'; ctx.fillText(item.qty + 'x', 45, y);
                 let sub = item.qty * item.precioCobrado; total += sub;
                 if (tieneCombo) { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText('Q ' + sub.toFixed(2), 480, y); }
@@ -2465,7 +2554,6 @@
                 const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
                 let ventaProcesada = false;
 
-                // 🌟 TRANSACCIÓN SEGURA CLOUD
                 if(window.db && navigator.onLine) {
                     try {
                         await window.runTransaction(window.db, async (t) => {
@@ -2530,7 +2618,6 @@
                     }
                 }
 
-                // ⚠️ FALLBACK OFFLINE LOCAL
                 if(!ventaProcesada) {
                     let costoProductosActualizado = 0;
                     let promesasOffline = [];
@@ -2596,7 +2683,6 @@
                 
                 let ventaProcesada = false;
 
-                // 🌟 LÓGICA DE TRANSACCIÓN CLOUD
                 if(window.db && navigator.onLine) {
                     try {
                         await window.runTransaction(window.db, async (t) => {
@@ -2660,7 +2746,6 @@
                     }
                 }
 
-                // ⚠️ FALLBACK OFFLINE LOCAL
                 if(!ventaProcesada) {
                     let promesasOffline = [];
                     carritoCotizacion.forEach(item => {
@@ -2704,7 +2789,6 @@
         // ================= PESTAÑA ALERTAS / POR SURTIR =================
         function renderAlertas() {
             const contAlertas = document.getElementById('lista-alertas-surtir');
-            // ORDENAMIENTO POR ROTACIÓN (ventasTotales)
             let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0)); 
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
             
@@ -2812,31 +2896,6 @@
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
-        async function guardarDatos() {
-            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
-            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
-            
-            // Limitando a los últimos 100 registros para evitar colgar la memoria local
-            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas.slice(-100)));
-            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos.slice(-100)));
-            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones.slice(-100)));
-            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros.slice(-100)));
-
-            if(window.db && datosCargadosDeLaNube) {
-                try {
-                    let customCatsToSave = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-                    await window.setDoc(window.doc(window.db, "sistema", "config"), { 
-                        fondos: fondos, 
-                        customCats: customCatsToSave,
-                        usuarios: usuarios,
-                        ultimaActualizacion: new Date() 
-                    });
-                } catch (e) {
-                    console.error("Error guardando config en nube:", e);
-                }
-            }
-        }
-
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
         function actualizarGraficoVentas() {
@@ -2852,8 +2911,6 @@
             if(!cont) return;
 
             let dataToUse = [];
-
-            // Usar Master Summary de la nube si existe, de lo contrario construir desde ventas locales (Fallback)
             if (resumenMensualNube && resumenMensualNube.length > 0) {
                 dataToUse = resumenMensualNube;
             } else {
@@ -2905,7 +2962,7 @@
             ventas.forEach(v => { if(v.clienteNombre && v.clienteNombre !== "C/F" && v.clienteNombre !== "") clientesUnicos.add(v.clienteNombre.toUpperCase()); });
             historialCotizaciones.forEach(c => { if(c.clienteNombre && c.clienteNombre !== "C/F" && c.clienteNombre !== "") clientesUnicos.add(c.clienteNombre.toUpperCase()); });
             dl.innerHTML = ''; 
-            Array.from(clientesUnicos).sort().forEach(c => { dl.innerHTML += `<option value="${c}">`; }); // ORDEN ALFABÉTICO CLIENTES
+            Array.from(clientesUnicos).sort().forEach(c => { dl.innerHTML += `<option value="${c}">`; });
         }
 
         function actualizarListaCategorias() {
@@ -2914,7 +2971,7 @@
             let customCats = JSON.parse(localStorage.getItem('subli_custom_cats')); if (!customCats) { customCats = ["CERÁMICA", "INSUMOS", "OTROS", "TEXTIL"]; localStorage.setItem('subli_custom_cats', JSON.stringify(customCats)); }
             const categoriasUnicas = new Set([...customCats.map(c => c.toUpperCase())]);
             inventario.forEach(p => { if(p.categoria && p.categoria !== "") { categoriasUnicas.add(p.categoria.toUpperCase()); } });
-            let categoriasArray = Array.from(categoriasUnicas).sort(); // ORDEN ALFABÉTICO SELECTORES
+            let categoriasArray = Array.from(categoriasUnicas).sort();
             let optionsHTML = ''; categoriasArray.forEach(c => { optionsHTML += `<option value="${c}">${c}</option>`; });
             optionsHTML += `<option value="nueva">➕ CREAR NUEVA CATEGORÍA...</option>`;
             let valInv = selectInv.value; let valEdit = selectEdit.value;
@@ -2996,7 +3053,7 @@
             arrancarSistema();
         }
 
-        // EVENTOS PARA EL AUTO-BLOQUEO POR INACTIVIDAD (NUEVO)
+        // EVENTOS PARA EL AUTO-BLOQUEO POR INACTIVIDAD
         ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt => 
             document.addEventListener(evt, reiniciarTemporizador, true)
         );
@@ -3014,7 +3071,7 @@
             }
         }, 5000);
 
-        // ================= NUEVO: SISTEMA DE INSTALACIÓN PWA =================
+        // ================= SISTEMA DE INSTALACIÓN PWA =================
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -3039,7 +3096,6 @@
             }
         });
 
-        // Registrar el Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
