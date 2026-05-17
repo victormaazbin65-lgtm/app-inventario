@@ -2,7 +2,7 @@ const CACHE_NAME = 'sublicosturas-v1';
 const urlsToCache = [
   './',
   './index.html',
-  './logo.png' // Asegúrate de que el nombre aquí también coincida con tu logo
+  './logo.jpeg' // Asegúrate de que el nombre aquí también coincida con tu logo
 ];
 
 self.addEventListener('install', event => {
