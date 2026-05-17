@@ -171,7 +171,7 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Usuarios</button>
+            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Config. / Usuarios</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
@@ -261,7 +261,7 @@
         <!-- ================= SECCIÓN DE USUARIOS ================= -->
         <div id="sec-ajustes" style="display: none;">
             <div class="card">
-                <h3 class="section-title">👥 Administración de Usuarios</h3>
+                <h3 class="section-title">👥 Administración de Usuarios y Accesos</h3>
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
                 <div class="grid-2">
                     <div class="form-group"><label>Nombre (Ej. Carlos)</label><input type="text" id="nuevo-user-nombre" placeholder="Nombre del Usuario"></div>
@@ -963,7 +963,7 @@
                 <div class="item-row" style="background: rgba(249, 115, 22, 0.1); border: 1px dashed var(--primary-orange); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-orange);">⚠️ Sistema sin Dueño Registrado</p>
-                        <p class="item-details">Usando PIN de fábrica temporal (1010)</p>
+                        <p class="item-details">Usando PIN de fábrica temporal (1010).<br><b style="color:var(--text-dark);">¡Crea un usuario Dueño ahora para que el 1010 quede inutilizado!</b></p>
                     </div>
                 </div>`;
             }
@@ -974,7 +974,7 @@
                 html += `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding: 10px 0;">
                     <div class="item-info">
                         <p class="item-title">${icono} ${u.nombre} (${rolName})</p>
-                        <p class="item-details">PIN: ${u.rol === 'dueno' ? '****' : u.pin}</p>
+                        <p class="item-details">PIN: ****</p>
                     </div>
                     <div class="item-actions">
                         <button onclick="abrirModalEditarUser(${u.id})" class="btn-sm btn-edit">Modificar</button>
@@ -1335,6 +1335,10 @@
                 inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; historialRetiros = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; 
             }
             mostrarLogo(); actualizarUI();
+        }
+
+        function guardarDatos() {
+            localStorage.setItem(KEY_INV, JSON.stringify(inventario)); localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas)); localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos)); localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones)); localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros));
         }
 
         function cambiarPestaña(pestaña) {
