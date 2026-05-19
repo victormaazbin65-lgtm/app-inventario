@@ -171,12 +171,15 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Usuarios</button>
+            <button id="tab-ajustes" class="tab-btn" style="display: none; color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Usuarios</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
-                <h3 class="section-title">Panel de Finanzas</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 class="section-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0; margin-top: 0;">Panel de Finanzas</h3>
+                    <button onclick="accederAjustesProtegidos()" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: var(--shadow);">⚙️ Configuración</button>
+                </div>
                 <div class="dash-grid">
                     <div class="dash-card bg-blue">
                         <p class="dash-title">Valor del Inventario</p>
@@ -765,27 +768,16 @@
         const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
         function esDueno(pin) {
-            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
-            // Si NO hay dueños, 1010 funciona. Si ya hay dueños, el 1010 deja de funcionar para siempre.
-            if (!dueñosRegistrados && pin === '1010') return true; 
             if (pin === '9090') return true; // PIN Maestro de Rescate Oculto
             return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
         }
 
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value.trim();
-            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
 
-            // 1. Verificamos si es un acceso maestro de fábrica (solo si no hay dueño)
-            if (!dueñosRegistrados && pass === '1010') {
-                currentUserData = { id: 0, nombre: 'Dueño Principal', rol: 'dueno', pin: '1010' };
-            } 
-            // 2. Verificamos si es el PIN de rescate oculto
-            else if (pass === '9090') {
+            if (pass === '9090') {
                 currentUserData = { id: -1, nombre: 'Soporte', rol: 'dueno', pin: '9090' };
-            } 
-            // 3. Verificamos en la base de datos de usuarios
-            else {
+            } else {
                 currentUserData = usuarios.find(u => u.pin === pass);
             }
 
@@ -801,9 +793,43 @@
                 document.getElementById('login-pass').value = '';
             }
         }
+        
+        function comprobarIngresoInicialLibre() {
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            if (!dueñosRegistrados) {
+                // Ingreso completamente libre si no hay dueño
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                currentUserData = { id: 0, nombre: 'Dueño (Sin PIN)', rol: 'dueno', pin: '' };
+                aplicarPermisos(currentUserData);
+                reiniciarTemporizador();
+            } else {
+                // Si ya hay dueños, re-activamos el bloqueo si no estamos dentro
+                if(document.getElementById('main-app').style.display !== 'block'){
+                    document.getElementById('login-screen').style.display = 'flex';
+                }
+            }
+        }
+
+        async function accederAjustesProtegidos() {
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            if (!dueñosRegistrados) {
+                // Si no hay dueño, entra directo a crear uno sin pedir nada
+                cambiarPestaña('ajustes');
+                return;
+            }
+
+            const pass = await solicitarPassword("Ingrese PIN de Dueño para acceder a la Configuración:");
+            if (pass !== null) {
+                if (esDueno(pass)) {
+                    cambiarPestaña('ajustes');
+                } else {
+                    alert("❌ Acceso denegado. PIN incorrecto o no tiene permisos de Dueño.");
+                }
+            }
+        }
 
         function aplicarPermisos(user) {
-            // 1. Ocultar todas las pestañas primero (Limpieza)
             const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'];
             todasPestañas.forEach(id => {
                 let btn = document.getElementById('tab-' + id);
@@ -812,16 +838,14 @@
 
             let primerPestañaVisible = '';
 
-            // 2. Aplicar lógica de visibilidad ('' quita el display:none y deja que CSS Flexbox haga su trabajo)
             if (user.rol === 'dueno') {
                 todasPestañas.forEach(id => {
                     let btn = document.getElementById('tab-' + id);
-                    if (btn) btn.style.display = '';
+                    if (btn && id !== 'ajustes') btn.style.display = ''; // Ajustes ya no está en la barra superior
                 });
                 primerPestañaVisible = 'inicio';
             } else {
-                // Empleado con permisos dinámicos
-                let p = user.permisos || { ventas: true, cotizacion: true }; // Por defecto viejos empleados
+                let p = user.permisos || { ventas: true, cotizacion: true }; 
                 
                 if (p.ventas) { document.getElementById('tab-ventas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'ventas'; }
                 if (p.cotizacion) { document.getElementById('tab-cotizacion').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'cotizacion'; }
@@ -830,7 +854,6 @@
                 if (p.alertas) { document.getElementById('tab-alertas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'alertas'; }
             }
 
-            // Si por alguna razón no tiene permisos de nada (mal configurado), mostrar ventas como fallback
             cambiarPestaña(primerPestañaVisible || 'ventas');
         }
 
@@ -845,12 +868,14 @@
         }
 
         function crearUsuario() {
+            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para crear usuarios.");
+
             const nombre = document.getElementById('nuevo-user-nombre').value.trim();
             const pin = document.getElementById('nuevo-user-pin').value.trim();
             const rol = document.getElementById('nuevo-user-rol').value;
 
             if(!nombre || !pin) return alert('Completa todos los campos');
-            if(pin === '1010' || pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso o es reservado del sistema. Elige otro.');
+            if(pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso o es reservado del sistema. Elige otro.');
 
             let permisos = { ventas: true, cotizacion: true, inventario: false, ingreso: false, alertas: false };
             if (rol === 'empleado') {
@@ -876,7 +901,7 @@
 
             document.getElementById('edit-user-id').value = user.id;
             document.getElementById('edit-user-nombre').value = user.nombre;
-            document.getElementById('edit-user-pin').value = ''; // No mostrar el pin real
+            document.getElementById('edit-user-pin').value = ''; 
             document.getElementById('edit-user-rol').value = user.rol;
             
             togglePermisosUI('edit');
@@ -896,6 +921,8 @@
         }
 
         function guardarEdicionUser() {
+            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
+
             const id = parseInt(document.getElementById('edit-user-id').value);
             const user = usuarios.find(u => u.id === id);
             if (!user) return;
@@ -907,7 +934,7 @@
             if(!nombre) return alert('El nombre no puede estar vacío');
             
             if (nuevoPin !== '') {
-                if(nuevoPin === '1010' || nuevoPin === '9090' || usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
+                if(nuevoPin === '9090' || usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
                     return alert('Este PIN ya está en uso. Elige otro.');
                 }
                 user.pin = nuevoPin;
@@ -933,6 +960,8 @@
         }
 
         function borrarUsuario(id) {
+            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
+
             const user = usuarios.find(u => u.id === id);
             if (user && user.rol === 'dueno') {
                 const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
@@ -963,7 +992,7 @@
                 <div class="item-row" style="background: rgba(249, 115, 22, 0.1); border: 1px dashed var(--primary-orange); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-orange);">⚠️ Sistema sin Dueño Registrado</p>
-                        <p class="item-details">Usando PIN de fábrica temporal (1010)</p>
+                        <p class="item-details">El ingreso al sistema es libre. Por favor, crea un usuario con rol "Dueño" para activar la pantalla de bloqueo con PIN.</p>
                     </div>
                 </div>`;
             }
@@ -992,6 +1021,9 @@
 
         function bloquearSistema() {
             if (document.getElementById('main-app').style.display === 'block') {
+                const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+                if(!dueñosRegistrados) return; // No bloquear si no hay dueños
+
                 ocultarModales();
                 currentUserData = null;
                 document.getElementById('main-app').style.display = 'none';
@@ -1259,6 +1291,15 @@
             else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
 
+        function guardarDatos() {
+            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
+            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
+            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
+            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
+            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
+            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros));
+        }
+
         async function cargarDatos() {
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos... ⏳</p>';
 
@@ -1293,6 +1334,7 @@
                                 }
                             }
                             actualizarUI();
+                            comprobarIngresoInicialLibre();
                         }
                     });
 
@@ -1320,7 +1362,9 @@
                         let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
                     });
                     
-                    datosCargadosDeLaNube = true; mostrarLogo(); return; 
+                    datosCargadosDeLaNube = true; mostrarLogo(); 
+                    comprobarIngresoInicialLibre();
+                    return; 
                 } catch (e) { console.error("Fallo crítico en Firebase.", e); }
             } 
 
@@ -1335,6 +1379,7 @@
                 inventario = []; ventas = []; historialIngresos = []; historialCotizaciones = []; historialRetiros = []; fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; 
             }
             mostrarLogo(); actualizarUI();
+            comprobarIngresoInicialLibre();
         }
 
         function cambiarPestaña(pestaña) {
@@ -1349,7 +1394,9 @@
                 if(tabBtn) tabBtn.classList.remove('active');
             });
             document.getElementById('sec-' + pestaña).style.display = 'block';
-            document.getElementById('tab-' + pestaña).classList.add('active');
+            
+            const btnPestaña = document.getElementById('tab-' + pestaña);
+            if (btnPestaña) btnPestaña.classList.add('active');
             
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
