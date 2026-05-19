@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
-    <!-- NUEVO: Enlaces PWA para que sea instalable -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827">
     <link rel="apple-touch-icon" href="logo.png">
@@ -171,15 +170,13 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-            <button id="tab-ajustes" class="tab-btn" style="display: none; color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Usuarios</button>
+            <button id="tab-ajustes" class="tab-btn" style="display: none; color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Ajustes</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
-                    <h3 class="section-title" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0; margin-top: 0;">Panel de Finanzas</h3>
-                    <button onclick="accederAjustesProtegidos()" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: var(--shadow);">⚙️ Configuración</button>
-                </div>
+                <h3 class="section-title" style="margin-bottom: 15px;">Panel de Finanzas</h3>
+                
                 <div class="dash-grid">
                     <div class="dash-card bg-blue">
                         <p class="dash-title">Valor del Inventario</p>
@@ -261,7 +258,6 @@
             </div>
         </div>
 
-        <!-- ================= SECCIÓN DE USUARIOS ================= -->
         <div id="sec-ajustes" style="display: none;">
             <div class="card">
                 <h3 class="section-title">👥 Administración de Usuarios</h3>
@@ -298,9 +294,6 @@
                 <div id="lista-usuarios"></div>
             </div>
         </div>
-        <!-- ============================================================== -->
-
-        <!-- MODAL EDITAR USUARIO -->
         <div id="modal-editar-user" class="modal-overlay">
             <div class="modal-card">
                 <h3 class="modal-title">✏️ Modificar Usuario</h3>
@@ -841,7 +834,7 @@
             if (user.rol === 'dueno') {
                 todasPestañas.forEach(id => {
                     let btn = document.getElementById('tab-' + id);
-                    if (btn && id !== 'ajustes') btn.style.display = ''; // Ajustes ya no está en la barra superior
+                    if (btn) btn.style.display = ''; // Restaurado el ícono de ajustes
                 });
                 primerPestañaVisible = 'inicio';
             } else {
