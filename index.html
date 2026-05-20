@@ -129,7 +129,7 @@
     <button id="btn-instalar-pwa">📲 Instalar App</button>
     <datalist id="lista-clientes"></datalist>
 
-    <div id="login-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div id="login-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
             <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
             <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su PIN para acceder al sistema</p>
@@ -170,7 +170,7 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-            <button id="tab-ajustes" class="tab-btn" style="display: none; color: var(--primary-orange);" onclick="cambiarPestaña('ajustes')">⚙️ Ajustes</button>
+            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="accederAjustesProtegidos()">⚙️ Ajustes</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
@@ -761,18 +761,14 @@
         const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
         function esDueno(pin) {
-            if (pin === '9090') return true; // PIN Maestro de Rescate Oculto
+            const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            if (!dueñosRegistrados) return true; // Acceso libre si no hay dueños creados
             return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
         }
 
         function verificarLogin() {
             const pass = document.getElementById('login-pass').value.trim();
-
-            if (pass === '9090') {
-                currentUserData = { id: -1, nombre: 'Soporte', rol: 'dueno', pin: '9090' };
-            } else {
-                currentUserData = usuarios.find(u => u.pin === pass);
-            }
+            currentUserData = usuarios.find(u => u.pin === pass);
 
             if (currentUserData) {
                 document.getElementById('login-screen').style.display = 'none';
@@ -834,7 +830,7 @@
             if (user.rol === 'dueno') {
                 todasPestañas.forEach(id => {
                     let btn = document.getElementById('tab-' + id);
-                    if (btn) btn.style.display = ''; // Restaurado el ícono de ajustes
+                    if (btn) btn.style.display = '';
                 });
                 primerPestañaVisible = 'inicio';
             } else {
@@ -847,6 +843,7 @@
                 if (p.alertas) { document.getElementById('tab-alertas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'alertas'; }
             }
 
+            document.getElementById('tab-ajustes').style.display = ''; // Botón Configurar siempre visible
             cambiarPestaña(primerPestañaVisible || 'ventas');
         }
 
@@ -868,7 +865,7 @@
             const rol = document.getElementById('nuevo-user-rol').value;
 
             if(!nombre || !pin) return alert('Completa todos los campos');
-            if(pin === '9090' || usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso o es reservado del sistema. Elige otro.');
+            if(usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso. Elige otro.');
 
             let permisos = { ventas: true, cotizacion: true, inventario: false, ingreso: false, alertas: false };
             if (rol === 'empleado') {
@@ -927,7 +924,7 @@
             if(!nombre) return alert('El nombre no puede estar vacío');
             
             if (nuevoPin !== '') {
-                if(nuevoPin === '9090' || usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
+                if(usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
                     return alert('Este PIN ya está en uso. Elige otro.');
                 }
                 user.pin = nuevoPin;
@@ -1102,11 +1099,7 @@
                 newConfirm.onclick = () => {
                     const val = input.value;
                     modal.style.display = 'none';
-                    if (esDueno(val)) {
-                        resolve("9090");
-                    } else {
-                        resolve(val);
-                    }
+                    resolve(val);
                 };
                 newCancel.onclick = () => {
                     const val = input.value;
@@ -1158,7 +1151,8 @@
 
         async function crearCategoriaVacia() {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para crear una categoría:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
@@ -1194,7 +1188,8 @@
             document.getElementById('modal-renombrar-cat').style.display = 'none'; 
             
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para renombrar:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             let contador = 0;
             inventario.forEach(p => {
@@ -1259,7 +1254,8 @@
             document.getElementById('modal-eliminar-cat').style.display = 'none';
 
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if (prodsAfectados.length > 0) {
                 inventario.forEach(p => {
@@ -1671,7 +1667,8 @@
 
         async function editarIngreso(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar este ingreso:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const reg = historialIngresos.find(x => x.id === id);
             if(!reg || reg.anulada) return;
@@ -1735,7 +1732,8 @@
 
         async function borrarIngreso(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para anular este ingreso:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const reg = historialIngresos.find(x => x.id === id);
             if(reg && !reg.anulada) {
@@ -1788,7 +1786,8 @@
 
         async function abrirModalEditar(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar productos:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const prod = inventario.find(p => p.id == id);
             if(!prod) return;
@@ -1848,7 +1847,8 @@
             if(prod && prod.isService) { alert("⚠️ No puedes borrar el producto CREACIÓN ya que es del sistema."); return; }
             
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para borrar este producto:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar definitivamente del inventario?")) { 
                 inventario = inventario.filter(p => p.id !== id); 
@@ -2181,7 +2181,8 @@
 
         async function editarVenta(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta venta:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const v = ventas.find(x => x.id === id);
             if(!v || v.anulada) return; 
@@ -2236,7 +2237,8 @@
 
         async function borrarVenta(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para deshacer esta venta:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const v = ventas.find(x => x.id === id);
             if(!v || v.anulada) return; 
@@ -2546,7 +2548,8 @@
 
         async function editarCotizacionPasada(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta cotización:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const cot = historialCotizaciones.find(c => c.id === id); if(!cot) return;
             if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial.")) return;
@@ -2562,7 +2565,8 @@
 
         async function borrarHistorialCotizacion(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar esta cotización:");
-            if(pass !== "9090") { if(pass !== null) alert("❌ Contraseña incorrecta."); return; }
+            if(pass === null) return;
+            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar esta cotización del historial?")) {
                 const cot = historialCotizaciones.find(c => c.id === id);
