@@ -156,10 +156,12 @@
             <div class="logo-wrapper">
                 <img id="logo-img" src="" alt="Logo SubliCosturas">
                 <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
+                <button id="btn-config-logo" class="logo-edit-btn" style="right: 35px; font-size: 18px; font-weight: normal;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
             </div>
             <div id="logo-upload-wrapper" class="file-input-wrapper">
                 <button class="btn-upload">📸 Subir Logo de mi Marca</button>
                 <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
+                <button class="btn-upload" style="margin-left: 5px;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
             </div>
         </div>
 
@@ -170,15 +172,12 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
             <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-            <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="accederAjustesProtegidos()">⚙️ Ajustes</button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
-                <!-- INTEGRACIÓN: Ícono de Configuración para código 1010 -->
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Panel de Finanzas</h3>
-                    <button onclick="abrirConfiguracion1010()" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; padding: 5px 10px; font-size: 16px; cursor: pointer; box-shadow: var(--shadow); font-weight: bold;" title="Configurar Usuarios (Requiere código 1010)">⚙️ Config</button>
                 </div>
                 
                 <div class="dash-grid">
@@ -689,17 +688,6 @@
         let inactividadTimer;
         const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
-        /* INTEGRACIÓN: Función para abrir configuración con PIN 1010 desde "Resumen" */
-        async function abrirConfiguracion1010() {
-            const pass = await solicitarPassword("Ingrese el código maestro (1010) para acceder a Configuración:");
-            if (pass === '1010') {
-                document.getElementById('tab-ajustes').style.display = '';
-                cambiarPestaña('ajustes');
-            } else if (pass !== null) {
-                alert("❌ Código incorrecto. Acceso denegado.");
-            }
-        }
-
         function esDueno(pin) {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
             if (!dueñosRegistrados) return true;
@@ -778,7 +766,8 @@
                 if (p.alertas) { document.getElementById('tab-alertas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'alertas'; }
             }
 
-            document.getElementById('tab-ajustes').style.display = '';
+            let btnAjustes = document.getElementById('tab-ajustes');
+            if (btnAjustes) btnAjustes.style.display = '';
             cambiarPestaña(primerPestañaVisible || 'ventas');
         }
 
@@ -1292,11 +1281,13 @@
             }
 
             ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'].forEach(p => {
-                document.getElementById('sec-' + p).style.display = 'none';
+                const sec = document.getElementById('sec-' + p);
+                if(sec) sec.style.display = 'none';
                 const tabBtn = document.getElementById('tab-' + p);
                 if(tabBtn) tabBtn.classList.remove('active');
             });
-            document.getElementById('sec-' + pestaña).style.display = 'block';
+            const mainSec = document.getElementById('sec-' + pestaña);
+            if(mainSec) mainSec.style.display = 'block';
             
             const btnPestaña = document.getElementById('tab-' + pestaña);
             if (btnPestaña) btnPestaña.classList.add('active');
@@ -1344,10 +1335,12 @@
                 document.getElementById('logo-img').src = logo;
                 document.getElementById('logo-img').style.display = 'block';
                 document.getElementById('btn-edit-logo').style.display = 'flex';
+                if(document.getElementById('btn-config-logo')) document.getElementById('btn-config-logo').style.display = 'flex';
                 document.getElementById('logo-upload-wrapper').style.display = 'none';
             } else {
                 document.getElementById('logo-img').style.display = 'none';
                 document.getElementById('btn-edit-logo').style.display = 'none';
+                if(document.getElementById('btn-config-logo')) document.getElementById('btn-config-logo').style.display = 'none';
                 document.getElementById('logo-upload-wrapper').style.display = 'inline-block';
             }
         }
