@@ -3060,68 +3060,27 @@
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
-        let appArrancada = false;
-
-        function arrancarSistema() {
-            if (appArrancada) return;
-            appArrancada = true;
+        // --- INICIALIZACIÓN Y PWA (CÓDIGO AGREGADO PARA COMPLETAR TU SISTEMA) ---
+        window.addEventListener('DOMContentLoaded', () => {
             cargarDatos();
-        }
+        });
 
-        function verificarArranque() {
-            arrancarSistema();
-        }
-
-        // EVENTOS PARA EL AUTO-BLOQUEO POR INACTIVIDAD
-        ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(evt => 
-            document.addEventListener(evt, reiniciarTemporizador, true)
-        );
-
-        if (window.db) {
-            verificarArranque();
-        } else {
-            window.addEventListener('firebaseListo', verificarArranque);
-        }
-
-        setTimeout(() => {
-            if (!appArrancada) {
-                console.warn("⚠️ Tiempo de espera agotado (Modo Offline detectado). Arrancando sistema...");
-                arrancarSistema();
-            }
-        }, 5000);
-
-        // ================= SISTEMA DE INSTALACIÓN PWA =================
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            const installBtn = document.getElementById('btn-instalar-pwa');
-            if (installBtn) installBtn.style.display = 'block';
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const installBtn = document.getElementById('btn-instalar-pwa');
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        if (outcome === 'accepted') {
-                            installBtn.style.display = 'none';
-                        }
+            const btnInstalar = document.getElementById('btn-instalar-pwa');
+            if (btnInstalar) {
+                btnInstalar.style.display = 'block';
+                btnInstalar.addEventListener('click', () => {
+                    btnInstalar.style.display = 'none';
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
                         deferredPrompt = null;
-                    }
+                    });
                 });
             }
         });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('✅ Service Worker registrado para funcionamiento Offline.', reg.scope))
-                .catch(err => console.error('❌ Error al registrar Service Worker.', err));
-            });
-        }
     </script>
 </body>
 </html>
