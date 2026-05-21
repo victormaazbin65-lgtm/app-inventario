@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1';
+const CACHE_NAME = 'sublicosturas-v2';
 const urlsToCache = [
   './',
   './index.html',
