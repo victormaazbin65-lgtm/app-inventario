@@ -3054,21 +3054,24 @@
         }
 
         // --- INICIALIZACIÓN Y PWA (CÓDIGO AGREGADO PARA COMPLETAR TU SISTEMA) ---
-        window.addEventListener('DOMContentLoaded', () => {
-            cargarDatos();
-        });
-
-        let deferredPrompt;
+         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            const btnInstalar = document.getElementById('btn-instalar-pwa');
-            if (btnInstalar) {
-                btnInstalar.style.display = 'block';
-                btnInstalar.addEventListener('click', () => {
-                    btnInstalar.style.display = 'none';
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then((choiceResult) => {
+            const installBtn = document.getElementById('btn-instalar-pwa');
+            if (installBtn) installBtn.style.display = 'block';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const installBtn = document.getElementById('btn-instalar-pwa');
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installBtn.style.display = 'none';
+                        }
                         deferredPrompt = null;
                     }
                 });
