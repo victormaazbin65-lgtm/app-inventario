@@ -8,6 +8,11 @@
     <meta name="theme-color" content="#111827">
     <link rel="apple-touch-icon" href="logo.png">
     
+    <!-- SOLUCIÓN 1: ETIQUETAS PARA EVITAR EL CACHÉ DEL NAVEGADOR -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -2809,7 +2814,7 @@
 
             const libro = XLSX.utils.book_new();
             const hoja = XLSX.utils.json_to_sheet(dataExp);
-            XLSX.utils.book_append_sheet(libro, hoja, "Articulos Por Surtir");
+            XLS.utils.book_append_sheet(libro, hoja, "Articulos Por Surtir");
             
             const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
             XLSX.writeFile(libro, `SubliCosturas_Por_Surtir_${fecha}.xlsx`);
@@ -2889,12 +2894,10 @@
             chartVentas = new Chart(ctx, { type: 'bar', data: { labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n), datasets: [{ label: 'Unidades Vendidas', data: ordenados.map(n => conteo[n]), backgroundColor: '#3b82f6', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
         }
 
-        /* INTEGRACIÓN: Función renderResumenMensual completamente mejorada para mostrar qué se vendió */
         function renderResumenMensual() {
             const cont = document.getElementById('lista-resumen-mensual');
             if(!cont) return;
 
-            // PRE-CALCULAR PRODUCTOS VENDIDOS POR MES DESDE 'ventas' locales
             let agrupadoVentasLocales = {};
             ventas.forEach(v => {
                 if (v.anulada) return;
@@ -3053,9 +3056,36 @@
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
-        // --- INICIALIZACIÓN Y PWA (CÓDIGO AGREGADO PARA COMPLETAR TU SISTEMA) ---
+        // --- SOLUCIÓN 2: CÓDIGO DE AUTO-ACTUALIZACIÓN ---
+        // Cambia este número ("1.1", "1.2", etc.) cada vez que modifiques el sistema
+        const APP_VERSION = "1.0.1"; 
+        
         window.addEventListener('DOMContentLoaded', () => {
-            cargarDatos();
+            const currentVersion = localStorage.getItem("app_version");
+            if (currentVersion !== APP_VERSION) {
+                console.log("Nueva versión detectada. Limpiando cachés viejos...");
+                
+                // 1. Limpiar caches de la PWA
+                if ('caches' in window) {
+                    caches.keys().then(function(names) {
+                        for (let name of names) caches.delete(name);
+                    });
+                }
+                // 2. Desregistrar Service Workers estancados
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            registration.unregister();
+                        }
+                    });
+                }
+                
+                // 3. Guardar nueva versión y forzar recarga dura
+                localStorage.setItem("app_version", APP_VERSION);
+                window.location.reload(true); 
+            } else {
+                cargarDatos();
+            }
         });
 
         let deferredPrompt;
