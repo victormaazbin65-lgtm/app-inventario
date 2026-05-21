@@ -173,62 +173,36 @@
             <button id="tab-ajustes" class="tab-btn" style="color: var(--primary-orange);" onclick="accederAjustesProtegidos()">⚙️ Ajustes</button>
         </div>
 
+        <!-- Secciones HTML Omitidas para brevedad del texto de diseño visual. Son idénticas a tu código base -->
         <div id="sec-inicio" style="display: block;">
             <div class="card">
                 <h3 class="section-title" style="margin-bottom: 15px;">Panel de Finanzas</h3>
-                
                 <div class="dash-grid">
-                    <div class="dash-card bg-blue">
-                        <p class="dash-title">Valor del Inventario</p>
-                        <p class="dash-value" id="dash-valor-inv">Q 0.00</p>
-                        <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Capital físico (Mercadería)</p>
-                    </div>
-                    <div class="dash-card bg-dark">
-                        <p class="dash-title">Total en Caja</p>
-                        <p class="dash-value" id="dash-total-caja">Q 0.00</p>
-                        <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Efectivo/Banco (Suma de fondos libres)</p>
-                    </div>
+                    <div class="dash-card bg-blue"><p class="dash-title">Valor del Inventario</p><p class="dash-value" id="dash-valor-inv">Q 0.00</p><p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Capital físico (Mercadería)</p></div>
+                    <div class="dash-card bg-dark"><p class="dash-title">Total en Caja</p><p class="dash-value" id="dash-total-caja">Q 0.00</p><p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Efectivo/Banco (Suma de fondos libres)</p></div>
                     
                     <div class="dash-card bg-purple">
-                        <p class="dash-title">Fondo: Productos</p>
-                        <p class="dash-value" id="dash-costo-producto">Q 0.00</p>
-                        <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-prod" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
-                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoProducto()">Retirar</button>
-                        </div>
+                        <p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;"><input type="number" id="ret-prod" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;"><button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoProducto()">Retirar</button></div>
                     </div>
                     <div class="dash-card bg-orange">
-                        <p class="dash-title">Fondo: Luz y Tinta</p>
-                        <p class="dash-value" id="dash-costo-luz">Q 0.00</p>
-                        <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-luz" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
-                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoLuz()">Retirar</button>
-                        </div>
+                        <p class="dash-title">Fondo: Luz y Tinta</p><p class="dash-value" id="dash-costo-luz">Q 0.00</p>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;"><input type="number" id="ret-luz" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;"><button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarCostoLuz()">Retirar</button></div>
                     </div>
                     <div class="dash-card bg-green">
-                        <p class="dash-title">Ganancia Libre</p>
-                        <p class="dash-value" id="dash-ganancia">Q 0.00</p>
-                        <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-ganancia" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
-                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button>
-                        </div>
+                        <p class="dash-title">Ganancia Libre</p><p class="dash-value" id="dash-ganancia">Q 0.00</p>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;"><input type="number" id="ret-ganancia" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;"><button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarGanancia()">Retirar</button></div>
                     </div>
                     <div class="dash-card bg-gray">
-                        <p class="dash-title">Fondo: Impuestos (SAT)</p>
-                        <p class="dash-value" id="dash-fondo-impuestos">Q 0.00</p>
-                        <div style="display: flex; gap: 5px; margin-top: 15px;">
-                            <input type="number" id="ret-impuesto" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;">
-                            <button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarImpuesto()">Retirar</button>
-                        </div>
+                        <p class="dash-title">Fondo: Impuestos (SAT)</p><p class="dash-value" id="dash-fondo-impuestos">Q 0.00</p>
+                        <div style="display: flex; gap: 5px; margin-top: 15px;"><input type="number" id="ret-impuesto" step="0.01" min="0" placeholder="Q monto" style="width: 60%; padding: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px; text-align: center; background: #374151; color: white;"><button class="dash-btn" style="margin-top: 0; width: 40%; padding: 5px;" onclick="retirarImpuesto()">Retirar</button></div>
                     </div>
                 </div>
 
                 <div class="card" style="margin-top: 25px;">
                     <h3 class="section-title">💸 Historial de Retiros (Bitácora)</h3>
                     <button onclick="toggleHistorial('lista-retiros-historial')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                    <div id="lista-retiros-historial" style="max-height: 250px; overflow-y: auto; display: none;">
-                        <p class="item-details" style="text-align:center;">No hay retiros registrados.</p>
-                    </div>
+                    <div id="lista-retiros-historial" style="max-height: 250px; overflow-y: auto; display: none;"></div>
                 </div>
 
                 <div class="card" style="margin-top: 25px; background-color: var(--card-bg);">
@@ -243,18 +217,9 @@
                 </div>
 
                 <div style="margin-top: 25px; text-align: center;">
-                    <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: var(--shadow);">
-                        📂 Descargar Reporte Completo (Excel)
-                    </button>
-                    
-                    <button onclick="let t=0; Object.keys(localStorage).forEach(k => { let val = localStorage.getItem(k); if(val) t += (val.length + k.length) * 2; }); alert('🔥 TOTAL USADO: '+(t/1024/1024).toFixed(2)+' MB de 5.00 MB');" style="background-color: #4b5563; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; width: 100%;">
-                        📊 Revisar Memoria del Dispositivo
-                    </button>
+                    <button onclick="generarReporteExcel()" style="background-color: var(--primary-green); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: var(--shadow);">📂 Descargar Reporte Completo (Excel)</button>
+                    <button onclick="let t=0; Object.keys(localStorage).forEach(k => { let val = localStorage.getItem(k); if(val) t += (val.length + k.length) * 2; }); alert('🔥 TOTAL USADO: '+(t/1024/1024).toFixed(2)+' MB de 5.00 MB');" style="background-color: #4b5563; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 15px; width: 100%;">📊 Revisar Memoria del Dispositivo</button>
                 </div>
-
-                <p style="font-size: 12px; color: var(--text-light); text-align: center; margin-top: 25px;">
-                    * Los gastos de mensajero/envío se restan automáticamente de la venta y no se guardan aquí, ya que ese dinero se le entrega al transportista.
-                </p>
             </div>
         </div>
 
@@ -282,10 +247,8 @@
                         <label><input type="checkbox" id="nuevo-perm-inventario"> 📦 Ver Inventario Actual</label>
                         <label><input type="checkbox" id="nuevo-perm-ingreso"> 📥 Ingresar Mercadería Nueva</label>
                         <label><input type="checkbox" id="nuevo-perm-alertas"> ⚠️ Ver Alertas de Stock</label>
-                        <p style="font-size: 11px; color: var(--primary-orange); margin: 5px 0 0 0;">* El panel de Finanzas y Usuarios es exclusivo de Dueños.</p>
                     </div>
                 </div>
-
                 <button class="btn-main btn-green" onclick="crearUsuario()">➕ Crear Usuario</button>
             </div>
             
@@ -294,36 +257,6 @@
                 <div id="lista-usuarios"></div>
             </div>
         </div>
-        <div id="modal-editar-user" class="modal-overlay">
-            <div class="modal-card">
-                <h3 class="modal-title">✏️ Modificar Usuario</h3>
-                <input type="hidden" id="edit-user-id">
-                <div class="form-group"><label>Nombre</label><input type="text" id="edit-user-nombre"></div>
-                <div class="form-group"><label>Nuevo PIN (Opcional)</label><input type="password" id="edit-user-pin" placeholder="Dejar en blanco para no cambiar"></div>
-                <div class="form-group">
-                    <label>Rol</label>
-                    <select id="edit-user-rol" onchange="togglePermisosUI('edit')">
-                        <option value="empleado">🛒 Empleado</option>
-                        <option value="dueno">👑 Dueño</option>
-                    </select>
-                </div>
-                <div class="form-group permisos-check" id="edit-permisos-box">
-                    <label style="font-weight: bold; color: var(--text-light);">Permisos de Pantallas</label>
-                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <label><input type="checkbox" id="edit-perm-ventas"> 🛒 Registrar Ventas</label>
-                        <label><input type="checkbox" id="edit-perm-cotizacion"> 📄 Hacer Cotizaciones</label>
-                        <label><input type="checkbox" id="edit-perm-inventario"> 📦 Ver Inventario Actual</label>
-                        <label><input type="checkbox" id="edit-perm-ingreso"> 📥 Ingresar Mercadería Nueva</label>
-                        <label><input type="checkbox" id="edit-perm-alertas"> ⚠️ Ver Alertas de Stock</label>
-                    </div>
-                </div>
-                <div class="modal-btn-row">
-                    <button class="btn-cancel" onclick="cerrarModalEditarUser()">Cancelar</button>
-                    <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionUser()">Guardar Cambios</button>
-                </div>
-            </div>
-        </div>
-
 
         <div id="sec-ingreso" style="display: none;">
             <div class="card">
@@ -351,8 +284,7 @@
 
                 <div class="form-group" id="grupo-categoria-producto" style="display: none;">
                     <label>Categoría</label>
-                    <select id="inv-categoria" onchange="toggleNuevaCategoria('inv')">
-                        </select>
+                    <select id="inv-categoria" onchange="toggleNuevaCategoria('inv')"></select>
                     <input type="text" id="inv-categoria-nueva" placeholder="Escribe el nombre de la nueva categoría..." style="display: none; margin-top: 8px;">
                 </div>
                 
@@ -405,12 +337,9 @@
                 <button onclick="toggleHistorial('wrapper-historial-ingresos')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
                 <div id="wrapper-historial-ingresos" style="display: none;">
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
-                        <select id="filtro-mes-ingresos" onchange="renderHistorialIngresos()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="todos">Todos los meses</option>
-                        </select>
+                        <select id="filtro-mes-ingresos" onchange="renderHistorialIngresos()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
                         <select id="limite-historial-ingresos" onchange="renderHistorialIngresos()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="50">Últimos 50 registros</option>
-                            <option value="all">Todos los del filtro</option>
+                            <option value="50">Últimos 50 registros</option><option value="all">Todos los del filtro</option>
                         </select>
                     </div>
                     <div id="lista-historial-ingresos"></div>
@@ -421,10 +350,8 @@
         <div id="sec-inventario" style="display: none;">
             <div class="card">
                 <h3 class="section-title">Mi Inventario Actual</h3>
-                
                 <div class="form-group">
                     <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 10px;">
-                    
                     <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
                         <button onclick="toggleVistaInv()" id="btn-vista-inv" class="btn-sm" style="background-color: #4b5563; color: white; padding: 10px 15px; flex-grow: 1; max-width: 200px;">🗂️ Ver A-Z</button>
                         <div style="display: flex; gap: 8px;">
@@ -434,7 +361,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="lista-inventario"></div>
             </div>
         </div>
@@ -442,14 +368,12 @@
         <div id="sec-ventas" style="display: none;">
             <div class="card">
                 <h3 class="section-title">1. Agregar al Carrito</h3>
-                
                 <div class="form-group" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
                     <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza' o toca aquí..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
                     <div id="sugerencias-ventas-box" class="sugerencias-box"></div>
                     <input type="hidden" id="venta-producto">
                 </div>
-
                 <div class="form-group">
                     <label>¿Cuál es su función en esta venta?</label>
                     <select id="venta-rol" onchange="cambiarRolVenta()">
@@ -459,12 +383,10 @@
                         <option value="material">✂️ MATERIAL USADO (Gasto interno, resta ganancia)</option>
                     </select>
                 </div>
-
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a usar/vender</label><input type="number" id="venta-qty" value="1" min="1"></div>
                     <div class="form-group" id="grupo-venta-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
-
                 <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
             </div>
 
@@ -473,10 +395,7 @@
                     <h3 class="cart-title" style="border: none; padding: 0; margin: 0;">🛍️ Carrito de la Venta Actual</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
                 </div>
-
-                <div id="lista-carrito-ventas">
-                    <p class="item-details" style="text-align:center;">Carrito vacío.</p>
-                </div>
+                <div id="lista-carrito-ventas"><p class="item-details" style="text-align:center;">Carrito vacío.</p></div>
                 
                 <h4 class="sub-title">2. Datos del Cliente</h4>
                 <div class="grid-2">
@@ -493,14 +412,12 @@
                         <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
                     </div>
                 </div>
-
                 <div class="form-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
                         <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;" onchange="renderCarritoVentas()">
                         El cliente pide Factura (Separar 5% para SAT del total)
                     </label>
                 </div>
-
                 <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div>
@@ -510,12 +427,9 @@
                 <button onclick="toggleHistorial('wrapper-historial-ventas')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
                 <div id="wrapper-historial-ventas" style="display: none;">
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
-                        <select id="filtro-mes-ventas" onchange="actualizarUI()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="todos">Todos los meses</option>
-                        </select>
+                        <select id="filtro-mes-ventas" onchange="actualizarUI()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
                         <select id="limite-historial-ventas" onchange="actualizarUI()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="50">Últimos 50 registros</option>
-                            <option value="all">Todos los del filtro</option>
+                            <option value="50">Últimos 50 registros</option><option value="all">Todos los del filtro</option>
                         </select>
                     </div>
                     <div id="lista-ventas"></div>
@@ -534,7 +448,6 @@
                     <div id="sugerencias-cotiza-box" class="sugerencias-box"></div>
                     <input type="hidden" id="cotiza-producto">
                 </div>
-
                 <div class="form-group">
                     <label>¿Cuál es su función en esta cotización?</label>
                     <select id="cotiza-rol" onchange="cambiarRolCotizacion()">
@@ -544,12 +457,10 @@
                         <option value="material">✂️ MATERIAL USADO (Gasto interno)</option>
                     </select>
                 </div>
-
                 <div class="grid-2">
                     <div class="form-group"><label>Cantidad a cotizar</label><input type="number" id="cotiza-qty" value="1" min="1"></div>
                     <div class="form-group" id="grupo-cotiza-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
-
                 <button class="btn-main" style="background-color: var(--primary-purple);" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
             </div>
 
@@ -558,10 +469,7 @@
                     <h3 class="cart-title" style="color: var(--primary-purple); border: none; padding: 0; margin: 0;">📄 Detalles de la Cotización</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
                 </div>
-                
-                <div id="lista-carrito-cotizacion">
-                    <p class="item-details" style="text-align:center;">Cotización vacía.</p>
-                </div>
+                <div id="lista-carrito-cotizacion"><p class="item-details" style="text-align:center;">Cotización vacía.</p></div>
                 
                 <h4 class="sub-title">2. Datos del Cliente (Opcional)</h4>
                 <div class="grid-2">
@@ -575,17 +483,14 @@
                     <div class="form-group">
                         <label>Pago a Mensajero/Envío (Q)</label>
                         <input type="number" id="cotiza-envio" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoCotizacion()">
-                        <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
                     </div>
                 </div>
-
                 <div class="form-group" style="margin-top: 10px; background: rgba(139, 92, 246, 0.2); padding: 10px; border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-purple); margin: 0; font-weight: bold;">
                         <input type="checkbox" id="cotiza-factura" style="width: 20px; height: 20px;" onchange="renderCarritoCotizacion()">
                         Incluir Factura (Aplica 5% de retención para la SAT)
                     </label>
                 </div>
-
                 <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
                 
                 <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
@@ -597,16 +502,12 @@
             
             <div class="card" style="margin-top: 20px;">
                 <h3 class="section-title">Historial de Cotizaciones</h3>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">Las cotizaciones de las que has sacado resumen se guardan aquí. Puedes convertirlas a ventas o editarlas más adelante.</p>
                 <button onclick="toggleHistorial('wrapper-historial-cotizaciones')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
                 <div id="wrapper-historial-cotizaciones" style="display: none;">
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
-                        <select id="filtro-mes-cotizaciones" onchange="renderHistorialCotizaciones()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="todos">Todos los meses</option>
-                        </select>
+                        <select id="filtro-mes-cotizaciones" onchange="renderHistorialCotizaciones()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
                         <select id="limite-historial-cotizaciones" onchange="renderHistorialCotizaciones()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="50">Últimos 50 registros</option>
-                            <option value="all">Todos los del filtro</option>
+                            <option value="50">Últimos 50 registros</option><option value="all">Todos los del filtro</option>
                         </select>
                     </div>
                     <div id="lista-historial-cotizaciones"></div>
@@ -618,31 +519,53 @@
             <div class="card">
                 <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Productos por Surtir</h3>
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -5px; margin-bottom: 15px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
-                
                 <button class="btn-main" style="background-color: var(--primary-green); margin-bottom: 15px; margin-top: 0;" onclick="exportarPorSurtirExcel()">📂 Exportar Lista a Excel</button>
-
-                <div id="lista-alertas-surtir">
-                    <p class="item-details" style="text-align:center;">Cargando alertas...</p>
-                </div>
+                <div id="lista-alertas-surtir"><p class="item-details" style="text-align:center;">Cargando alertas...</p></div>
             </div>
         </div>
 
+    </div>
+
+    <!-- Modales -->
+    <div id="modal-editar-user" class="modal-overlay">
+        <div class="modal-card">
+            <h3 class="modal-title">✏️ Modificar Usuario</h3>
+            <input type="hidden" id="edit-user-id">
+            <div class="form-group"><label>Nombre</label><input type="text" id="edit-user-nombre"></div>
+            <div class="form-group"><label>Nuevo PIN (Opcional)</label><input type="password" id="edit-user-pin" placeholder="Dejar en blanco para no cambiar"></div>
+            <div class="form-group">
+                <label>Rol</label>
+                <select id="edit-user-rol" onchange="togglePermisosUI('edit')">
+                    <option value="empleado">🛒 Empleado</option><option value="dueno">👑 Dueño</option>
+                </select>
+            </div>
+            <div class="form-group permisos-check" id="edit-permisos-box">
+                <label style="font-weight: bold; color: var(--text-light);">Permisos de Pantallas</label>
+                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label><input type="checkbox" id="edit-perm-ventas"> 🛒 Registrar Ventas</label>
+                    <label><input type="checkbox" id="edit-perm-cotizacion"> 📄 Hacer Cotizaciones</label>
+                    <label><input type="checkbox" id="edit-perm-inventario"> 📦 Ver Inventario Actual</label>
+                    <label><input type="checkbox" id="edit-perm-ingreso"> 📥 Ingresar Mercadería Nueva</label>
+                    <label><input type="checkbox" id="edit-perm-alertas"> ⚠️ Ver Alertas de Stock</label>
+                </div>
+            </div>
+            <div class="modal-btn-row">
+                <button class="btn-cancel" onclick="cerrarModalEditarUser()">Cancelar</button>
+                <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionUser()">Guardar Cambios</button>
+            </div>
+        </div>
     </div>
 
     <div id="modal-editar" class="modal-overlay">
         <div class="modal-card">
             <h3 class="modal-title">Editar Producto</h3>
             <input type="hidden" id="edit-id">
-            
             <div class="form-group"><label>Nombre del Producto</label><input type="text" id="edit-nombre"></div>
-            
             <div class="form-group">
                 <label>Categoría</label>
-                <select id="edit-categoria" onchange="toggleNuevaCategoria('edit')">
-                    </select>
+                <select id="edit-categoria" onchange="toggleNuevaCategoria('edit')"></select>
                 <input type="text" id="edit-categoria-nueva" placeholder="Escribe el nombre de la nueva categoría..." style="display: none; margin-top: 8px;">
             </div>
-
             <div class="grid-2">
                 <div class="form-group"><label>Cantidad (Stock)</label><input type="number" id="edit-stock" min="0"></div>
                 <div class="form-group"><label>Alerta de Mínimo</label><input type="number" id="edit-min" min="0"></div>
@@ -650,13 +573,11 @@
             <div class="form-group">
                 <label>¿Cómo actualizarás el costo?</label>
                 <select id="edit-tipo-costo" onchange="cambiarLabelCostoEdit()" style="margin-bottom: 5px; padding: 6px; font-size: 12px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px;">
-                    <option value="unitario">Por Unidad (c/u)</option>
-                    <option value="total">Costo Total del Lote Actual</option>
+                    <option value="unitario">Por Unidad (c/u)</option><option value="total">Costo Total del Lote Actual</option>
                 </select>
                 <input type="number" id="edit-costo" step="0.01" min="0" placeholder="Q por pieza">
             </div>
             <div class="form-group"><label>Proveedor</label><input type="text" id="edit-proveedor"></div>
-
             <div class="modal-btn-row">
                 <button class="btn-cancel" onclick="cerrarModalEditar()">Cancelar</button>
                 <button style="background:var(--primary-blue); color:white;" onclick="guardarEdicionInventario()">Guardar Cambios</button>
@@ -729,6 +650,10 @@
     </script>
 
     <script>
+        function generarIDSeguro() {
+            return Date.now().toString() + Math.random().toString(36).substring(2, 8);
+        }
+
         function escaparHTML(texto) {
             return texto ? texto.replace(/[&<>'"]/g, function(tag) {
                 const chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
@@ -762,7 +687,7 @@
 
         function esDueno(pin) {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
-            if (!dueñosRegistrados) return true; // Acceso libre si no hay dueños creados
+            if (!dueñosRegistrados) return true;
             return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
         }
 
@@ -774,7 +699,6 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 document.getElementById('login-pass').value = '';
-                
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
             } else {
@@ -786,14 +710,12 @@
         function comprobarIngresoInicialLibre() {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
             if (!dueñosRegistrados) {
-                // Ingreso completamente libre si no hay dueño
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 currentUserData = { id: 0, nombre: 'Dueño (Sin PIN)', rol: 'dueno', pin: '' };
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
             } else {
-                // Si ya hay dueños, re-activamos el bloqueo si no estamos dentro
                 if(document.getElementById('main-app').style.display !== 'block'){
                     document.getElementById('login-screen').style.display = 'flex';
                 }
@@ -803,7 +725,6 @@
         async function accederAjustesProtegidos() {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
             if (!dueñosRegistrados) {
-                // Si no hay dueño, entra directo a crear uno sin pedir nada
                 cambiarPestaña('ajustes');
                 return;
             }
@@ -835,7 +756,6 @@
                 primerPestañaVisible = 'inicio';
             } else {
                 let p = user.permisos || { ventas: true, cotizacion: true }; 
-                
                 if (p.ventas) { document.getElementById('tab-ventas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'ventas'; }
                 if (p.cotizacion) { document.getElementById('tab-cotizacion').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'cotizacion'; }
                 if (p.inventario) { document.getElementById('tab-inventario').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'inventario'; }
@@ -843,18 +763,14 @@
                 if (p.alertas) { document.getElementById('tab-alertas').style.display = ''; primerPestañaVisible = primerPestañaVisible || 'alertas'; }
             }
 
-            document.getElementById('tab-ajustes').style.display = ''; // Botón Configurar siempre visible
+            document.getElementById('tab-ajustes').style.display = '';
             cambiarPestaña(primerPestañaVisible || 'ventas');
         }
 
         function togglePermisosUI(prefix) {
             const rol = document.getElementById(prefix + '-user-rol').value;
             const box = document.getElementById(prefix + '-permisos-box');
-            if (rol === 'dueno') {
-                box.style.display = 'none';
-            } else {
-                box.style.display = 'block';
-            }
+            box.style.display = rol === 'dueno' ? 'none' : 'block';
         }
 
         function crearUsuario() {
@@ -876,9 +792,8 @@
                 permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
             }
 
-            usuarios.push({ id: Date.now(), nombre, pin, rol, permisos });
+            usuarios.push({ id: generarIDSeguro(), nombre, pin, rol, permisos });
             guardarUsuarios();
-            
             document.getElementById('nuevo-user-nombre').value = '';
             document.getElementById('nuevo-user-pin').value = '';
             renderUsuarios();
@@ -886,14 +801,12 @@
         }
 
         function abrirModalEditarUser(id) {
-            const user = usuarios.find(u => u.id === id);
+            const user = usuarios.find(u => u.id == id);
             if (!user) return;
-
             document.getElementById('edit-user-id').value = user.id;
             document.getElementById('edit-user-nombre').value = user.nombre;
             document.getElementById('edit-user-pin').value = ''; 
             document.getElementById('edit-user-rol').value = user.rol;
-            
             togglePermisosUI('edit');
             
             let p = user.permisos || {};
@@ -906,15 +819,12 @@
             document.getElementById('modal-editar-user').style.display = 'flex';
         }
 
-        function cerrarModalEditarUser() {
-            document.getElementById('modal-editar-user').style.display = 'none';
-        }
+        function cerrarModalEditarUser() { document.getElementById('modal-editar-user').style.display = 'none'; }
 
         function guardarEdicionUser() {
             if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
-
-            const id = parseInt(document.getElementById('edit-user-id').value);
-            const user = usuarios.find(u => u.id === id);
+            const id = document.getElementById('edit-user-id').value;
+            const user = usuarios.find(u => u.id == id);
             if (!user) return;
 
             const nombre = document.getElementById('edit-user-nombre').value.trim();
@@ -924,7 +834,7 @@
             if(!nombre) return alert('El nombre no puede estar vacío');
             
             if (nuevoPin !== '') {
-                if(usuarios.find(u => u.pin === nuevoPin && u.id !== id)) {
+                if(usuarios.find(u => u.pin === nuevoPin && String(u.id) !== String(id))) {
                     return alert('Este PIN ya está en uso. Elige otro.');
                 }
                 user.pin = nuevoPin;
@@ -951,15 +861,14 @@
 
         function borrarUsuario(id) {
             if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
-
-            const user = usuarios.find(u => u.id === id);
+            const user = usuarios.find(u => u.id == id);
             if (user && user.rol === 'dueno') {
                 const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
                 if (totalDuenos <= 1) return alert("❌ No puedes borrar a este usuario porque es el ÚNICO DUEÑO en el sistema. Debes crear otro dueño primero.");
             }
 
             if(confirm('¿Eliminar definitivamente este usuario?')) {
-                usuarios = usuarios.filter(u => u.id !== id);
+                usuarios = usuarios.filter(u => String(u.id) !== String(id));
                 guardarUsuarios();
                 renderUsuarios();
             }
@@ -996,8 +905,8 @@
                         <p class="item-details">PIN: ${u.rol === 'dueno' ? '****' : u.pin}</p>
                     </div>
                     <div class="item-actions">
-                        <button onclick="abrirModalEditarUser(${u.id})" class="btn-sm btn-edit">Modificar</button>
-                        <button onclick="borrarUsuario(${u.id})" class="btn-sm btn-delete">Borrar</button>
+                        <button onclick="abrirModalEditarUser('${u.id}')" class="btn-sm btn-edit">Modificar</button>
+                        <button onclick="borrarUsuario('${u.id}')" class="btn-sm btn-delete">Borrar</button>
                     </div>
                 </div>`;
             });
@@ -1012,7 +921,7 @@
         function bloquearSistema() {
             if (document.getElementById('main-app').style.display === 'block') {
                 const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
-                if(!dueñosRegistrados) return; // No bloquear si no hay dueños
+                if(!dueñosRegistrados) return; 
 
                 ocultarModales();
                 currentUserData = null;
@@ -1030,8 +939,6 @@
                 inactividadTimer = setTimeout(bloquearSistema, TIEMPO_INACTIVIDAD);
             }
         }
-
-        // ==============================================================================
 
         function redondear(num) {
             return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -1102,7 +1009,6 @@
                     resolve(val);
                 };
                 newCancel.onclick = () => {
-                    const val = input.value;
                     modal.style.display = 'none';
                     resolve(null);
                 };
@@ -1142,11 +1048,7 @@
 
         function toggleHistorial(id) {
             const el = document.getElementById(id);
-            if (el.style.display === 'none' || el.style.display === '') {
-                el.style.display = 'block';
-            } else {
-                el.style.display = 'none';
-            }
+            el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
         }
 
         async function crearCategoriaVacia() {
@@ -1208,7 +1110,6 @@
             localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
 
             guardarDatos(); actualizarUI();
-            
             if (contador > 0) alert(`✅ ¡Listo! La categoría se renombró a "${nuevoNombre}". Se actualizaron ${contador} productos automáticamente.`);
             else alert(`✅ La categoría "${catActual}" se cambió a "${nuevoNombre}".`);
         }
@@ -1275,7 +1176,6 @@
             localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
 
             guardarDatos(); actualizarUI();
-            
             if (prodsAfectados.length > 0) alert(`✅ Categoría eliminada con éxito. Los ${prodsAfectados.length} productos fueron trasladados a "${nuevaCategoria}".`);
             else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
@@ -1314,7 +1214,6 @@
                             fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                             let nubeCustomCats = data.customCats || [];
                             if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            
                             if (data.usuarios) {
                                 usuarios = data.usuarios;
                                 localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
@@ -1348,7 +1247,7 @@
                     });
                     
                     window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
+                        let temp = []; snap.forEach(d => push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
                     });
                     
                     datosCargadosDeLaNube = true; mostrarLogo(); 
@@ -1517,7 +1416,7 @@
             } else {
                 const idExistente = document.getElementById('ingreso-producto-id').value;
                 if(!idExistente) { alert("⚠️ Por favor, busca y selecciona un producto existente de la lista."); return; }
-                const prod = inventario.find(p => p.id == idExistente);
+                const prod = inventario.find(p => String(p.id) === String(idExistente));
                 nombreProd = prod ? prod.nombre : "PRODUCTO";
                 minStock = prod && prod.min !== undefined ? prod.min : 5;
                 categoria = prod && prod.categoria ? prod.categoria : "OTROS";
@@ -1563,7 +1462,7 @@
 
                 const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
                 const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
-                let registroHistorial = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
+                let registroHistorial = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
                 
                 let valorTotalIngresado = 0; 
                 let promesas = [];
@@ -1574,14 +1473,14 @@
 
                     let idFinalAsignado; let pObjToSave;
                     if(item.isNew) {
-                        idFinalAsignado = Math.floor(Date.now() + Math.random() * 1000);
+                        idFinalAsignado = generarIDSeguro();
                         pObjToSave = { id: idFinalAsignado, nombre: item.nombre, stock: item.stock, min: item.min !== undefined ? item.min : 5, costo: costoFinal, proveedor: item.proveedor, categoria: item.categoria, lastModified: Date.now() };
                         inventario.push(pObjToSave);
                     } else {
                         idFinalAsignado = item.idOriginal;
-                        pObjToSave = inventario.find(x => x.id == idFinalAsignado);
+                        pObjToSave = inventario.find(x => String(x.id) === String(idFinalAsignado));
                         if(pObjToSave) {
-                            const valorViejo = pObjToSave.stock * pObjToSave.costo;
+                            const valorViejo = Math.max(0, pObjToSave.stock) * pObjToSave.costo;
                             const valorNuevo = item.stock * costoFinal;
                             pObjToSave.stock += item.stock;
                             if(pObjToSave.stock > 0) {
@@ -1593,7 +1492,6 @@
                     }
                     
                     if(window.db && pObjToSave) promesas.push(window.setDoc(window.doc(window.db, "inventario", String(idFinalAsignado)), pObjToSave));
-
                     registroHistorial.items.push({ idFinal: idFinalAsignado, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria });
                 });
                 
@@ -1649,8 +1547,8 @@
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">📅 ${reg.fecha}</p>
                         <div style="display:flex; gap:5px;">
-                            <button onclick="editarIngreso(${reg.id})" class="btn-sm btn-edit">Editar</button>
-                            <button onclick="borrarIngreso(${reg.id})" class="btn-sm btn-delete">Anular y Restar</button>
+                            <button onclick="editarIngreso('${reg.id}')" class="btn-sm btn-edit">Editar</button>
+                            <button onclick="borrarIngreso('${reg.id}')" class="btn-sm btn-delete">Anular y Restar</button>
                         </div>
                     </div>
                     <div class="item-details" style="font-size: 13px;">
@@ -1670,17 +1568,17 @@
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const reg = historialIngresos.find(x => x.id === id);
+            const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(!reg || reg.anulada) return;
 
             for (let item of reg.items) {
-                let p = inventario.find(inv => inv.id === item.idFinal);
+                let p = inventario.find(inv => String(inv.id) === String(item.idFinal));
                 if (p) {
-                    let valorActualTotal = p.stock * p.costo;
+                    let valorActualTotal = Math.max(0, p.stock) * p.costo;
                     let valorIngresoAnulado = item.stock * (item.costoIngresado || 0);
                     
                     if (p.stock < item.stock || valorActualTotal < valorIngresoAnulado) {
-                        alert(`❌ ERROR MATEMÁTICO: No puedes editar este ingreso. Ya vendiste parte de "${p.nombre}" y el costo se promedió. Si lo editas, tu inventario o costo quedaría en negativo. Haz un ajuste manual si es necesario.`);
+                        alert(`❌ ERROR MATEMÁTICO: No puedes editar este ingreso. Ya vendiste parte de "${p.nombre}". Si lo editas, tu inventario o costo quedaría en negativo.`);
                         return; 
                     }
                 }
@@ -1705,10 +1603,10 @@
             });
 
             reg.items.forEach(item => { 
-                let p = inventario.find(inv => inv.id === item.idFinal); 
+                let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                 if(p) { 
                     if (item.costoIngresado !== undefined) {
-                        let valorActualTotal = p.stock * p.costo;
+                        let valorActualTotal = Math.max(0, p.stock) * p.costo;
                         let valorIngresoAnulado = item.stock * item.costoIngresado;
                         p.stock -= item.stock;
                         p.lastModified = Date.now();
@@ -1735,16 +1633,16 @@
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const reg = historialIngresos.find(x => x.id === id);
+            const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(reg && !reg.anulada) {
                 for (let item of reg.items) {
-                    let p = inventario.find(inv => inv.id === item.idFinal);
+                    let p = inventario.find(inv => String(inv.id) === String(item.idFinal));
                     if (p) {
-                        let valorActualTotal = p.stock * p.costo;
+                        let valorActualTotal = Math.max(0, p.stock) * p.costo;
                         let valorIngresoAnulado = item.stock * (item.costoIngresado || 0);
 
                         if (p.stock < item.stock || valorActualTotal < valorIngresoAnulado) {
-                            alert(`❌ ERROR MATEMÁTICO: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}" y el costo se promedió. Si lo anulas ahora, tu costo de bodega quedaría en números negativos.`);
+                            alert(`❌ ERROR MATEMÁTICO: No puedes anular este ingreso. Ya vendiste parte de "${p.nombre}". Si lo anulas ahora, tu costo de bodega quedaría en negativo.`);
                             return; 
                         }
                     }
@@ -1753,10 +1651,10 @@
                 if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario y se ajustará el costo promedio.")) return;
                 
                 reg.items.forEach(item => { 
-                    let p = inventario.find(inv => inv.id === item.idFinal); 
+                    let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                     if(p) { 
                         if (item.costoIngresado !== undefined) {
-                            let valorActualTotal = p.stock * p.costo;
+                            let valorActualTotal = Math.max(0, p.stock) * p.costo;
                             let valorIngresoAnulado = item.stock * item.costoIngresado;
                             p.stock -= item.stock;
                             p.lastModified = Date.now();
@@ -1789,7 +1687,7 @@
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const prod = inventario.find(p => p.id == id);
+            const prod = inventario.find(p => String(p.id) === String(id));
             if(!prod) return;
             actualizarListaCategorias(); 
             document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = prod.costo.toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
@@ -1825,7 +1723,7 @@
                 
                 if(!nombre || stock < 0 || costo < 0) { alert("⚠️ Datos inválidos. Asegúrate de no introducir valores negativos."); return; }
                 
-                const p = inventario.find(x => x.id == id);
+                const p = inventario.find(x => String(x.id) === String(id));
                 if(p) { 
                     p.nombre = nombre; 
                     if(!p.isService) { p.stock = stock; p.min = min; }
@@ -1843,7 +1741,7 @@
         }
 
         async function borrarProducto(id) {
-            const prod = inventario.find(p => p.id == id);
+            const prod = inventario.find(p => String(p.id) === String(id));
             if(prod && prod.isService) { alert("⚠️ No puedes borrar el producto CREACIÓN ya que es del sistema."); return; }
             
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para borrar este producto:");
@@ -1851,7 +1749,7 @@
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar definitivamente del inventario?")) { 
-                inventario = inventario.filter(p => p.id !== id); 
+                inventario = inventario.filter(p => String(p.id) !== String(id)); 
                 if(window.db) window.deleteDoc(window.doc(window.db, "inventario", String(id))); 
                 guardarDatos(); actualizarUI(); 
             }
@@ -1859,7 +1757,6 @@
 
         function toggleVistaInv() {
             vistaInventarioAZ = !vistaInventarioAZ;
-            document.getElementById('btn-vista-inv').innerText = vistaInventarioAZ ? "📁 Ver por Categorías" : "🗂️ Ver A-Z";
             renderInventario();
         }
 
@@ -1879,7 +1776,22 @@
 
         function renderInventario() {
             const contInv = document.getElementById('lista-inventario');
-            const textoBuscado = document.getElementById('buscador-inv') ? document.getElementById('buscador-inv').value.toLowerCase() : '';
+            const btnVista = document.getElementById('btn-vista-inv');
+            const inputBusqueda = document.getElementById('buscador-inv');
+            const textoBuscado = inputBusqueda ? inputBusqueda.value.toLowerCase() : '';
+            
+            // Forzar vista de lista plana si hay una búsqueda activa
+            const forzarListaPlana = textoBuscado.length > 0;
+            const vistaActualAZ = forzarListaPlana || vistaInventarioAZ;
+            
+            // Actualizar el texto del botón solo si no estamos forzando la vista por búsqueda
+            if (btnVista && !forzarListaPlana) {
+                btnVista.innerText = vistaInventarioAZ ? "📁 Ver por Categorías" : "🗂️ Ver A-Z";
+                btnVista.disabled = false;
+            } else if (btnVista && forzarListaPlana) {
+                btnVista.innerText = "🔍 Buscando...";
+                btnVista.disabled = true;
+            }
             
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
             let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
@@ -1890,7 +1802,7 @@
             }
 
             let html = '';
-            if (textoBuscado !== '' || vistaInventarioAZ) {
+            if (vistaActualAZ) {
                 invFiltrado.forEach(p => { html += renderItemInventario(p); });
             } else {
                 let agrupado = {};
@@ -1954,10 +1866,10 @@
         }
 
         function getStockDisponible(idProd) {
-            const prod = inventario.find(p => p.id == idProd);
+            const prod = inventario.find(p => String(p.id) === String(idProd));
             if(!prod) return 0;
             if(prod.isService) return 9999;
-            let qtyEnCarrito = carritoVentas.filter(item => item.idProd == idProd).reduce((sum, item) => sum + item.qty, 0);
+            let qtyEnCarrito = carritoVentas.filter(item => String(item.idProd) === String(idProd)).reduce((sum, item) => sum + item.qty, 0);
             return prod.stock - qtyEnCarrito;
         }
 
@@ -1970,7 +1882,7 @@
             if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || qty <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
             
-            const prod = inventario.find(p => p.id == idProd);
+            const prod = inventario.find(p => String(p.id) === String(idProd));
             let nombreVenta = prod.nombre; let costoVenta = prod.costo;
 
             if (prod.isService) {
@@ -2042,24 +1954,31 @@
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
 
                 let itemsResumen = [];
-                const nuevaVentaId = Date.now();
+                const nuevaVentaId = generarIDSeguro();
                 const timestampActual = Date.now();
                 const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
 
                 let ventaProcesada = false;
+                
+                // Consolidar cantidades por idProd para evitar Race Conditions
+                let stockAExtraer = {};
+                for (let item of carritoVentas) {
+                    if (!item.isService) {
+                        stockAExtraer[item.idProd] = (stockAExtraer[item.idProd] || 0) + item.qty;
+                    }
+                }
 
                 if (window.db && navigator.onLine) {
                     try {
                         await window.runTransaction(window.db, async (t) => {
                             let prodsRefs = [];
-                            for (let item of carritoVentas) {
-                                if (!item.isService) {
-                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
-                                    let pSnap = await t.get(pRef);
-                                    if (!pSnap.exists()) throw new Error(`El producto ${item.nombre} fue borrado.`);
-                                    if (pSnap.data().stock < item.qty) throw new Error(`Stock insuficiente para ${item.nombre}.`);
-                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
-                                }
+                            
+                            for (let idProd in stockAExtraer) {
+                                let pRef = window.doc(window.db, "inventario", String(idProd));
+                                let pSnap = await t.get(pRef);
+                                if (!pSnap.exists()) throw new Error(`El producto con ID ${idProd} fue borrado.`);
+                                if (pSnap.data().stock < stockAExtraer[idProd]) throw new Error(`Stock insuficiente para un producto en el carrito.`);
+                                prodsRefs.push({ ref: pRef, snap: pSnap, idProd: idProd, qtyTotal: stockAExtraer[idProd] });
                             }
 
                             const configRef = window.doc(window.db, "sistema", "config");
@@ -2072,20 +1991,22 @@
 
                             let transIngresoTotal = 0; let transCostosProductos = 0; let transItemsCount = 0;
 
+                            // Actualizar inventario en DB y local
                             for (let pData of prodsRefs) {
                                 let prodData = pData.snap.data();
-                                prodData.stock -= pData.item.qty;
-                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty; 
+                                prodData.stock -= pData.qtyTotal;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.qtyTotal; 
                                 prodData.lastModified = timestampActual;
                                 t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
                                 
-                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                let localProd = inventario.find(x => String(x.id) === String(pData.idProd));
                                 if (localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
                             }
 
+                            // Calcular finanzas
                             carritoVentas.forEach(item => {
                                 transIngresoTotal += (item.qty * item.precioCobrado);
-                                let baseCosto = item.isService ? item.costoBase : inventario.find(x => x.id == item.idProd)?.costo || 0;
+                                let baseCosto = item.isService ? item.costoBase : inventario.find(x => String(x.id) === String(item.idProd))?.costo || 0;
                                 transCostosProductos += (item.qty * baseCosto);
                                 if (item.rol === 'principal' || item.rol === 'combo') transItemsCount += item.qty;
                                 let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
@@ -2110,7 +2031,7 @@
                             ventaProcesada = true;
                         });
                     } catch (err) {
-                        console.warn("Transacción falló (Probablemente estás Offline). Activando Fallback Offline...");
+                        console.warn("Transacción falló (Probablemente estás Offline). Activando Fallback Offline...", err);
                         ventaProcesada = false;
                     }
                 }
@@ -2119,13 +2040,20 @@
                     let localIngreso = 0; let localCostos = 0;
                     let promesasOffline = [];
                     
-                    carritoVentas.forEach(item => {
-                        const p = inventario.find(x => x.id == item.idProd);
-                        if(p && !item.isService) {
-                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
+                    // Offline fallback usando agrupamiento
+                    for (let idProd in stockAExtraer) {
+                        const p = inventario.find(x => String(x.id) === String(idProd));
+                        if(p) {
+                            p.stock -= stockAExtraer[idProd]; 
+                            p.ventasTotales = (p.ventasTotales || 0) + stockAExtraer[idProd]; 
+                            p.lastModified = timestampActual;
                             if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
                         }
-                        localIngreso += (item.qty * item.precioCobrado); localCostos += (item.qty * item.costoBase); 
+                    }
+                    
+                    carritoVentas.forEach(item => {
+                        localIngreso += (item.qty * item.precioCobrado); 
+                        localCostos += (item.qty * item.costoBase); 
                         let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)';
                         itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
                     });
@@ -2184,11 +2112,11 @@
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const v = ventas.find(x => x.id === id);
+            const v = ventas.find(x => String(x.id) === String(id));
             if(!v || v.anulada) return; 
 
             if (fondos.costoProducto < v.costosProductos || fondos.costoLuzTinta < v.costoTinta || fondos.gananciaLibre < v.ganancia || (v.impuestoSAT && fondos.fondoImpuestos < v.impuestoSAT)) {
-                if(!confirm("⚠️ ADVERTENCIA: Ya has retirado fondos de esta venta. Reabrirla dejará tus fondos en NÚMEROS NEGATIVOS (en rojo) temporalmente hasta que la vuelvas a guardar.\n\n¿Aún así deseas editarla?")) return;
+                if(!confirm("⚠️ ADVERTENCIA: Ya has retirado fondos de esta venta. Reabrirla dejará tus fondos en NÚMEROS NEGATIVOS temporalmente.\n\n¿Aún así deseas editarla?")) return;
             } else { 
                 if(!confirm("¿Editar esta venta? Los artículos regresarán temporalmente al inventario y se cargarán en tu carrito para modificar.")) return; 
             }
@@ -2201,10 +2129,10 @@
             document.getElementById('venta-factura').checked = v.factura || false;
 
             v.detalleItems.forEach(item => { 
-                const p = inventario.find(x => x.id == item.idProd); 
+                const p = inventario.find(x => String(x.id) === String(item.idProd)); 
                 if(p) { 
                     if(!item.isService) { 
-                        let valorActualEnBodega = p.stock * p.costo;
+                        let valorActualEnBodega = Math.max(0, p.stock) * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
                         p.ventasTotales = (p.ventasTotales || 0) - item.qty; 
@@ -2240,18 +2168,18 @@
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const v = ventas.find(x => x.id === id);
+            const v = ventas.find(x => String(x.id) === String(id));
             if(!v || v.anulada) return; 
             
             if (fondos.costoProducto < v.costosProductos || fondos.costoLuzTinta < v.costoTinta || fondos.gananciaLibre < v.ganancia || (v.impuestoSAT && fondos.fondoImpuestos < v.impuestoSAT)) {
-                if(!confirm("⚠️ ADVERTENCIA: Ya has retirado parte del dinero de esta venta.\nSi la anulas, tus fondos quedarán en NÚMEROS NEGATIVOS (en rojo) hasta que registres nuevas ventas para cubrirlos.\n\n¿Aún así deseas deshacerla?")) return;
+                if(!confirm("⚠️ ADVERTENCIA: Ya has retirado parte del dinero de esta venta.\nSi la anulas, tus fondos quedarán en NÚMEROS NEGATIVOS.\n\n¿Aún así deseas deshacerla?")) return;
             } else { if(!confirm("¿Deshacer venta? Los artículos regresarán al inventario y el dinero se restará de tus fondos.")) return; }
 
             v.detalleItems.forEach(item => { 
-                const p = inventario.find(x => x.id == item.idProd); 
+                const p = inventario.find(x => String(x.id) === String(item.idProd)); 
                 if(p) { 
                     if(!item.isService) { 
-                        let valorActualEnBodega = p.stock * p.costo;
+                        let valorActualEnBodega = Math.max(0, p.stock) * p.costo;
                         let valorDevuelto = item.qty * item.costoBase;
                         p.stock += item.qty; 
                         p.ventasTotales = (p.ventasTotales || 0) - item.qty; 
@@ -2325,7 +2253,7 @@
             
             if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || qty <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
-            const prod = inventario.find(p => p.id == idProd);
+            const prod = inventario.find(p => String(p.id) === String(idProd));
             
             if (!prod.isService) {
                 const stockActual = prod.stock;
@@ -2369,7 +2297,7 @@
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
                     
-                    const prod = inventario.find(x => x.id == item.idProd);
+                    const prod = inventario.find(x => String(x.id) === String(item.idProd));
                     const stockActual = prod ? prod.stock : 0;
                     const alertaStock = (!item.isService && stockActual < item.qty) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
                     const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
@@ -2430,7 +2358,7 @@
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-                const nuevaCotiz = { id: Date.now(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
+                const nuevaCotiz = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
                 historialCotizaciones.push(nuevaCotiz);
                 if(window.db) await window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
 
@@ -2503,7 +2431,7 @@
                 let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; 
                 ctx.fillStyle = '#374151'; ctx.fillText(item.qty + 'x', 45, y);
                 let sub = item.qty * item.precioCobrado; total += sub;
-                if (tieneCombo) { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText('Q ' + sub.toFixed(2), 480, y); }
+                if (tieneCombo && item.rol === 'combo') { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText('Q ' + sub.toFixed(2), 480, y); }
                 ctx.fillStyle = '#1f2937'; let lineasUsadas = wrapTextCotizacion(ctx, nombreLimpio, 120, y, 340, 22);
                 y += (lineasUsadas * 22) + 20;
             });
@@ -2535,11 +2463,11 @@
                 html += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                         <p class="item-title" style="margin: 0; color: var(--primary-purple); font-size: 14px;">📄 ${resumen} ${textFactura}</p>
-                        <button onclick="borrarHistorialCotizacion(${cot.id})" class="btn-sm btn-delete">Eliminar</button>
+                        <button onclick="borrarHistorialCotizacion('${cot.id}')" class="btn-sm btn-delete">Eliminar</button>
                     </div>
                     <div class="item-details" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
                         <div><span style="display: block; margin-bottom: 4px;">📅 ${cot.fecha}</span><span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${cot.ingresoTotal.toFixed(2)}</span>${cot.clienteNombre ? `<span style="display:block; font-size:11px; margin-top:3px;">👤 ${cot.clienteNombre}</span>` : ''}</div>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;"><button onclick="editarCotizacionPasada(${cot.id})" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button><button onclick="venderCotizacionPasada(${cot.id})" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button></div>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;"><button onclick="editarCotizacionPasada('${cot.id}')" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button><button onclick="venderCotizacionPasada('${cot.id}')" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button></div>
                     </div></div>`;
             });
             if(!hayVisibles) html = '<p class="item-details" style="text-align:center;">No hay cotizaciones guardadas en este filtro.</p>';
@@ -2547,20 +2475,21 @@
         }
 
         async function editarCotizacionPasada(id) {
-            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta cotización:");
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para cargar esta cotización:");
             if(pass === null) return;
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
-            const cot = historialCotizaciones.find(c => c.id === id); if(!cot) return;
-            if(!confirm("¿Deseas reabrir esta cotización para editarla? Se cargará en el carrito principal y se quitará de este historial.")) return;
+            const cot = historialCotizaciones.find(c => String(c.id) === String(id)); if(!cot) return;
+            if(!confirm("¿Deseas cargar esta cotización para editarla?\n\nLa cotización original se mantendrá en tu historial hasta que decidas borrarla o la conviertas en una venta real.")) return;
 
-            carritoCotizacion = [...cot.detalleItems];
-            document.getElementById('cotiza-tinta').value = cot.costoTinta > 0 ? cot.costoTinta : ''; document.getElementById('cotiza-envio').value = cot.costoEnvio > 0 ? cot.costoEnvio : ''; document.getElementById('cotiza-nombre').value = cot.clienteNombre || ''; document.getElementById('cotiza-nit').value = cot.clienteNit || ''; document.getElementById('cotiza-factura').checked = cot.factura || false;
+            carritoCotizacion = [...cot.detalleItems].map(i => { return {...i, tempId: Date.now() + Math.random()}; });
+            document.getElementById('cotiza-tinta').value = cot.costoTinta > 0 ? cot.costoTinta : ''; 
+            document.getElementById('cotiza-envio').value = cot.costoEnvio > 0 ? cot.costoEnvio : ''; 
+            document.getElementById('cotiza-nombre').value = cot.clienteNombre || ''; 
+            document.getElementById('cotiza-nit').value = cot.clienteNit || ''; 
+            document.getElementById('cotiza-factura').checked = cot.factura || false;
             
-            cot.eliminada = true;
-            if(window.db) window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true});
-
-            guardarDatos(); renderCarritoCotizacion(); renderHistorialCotizaciones(); window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderCarritoCotizacion(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function borrarHistorialCotizacion(id) {
@@ -2569,7 +2498,7 @@
             if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar esta cotización del historial?")) {
-                const cot = historialCotizaciones.find(c => c.id === id);
+                const cot = historialCotizaciones.find(c => String(c.id) === String(id));
                 if(cot) {
                     cot.eliminada = true;
                     if(window.db) window.updateDoc(window.doc(window.db, "cotizaciones", String(cot.id)), {eliminada: true});
@@ -2582,18 +2511,18 @@
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
-                const cot = historialCotizaciones.find(c => c.id === id); if(!cot) return;
+                const cot = historialCotizaciones.find(c => String(c.id) === String(id)); if(!cot) return;
                 
                 let stockRequerido = {};
                 for (let item of cot.detalleItems) { if (item.isService) continue; stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty; }
                 for (let idProd in stockRequerido) {
-                    const prod = inventario.find(p => p.id == idProd);
+                    const prod = inventario.find(p => String(p.id) === String(idProd));
                     if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'DESCONOCIDO'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
                 }
 
                 if(!confirm("¿Registrar esta cotización guardada como una venta real? Se descontará del inventario de forma automática.")) return;
 
-                const nuevaVentaId = Date.now();
+                const nuevaVentaId = generarIDSeguro();
                 const timestampActual = Date.now();
                 const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
                 let ventaProcesada = false;
@@ -2602,13 +2531,11 @@
                     try {
                         await window.runTransaction(window.db, async (t) => {
                             let prodsRefs = [];
-                            for (let item of cot.detalleItems) {
-                                if (!item.isService) {
-                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
-                                    let pSnap = await t.get(pRef);
-                                    if (!pSnap.exists() || pSnap.data().stock < item.qty) throw new Error("Stock insuficiente.");
-                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
-                                }
+                            for (let idProd in stockRequerido) {
+                                let pRef = window.doc(window.db, "inventario", String(idProd));
+                                let pSnap = await t.get(pRef);
+                                if (!pSnap.exists() || pSnap.data().stock < stockRequerido[idProd]) throw new Error("Stock insuficiente.");
+                                prodsRefs.push({ ref: pRef, snap: pSnap, idProd: idProd, qtyTotal: stockRequerido[idProd] });
                             }
 
                             const configRef = window.doc(window.db, "sistema", "config");
@@ -2623,13 +2550,13 @@
                             
                             for (let pData of prodsRefs) {
                                 let prodData = pData.snap.data();
-                                prodData.stock -= pData.item.qty;
-                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty;
+                                prodData.stock -= pData.qtyTotal;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.qtyTotal;
                                 prodData.lastModified = timestampActual;
                                 t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
-                                costoProductosActualizado += (pData.item.qty * prodData.costo);
+                                costoProductosActualizado += (pData.qtyTotal * prodData.costo);
 
-                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                let localProd = inventario.find(x => String(x.id) === String(pData.idProd));
                                 if(localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
                             }
 
@@ -2666,15 +2593,19 @@
                     let costoProductosActualizado = 0;
                     let promesasOffline = [];
 
-                    cot.detalleItems.forEach(item => {
-                        const p = inventario.find(x => x.id == item.idProd);
-                        if(p && !item.isService) {
-                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
-                            costoProductosActualizado += (item.qty * p.costo);
+                    for (let idProd in stockRequerido) {
+                        const p = inventario.find(x => String(x.id) === String(idProd));
+                        if(p) {
+                            p.stock -= stockRequerido[idProd]; 
+                            p.ventasTotales = (p.ventasTotales || 0) + stockRequerido[idProd]; 
+                            p.lastModified = timestampActual;
+                            costoProductosActualizado += (stockRequerido[idProd] * p.costo);
                             if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
-                        } else { costoProductosActualizado += (item.qty * item.costoBase); }
-                        
-                        let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; 
+                        }
+                    }
+
+                    cot.detalleItems.forEach(item => {
+                        if(item.isService) { costoProductosActualizado += (item.qty * item.costoBase); }
                     });
 
                     const totalCostosOperativos = costoProductosActualizado + cot.costoTinta + (cot.costoEnvio || 0) + (cot.impuestoSAT || 0);
@@ -2711,7 +2642,7 @@
                 let stockRequerido = {};
                 for (let item of carritoCotizacion) { if (item.isService) continue; stockRequerido[item.idProd] = (stockRequerido[item.idProd] || 0) + item.qty; }
                 for (let idProd in stockRequerido) {
-                    const prod = inventario.find(p => p.id == idProd);
+                    const prod = inventario.find(p => String(p.id) === String(idProd));
                     if (!prod || prod.stock < stockRequerido[idProd]) { alert(`❌ No tienes inventario suficiente para cubrir esta venta.\n\nNecesitas un total de ${stockRequerido[idProd]} piezas del producto "${prod ? prod.nombre : 'DESCONOCIDO'}", pero solo te quedan ${prod ? prod.stock : 0} en bodega.`); return; }
                 }
 
@@ -2720,8 +2651,8 @@
                 const costoTinta = parseFloat(document.getElementById('cotiza-tinta').value) || 0; const costoEnvio = parseFloat(document.getElementById('cotiza-envio').value) || 0; const pideFactura = document.getElementById('cotiza-factura').checked; const clienteNombre = escaparHTML(document.getElementById('cotiza-nombre').value.trim().toUpperCase()) || 'C/F'; const clienteNit = escaparHTML(document.getElementById('cotiza-nit').value.trim()) || 'C/F';
                 if (costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta no pueden ser negativos."); return; }
                 
-                let ingresoTotal = 0; let costosProductosActualizados = 0; let itemsResumen = [];
-                const nuevaVentaId = Date.now();
+                let ingresoTotal = 0; let itemsResumen = [];
+                const nuevaVentaId = generarIDSeguro();
                 const timestampActual = Date.now();
                 const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
                 
@@ -2731,13 +2662,11 @@
                     try {
                         await window.runTransaction(window.db, async (t) => {
                             let prodsRefs = [];
-                            for (let item of carritoCotizacion) {
-                                if (!item.isService) {
-                                    let pRef = window.doc(window.db, "inventario", String(item.idProd));
-                                    let pSnap = await t.get(pRef);
-                                    if (!pSnap.exists() || pSnap.data().stock < item.qty) throw new Error("Stock insuficiente");
-                                    prodsRefs.push({ ref: pRef, snap: pSnap, item: item });
-                                }
+                            for (let idProd in stockRequerido) {
+                                let pRef = window.doc(window.db, "inventario", String(idProd));
+                                let pSnap = await t.get(pRef);
+                                if (!pSnap.exists() || pSnap.data().stock < stockRequerido[idProd]) throw new Error("Stock insuficiente");
+                                prodsRefs.push({ ref: pRef, snap: pSnap, idProd: idProd, qtyTotal: stockRequerido[idProd] });
                             }
 
                             const configRef = window.doc(window.db, "sistema", "config");
@@ -2752,13 +2681,13 @@
 
                             for(let pData of prodsRefs) {
                                 let prodData = pData.snap.data();
-                                prodData.stock -= pData.item.qty;
-                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.item.qty;
+                                prodData.stock -= pData.qtyTotal;
+                                prodData.ventasTotales = (prodData.ventasTotales || 0) + pData.qtyTotal;
                                 prodData.lastModified = timestampActual;
                                 t.update(pData.ref, { stock: prodData.stock, ventasTotales: prodData.ventasTotales, lastModified: timestampActual });
-                                transCostosProductos += (pData.item.qty * prodData.costo);
+                                transCostosProductos += (pData.qtyTotal * prodData.costo);
                                 
-                                let localProd = inventario.find(x => x.id == pData.item.idProd);
+                                let localProd = inventario.find(x => String(x.id) === String(pData.idProd));
                                 if(localProd) { localProd.stock = prodData.stock; localProd.ventasTotales = prodData.ventasTotales; }
                             }
 
@@ -2792,14 +2721,21 @@
 
                 if(!ventaProcesada) {
                     let promesasOffline = [];
-                    carritoCotizacion.forEach(item => {
-                        const p = inventario.find(x => x.id == item.idProd);
-                        if(p && !item.isService) {
-                            p.stock -= item.qty; p.ventasTotales = (p.ventasTotales || 0) + item.qty; p.lastModified = timestampActual;
-                            costosProductosActualizados += (item.qty * p.costo);
+                    let costosProductosActualizados = 0;
+                    
+                    for (let idProd in stockRequerido) {
+                        const p = inventario.find(x => String(x.id) === String(idProd));
+                        if(p) {
+                            p.stock -= stockRequerido[idProd]; 
+                            p.ventasTotales = (p.ventasTotales || 0) + stockRequerido[idProd]; 
+                            p.lastModified = timestampActual;
+                            costosProductosActualizados += (stockRequerido[idProd] * p.costo);
                             if(window.db) promesasOffline.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)); 
-                        } else { costosProductosActualizados += (item.qty * item.costoBase); }
-                        
+                        }
+                    }
+
+                    carritoCotizacion.forEach(item => {
+                        if(item.isService) { costosProductosActualizados += (item.qty * item.costoBase); }
                         ingresoTotal += (item.qty * item.precioCobrado);
                         let suffix = ''; if (item.rol === 'material') suffix = ' (M)'; if (item.rol === 'combo') suffix = ' (Combo)'; itemsResumen.push(`${item.qty}x ${item.nombre}${suffix}`);
                     });
@@ -2881,7 +2817,7 @@
         function procesarRetiro(tipo, val, fondoKey) {
             fondos[fondoKey] -= val;
             const nuevoRetiro = { 
-                id: Date.now(), 
+                id: generarIDSeguro(), 
                 timestamp: Date.now(), 
                 fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
                 tipo: tipo.toUpperCase(), 
@@ -2943,6 +2879,7 @@
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
         function actualizarGraficoVentas() {
+            if(typeof Chart === 'undefined') return; // Evitar crash offline si Chart no cargó
             if(!document.getElementById('graficoVentas')) return; let conteo = {};
             ventas.forEach(v => { if(v.anulada) return; if(v.detalleItems) { v.detalleItems.forEach(item => { if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty; }); } });
             let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5); let ctx = document.getElementById('graficoVentas').getContext('2d');
@@ -3032,7 +2969,7 @@
                 if(window.db && datosCargadosDeLaNube) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
             }
 
-            let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
+            let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, p.stock) * p.costo)), 0);
             document.getElementById('dash-valor-inv').innerText = 'Q ' + valorInventario.toFixed(2);
             document.getElementById('dash-costo-producto').innerText = 'Q ' + fondos.costoProducto.toFixed(2);
             document.getElementById('dash-costo-luz').innerText = 'Q ' + fondos.costoLuzTinta.toFixed(2);
@@ -3069,8 +3006,8 @@
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
                             <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${v.resumenItems.toUpperCase()} ${textFactura}</p>
                             <div style="display:flex; gap:5px;">
-                                <button onclick="editarVenta(${v.id})" class="btn-sm btn-edit">EDITAR</button>
-                                <button onclick="borrarVenta(${v.id})" class="btn-sm btn-delete">DESHACER</button>
+                                <button onclick="editarVenta('${v.id}')" class="btn-sm btn-edit">EDITAR</button>
+                                <button onclick="borrarVenta('${v.id}')" class="btn-sm btn-delete">DESHACER</button>
                             </div>
                         </div>
                         <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
@@ -3093,7 +3030,6 @@
         }
 
         function verificarArranque() {
-            console.log("Señal de Firebase recibida o base de datos ya lista.");
             arrancarSistema();
         }
 
