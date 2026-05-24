@@ -658,6 +658,22 @@
     </script>
 
     <script>
+        // ================= FUNCIONES NUEVAS INTEGRADAS =================
+        function normalizarTexto(texto) {
+            // Elimina tildes y pasa todo a minúsculas
+            return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : '';
+        }
+
+        function busquedaInteligente(textoBase, textoBuscado) {
+            if (!textoBuscado) return true;
+            let txtLimpio = normalizarTexto(textoBase);
+            let terminos = normalizarTexto(textoBuscado).split(' ').filter(t => t.length > 0);
+            
+            // Todas las palabras buscadas deben existir en el nombre, pero no importa el orden
+            return terminos.every(term => txtLimpio.includes(term));
+        }
+        // ===============================================================
+
         function generarIDSeguro() {
             return Date.now().toString() + Math.random().toString(36).substring(2, 8);
         }
@@ -1018,6 +1034,7 @@
                     resolve(val);
                 };
                 newCancel.onclick = () => {
+                    const val = input.value;
                     modal.style.display = 'none';
                     resolve(null);
                 };
@@ -1240,19 +1257,19 @@
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { ventas = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { ventas = temp; actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialIngresos = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialIngresos = temp; actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialCotizaciones = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialCotizaciones = temp; actualizarUI(); }
                     });
 
                     window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialRetiros = temp.sort((a,b)=>a.id-b.id); actualizarUI(); }
+                        let temp = []; snap.forEach(d => temp.push(d.data())); if(temp.length > 0) { historialRetiros = temp; actualizarUI(); }
                     });
                     
                     window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
@@ -1373,14 +1390,15 @@
             const input = document.getElementById('buscador-ingreso-producto');
             const box = document.getElementById('sugerencias-ingreso-box');
             const hiddenId = document.getElementById('ingreso-producto-id');
-            const textoBuscado = input.value.toLowerCase();
+            const textoBuscado = input.value; // Ya no bajamos a lowercase aquí para dejar a busquedaInteligente trabajar
             box.innerHTML = '';
             
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-            let invFiltrado = invOrdenado.filter(p => !p.isService && (p.nombre || '').toLowerCase().includes(textoBuscado));
+            // MODIFICACIÓN: Buscador inteligente para ingresos
+            let invFiltrado = invOrdenado.filter(p => !p.isService && busquedaInteligente(p.nombre || '', textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -1532,7 +1550,8 @@
             popularSelectMeses(historialIngresos, 'filtro-mes-ingresos');
             const mesFiltro = document.getElementById('filtro-mes-ingresos') ? document.getElementById('filtro-mes-ingresos').value : 'todos';
             
-            let data = [...historialIngresos].reverse();
+            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
+            let data = [...historialIngresos].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 data = data.filter(r => getMesAnioFromDate(r.fecha, r.timestamp) === mesFiltro);
             }
@@ -1791,7 +1810,7 @@
             const contInv = document.getElementById('lista-inventario');
             const btnVista = document.getElementById('btn-vista-inv');
             const inputBusqueda = document.getElementById('buscador-inv');
-            const textoBuscado = inputBusqueda ? inputBusqueda.value.toLowerCase() : '';
+            const textoBuscado = inputBusqueda ? inputBusqueda.value : '';
             
             const forzarListaPlana = textoBuscado.length > 0;
             const vistaActualAZ = forzarListaPlana || vistaInventarioAZ;
@@ -1805,7 +1824,8 @@
             }
             
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
+            // MODIFICACIÓN: Buscador Inteligente
+            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
             
             if(invFiltrado.length === 0) {
                 contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
@@ -1845,13 +1865,14 @@
             const input = document.getElementById('buscador-venta-producto');
             const box = document.getElementById('sugerencias-ventas-box');
             const hiddenId = document.getElementById('venta-producto');
-            const textoBuscado = input.value.toLowerCase();
+            const textoBuscado = input.value;
             box.innerHTML = '';
             if(!mostrarTodo) hiddenId.value = ''; 
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
+            // MODIFICACIÓN: Buscador inteligente para ventas
+            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -2220,13 +2241,14 @@
             const input = document.getElementById('buscador-cotiza-producto');
             const box = document.getElementById('sugerencias-cotiza-box');
             const hiddenId = document.getElementById('cotiza-producto');
-            const textoBuscado = input.value.toLowerCase(); box.innerHTML = '';
+            const textoBuscado = input.value; box.innerHTML = '';
             
             if(!mostrarTodo) hiddenId.value = '';
             if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            let invFiltrado = invOrdenado.filter(p => (p.nombre || '').toLowerCase().includes(textoBuscado));
+            // MODIFICACIÓN: Buscador inteligente para cotizaciones
+            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
 
             let hayResultados = false;
             invFiltrado.forEach(p => { 
@@ -2455,7 +2477,8 @@
             popularSelectMeses(historialCotizaciones, 'filtro-mes-cotizaciones');
             const mesFiltro = document.getElementById('filtro-mes-cotizaciones') ? document.getElementById('filtro-mes-cotizaciones').value : 'todos';
 
-            let data = [...historialCotizaciones].reverse();
+            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
+            let data = [...historialCotizaciones].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 data = data.filter(c => getMesAnioFromDate(c.fecha, c.timestamp) === mesFiltro);
             }
@@ -2851,7 +2874,8 @@
             }
             
             let html = '';
-            [...historialRetiros].reverse().slice(0, 50).forEach(r => { 
+            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
+            [...historialRetiros].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0)).slice(0, 50).forEach(r => { 
                 html += `<div class="item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-red); font-size: 14px; margin:0 0 3px 0;">➖ Retiro: ${r.tipo}</p>
@@ -3022,7 +3046,8 @@
             popularSelectMeses(ventas, 'filtro-mes-ventas');
             const mesFiltro = document.getElementById('filtro-mes-ventas') ? document.getElementById('filtro-mes-ventas').value : 'todos';
             
-            let dataVentas = [...ventas].reverse();
+            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
+            let dataVentas = [...ventas].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 dataVentas = dataVentas.filter(v => getMesAnioFromDate(v.fecha, v.timestamp) === mesFiltro);
             }
@@ -3057,7 +3082,6 @@
         }
 
         // --- SOLUCIÓN 2: CÓDIGO DE AUTO-ACTUALIZACIÓN DEFINITIVA ---
-        // Cambia este número ("1.0.2", "1.0.3", etc.) cada vez que subas un cambio al servidor.
         const APP_VERSION = "1.0.2";
 
         function forzarActualizacionApp(versionObjetivo) {
@@ -3075,7 +3099,6 @@
                 });
             }
             localStorage.setItem("app_version", versionObjetivo);
-            // Romper caché forzando un cambio en la URL
             const url = new URL(window.location.href.split('?')[0]);
             url.searchParams.set('v', versionObjetivo);
             window.location.replace(url.toString());
@@ -3084,15 +3107,12 @@
         window.addEventListener('DOMContentLoaded', () => {
             const currentVersion = localStorage.getItem("app_version");
 
-            // 1. Ejecución y chequeo local
             if (currentVersion !== APP_VERSION) {
                 forzarActualizacionApp(APP_VERSION);
             } else {
                 cargarDatos();
             }
 
-            // 2. Chequeo de red SILENCIOSO (Rompe el caché del navegador de raíz)
-            // Va al servidor por el archivo original, lee su versión actual y si es mayor, actualiza.
             setTimeout(() => {
                 fetch(window.location.href.split('?')[0] + '?ts=' + new Date().getTime(), { cache: 'no-store' })
                 .then(res => res.text())
