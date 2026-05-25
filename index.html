@@ -8,7 +8,6 @@
     <meta name="theme-color" content="#111827">
     <link rel="apple-touch-icon" href="logo.png">
     
-    <!-- SOLUCIÓN 1: ETIQUETAS PARA EVITAR EL CACHÉ DEL NAVEGADOR -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -534,7 +533,6 @@
 
     </div>
 
-    <!-- Modales -->
     <div id="modal-editar-user" class="modal-overlay">
         <div class="modal-card">
             <h3 class="modal-title">✏️ Modificar Usuario</h3>
@@ -1273,7 +1271,7 @@
                     });
                     
                     window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
+                        let temp = []; snap.forEach(d => push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
                     });
                     
                     datosCargadosDeLaNube = true; mostrarLogo(); 
@@ -1493,7 +1491,7 @@
 
                 const totalPiezas = carritoIngresos.reduce((acc, item) => acc + item.stock, 0);
                 const transportePorPieza = totalPiezas > 0 ? (transporteGlobal / totalPiezas) : 0;
-                let registroHistorial = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
+                let registroHistorial = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), items: [] };
                 
                 let valorTotalIngresado = 0; 
                 let promesas = [];
@@ -2049,7 +2047,7 @@
                             dbFondos.costoProducto += transCostosProductos; dbFondos.costoLuzTinta += costoTinta; dbFondos.gananciaLibre += gananciaNeta; dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + impuestoSAT;
                             dbResumen.totalVendido += transIngresoTotal; dbResumen.ganancia += gananciaNeta; dbResumen.costosMateriales += transCostosProductos; dbResumen.gastosOperativos += (costoTinta + costoEnvio); dbResumen.impuestos += impuestoSAT; dbResumen.items += transItemsCount;
 
-                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
 
                             t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
                             t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
@@ -2060,6 +2058,11 @@
                             ventaProcesada = true;
                         });
                     } catch (err) {
+                        if (err.message && err.message.includes("Stock insuficiente")) {
+                            alert("❌ Venta cancelada: " + err.message);
+                            isProcessingTransaction = false;
+                            return;
+                        }
                         console.warn("Transacción falló (Probablemente estás Offline). Activando Fallback Offline...", err);
                         ventaProcesada = false;
                     }
@@ -2092,7 +2095,7 @@
                     
                     fondos.costoProducto += localCostos; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNeta; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
                     
-                    const nuevaVentaOffline = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: localIngreso, costosProductos: localCostos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                    const nuevaVentaOffline = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: localIngreso, costosProductos: localCostos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNeta, detalleItems: [...carritoVentas], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                     ventas.push(nuevaVentaOffline);
                     
                     if(window.db) {
@@ -2387,7 +2390,7 @@
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-                const nuevaCotiz = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
+                const nuevaCotiz = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), detalleItems: [...carritoCotizacion], costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, gananciaNeta: gananciaNeta, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false };
                 historialCotizaciones.push(nuevaCotiz);
                 if(window.db) await window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
 
@@ -2443,7 +2446,7 @@
 
         function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit) {
             ctx.fillStyle = '#1f2937'; ctx.font = 'bold 26px Arial'; ctx.fillText('COTIZACIÓN - SUBLICOSTURAS', 150, 50);
-            ctx.font = '16px Arial'; ctx.fillStyle = '#6b7280'; ctx.fillText('Fecha: ' + new Date().toLocaleDateString(), 150, 75);
+            ctx.font = '16px Arial'; ctx.fillStyle = '#6b7280'; ctx.fillText('Fecha: ' + new Date().toLocaleDateString('es-GT'), 150, 75);
             ctx.fillStyle = '#374151'; let offsetX = 150; let offsetY = 100;
             
             if(nombre !== '') { ctx.fillText('CLIENTE: ' + nombre.toUpperCase(), offsetX, offsetY); offsetY += 20; }
@@ -2564,7 +2567,7 @@
                             for (let idProd in stockRequerido) {
                                 let pRef = window.doc(window.db, "inventario", String(idProd));
                                 let pSnap = await t.get(pRef);
-                                if (!pSnap.exists() || pSnap.data().stock < stockRequerido[idProd]) throw new Error("Stock insuficiente.");
+                                if (!pSnap.exists() || pSnap.data().stock < stockRequerido[idProd]) throw new Error("Stock insuficiente");
                                 prodsRefs.push({ ref: pRef, snap: pSnap, idProd: idProd, qtyTotal: stockRequerido[idProd] });
                             }
 
@@ -2603,7 +2606,7 @@
 
                             dbResumen.totalVendido += cot.ingresoTotal; dbResumen.ganancia += gananciaNetaActualizada; dbResumen.costosMateriales += costoProductosActualizado; dbResumen.gastosOperativos += (cot.costoTinta + (cot.costoEnvio||0)); dbResumen.impuestos += (cot.impuestoSAT||0); dbResumen.items += transItemsCount;
 
-                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
 
                             t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
                             t.update(window.doc(window.db, "cotizaciones", String(cot.id)), { eliminada: true });
@@ -2614,6 +2617,11 @@
                             ventaProcesada = true;
                         });
                     } catch(err) {
+                        if (err.message && err.message.includes("Stock insuficiente")) {
+                            alert("❌ Venta cancelada: " + err.message);
+                            isProcessingTransaction = false;
+                            return;
+                        }
                         console.warn("Transacción Cotización falló. Fallback local activado.");
                         ventaProcesada = false;
                     }
@@ -2644,7 +2652,7 @@
                     fondos.costoProducto += costoProductosActualizado; fondos.costoLuzTinta += cot.costoTinta; fondos.gananciaLibre += gananciaNetaActualizada;
                     if(cot.impuestoSAT) fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + cot.impuestoSAT;
                     
-                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
+                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: cot.detalleItems.map(i => { let suffix = ''; if (i.rol === 'material') suffix = ' (M)'; if (i.rol === 'combo') suffix = ' (Combo)'; return `${i.qty}x ${i.nombre}${suffix}`; }).join(' + '), ingresoTotal: cot.ingresoTotal, costosProductos: costoProductosActualizado, costoTinta: cot.costoTinta, costoEnvio: cot.costoEnvio || 0, impuestoSAT: cot.impuestoSAT || 0, ganancia: gananciaNetaActualizada, detalleItems: [...cot.detalleItems], clienteNombre: cot.clienteNombre || 'C/F', clienteNit: cot.clienteNit || 'C/F', factura: cot.factura || false };
                     ventas.push(nuevaVenta);
                     cot.eliminada = true;
                     
@@ -2735,7 +2743,7 @@
                             dbFondos.costoProducto += transCostosProductos; dbFondos.costoLuzTinta += costoTinta; dbFondos.gananciaLibre += gananciaNetaActualizada; dbFondos.fondoImpuestos = (dbFondos.fondoImpuestos || 0) + impuestoSAT;
                             dbResumen.totalVendido += transIngresoTotal; dbResumen.ganancia += gananciaNetaActualizada; dbResumen.costosMateriales += transCostosProductos; dbResumen.gastosOperativos += (costoTinta + costoEnvio); dbResumen.impuestos += impuestoSAT; dbResumen.items += transItemsCount;
 
-                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                            const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: transIngresoTotal, costosProductos: transCostosProductos, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
 
                             t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
                             t.update(configRef, { fondos: dbFondos, ultimaActualizacion: timestampActual });
@@ -2744,6 +2752,11 @@
                             fondos = dbFondos; ventas.push(nuevaVenta); ventaProcesada = true;
                         });
                     } catch (err) {
+                        if (err.message && err.message.includes("Stock insuficiente")) {
+                            alert("❌ Venta cancelada: " + err.message);
+                            isProcessingTransaction = false;
+                            return;
+                        }
                         console.warn("Transacción falló, usando Fallback...");
                         ventaProcesada = false;
                     }
@@ -2776,7 +2789,7 @@
                     
                     fondos.costoProducto += costosProductosActualizados; fondos.costoLuzTinta += costoTinta; fondos.gananciaLibre += gananciaNetaActualizada; fondos.fondoImpuestos = (fondos.fondoImpuestos || 0) + impuestoSAT;
                     
-                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
+                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal: ingresoTotal, costosProductos: costosProductosActualizados, costoTinta: costoTinta, costoEnvio: costoEnvio, impuestoSAT: impuestoSAT, ganancia: gananciaNetaActualizada, detalleItems: [...carritoCotizacion], clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura };
                     ventas.push(nuevaVenta);
                     if(window.db) {
                         promesasOffline.push(window.setDoc(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta));
@@ -2839,7 +2852,7 @@
             const hoja = XLSX.utils.json_to_sheet(dataExp);
             XLSX.utils.book_append_sheet(libro, hoja, "Articulos Por Surtir");
             
-            const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+            const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-');
             XLSX.writeFile(libro, `SubliCosturas_Por_Surtir_${fecha}.xlsx`);
         }
 
@@ -2849,7 +2862,7 @@
             const nuevoRetiro = { 
                 id: generarIDSeguro(), 
                 timestamp: Date.now(), 
-                fecha: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), 
                 tipo: tipo.toUpperCase(), 
                 monto: val 
             };
@@ -2904,7 +2917,7 @@
             if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": (v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": v.resumenItems.toUpperCase(), "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
             if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo.toUpperCase(), "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
-            const fecha = new Date().toLocaleDateString().replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
+            const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
 
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
