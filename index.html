@@ -872,7 +872,16 @@
             const rol = document.getElementById('edit-user-rol').value;
 
             if(!nombre) return alert('El nombre no puede estar vacío');
-            
+
+            // --- NUEVO SEGURO CONTRA AUTO-BLOQUEO ---
+            if (user.rol === 'dueno' && rol === 'empleado') {
+                const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
+                if (totalDuenos <= 1) {
+                    return alert("❌ No puedes degradar a este usuario a Empleado porque es el ÚNICO DUEÑO en el sistema. Debes crear otro Dueño primero.");
+                }
+            }
+            // ----------------------------------------
+
             if (nuevoPinCrudo !== '') {
                 const hashedNuevoPin = await hashPIN(nuevoPinCrudo);
                 if(usuarios.find(u => u.pin === hashedNuevoPin && String(u.id) !== String(id))) {
@@ -1352,13 +1361,14 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 300; 
+                        const MAX_WIDTH = 120; // Antes estaba en 300. Lo reducimos para ahorrar memoria.
                         const scaleSize = MAX_WIDTH / img.width;
                         canvas.width = MAX_WIDTH;
                         canvas.height = img.height * scaleSize;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        // Reducimos la calidad al 40% (0.4 en lugar de 0.8). ¡Pasará de pesar megas a pesar solo unos 15 Kilobytes!
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.4); 
                         localStorage.setItem('subli_logo', dataUrl);
                         mostrarLogo();
                     }
@@ -1459,6 +1469,15 @@
 
             if (modo === 'nuevo') {
                 nombreProd = escaparHTML(document.getElementById('inv-nombre').value.trim().toUpperCase()); 
+                
+                // --- NUEVO BLOQUEO DE CLONES ---
+                const existe = inventario.find(p => p.nombre.toUpperCase() === nombreProd);
+                if(existe) {
+                    alert(`❌ El producto "${nombreProd}" ya existe. Por favor, cambia la opción de arriba a "Producto Existente" para sumarle stock a ese artículo.`);
+                    return;
+                }
+                // -------------------------------
+                
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
                 categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('inv-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
