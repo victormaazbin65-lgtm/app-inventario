@@ -236,7 +236,7 @@
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
                 <div class="grid-2">
                     <div class="form-group"><label>Nombre (Ej. Carlos)</label><input type="text" id="nuevo-user-nombre" placeholder="Nombre del Usuario"></div>
-                    <div class="form-group"><label>PIN de Acceso</label><input type="password" id="nuevo-user-pin" placeholder="Numérico (Ej. 1234)"></div>
+                    <div class="form-group"><label>PIN de Acceso</label><input type="password" id="nuevo-user-pin" placeholder="Alfanumérico seguro"></div>
                 </div>
                 <div class="form-group">
                     <label>Nivel de Permisos</label>
@@ -656,9 +656,23 @@
     </script>
 
     <script>
-        // ================= FUNCIONES NUEVAS INTEGRADAS =================
+        // ================= INTEGRACIÓN: FUNCIONES CRIPTOGRÁFICAS Y DEBOUNCE =================
+        async function hashPIN(pin) {
+            if (!pin) return "";
+            const msgBuffer = new TextEncoder().encode(pin);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        let debounceTimers = {};
+        function debouncedEjecucion(idTimer, funcion, delay = 250) {
+            clearTimeout(debounceTimers[idTimer]);
+            debounceTimers[idTimer] = setTimeout(funcion, delay);
+        }
+        // ===============================================================
+
         function normalizarTexto(texto) {
-            // Elimina tildes y pasa todo a minúsculas
             return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : '';
         }
 
@@ -666,11 +680,8 @@
             if (!textoBuscado) return true;
             let txtLimpio = normalizarTexto(textoBase);
             let terminos = normalizarTexto(textoBuscado).split(' ').filter(t => t.length > 0);
-            
-            // Todas las palabras buscadas deben existir en el nombre, pero no importa el orden
             return terminos.every(term => txtLimpio.includes(term));
         }
-        // ===============================================================
 
         function generarIDSeguro() {
             return Date.now().toString() + Math.random().toString(36).substring(2, 8);
@@ -707,15 +718,18 @@
         let inactividadTimer;
         const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
-        function esDueno(pin) {
+        // Modificación lógica: Las funciones relacionadas con PINs ahora usan promesas para evaluar el hash
+        async function esDueno(pinCrudo) {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
             if (!dueñosRegistrados) return true;
-            return usuarios.some(u => u.pin === pin && u.rol === 'dueno');
+            const hashed = await hashPIN(pinCrudo);
+            return usuarios.some(u => u.pin === hashed && u.rol === 'dueno');
         }
 
-        function verificarLogin() {
+        async function verificarLogin() {
             const pass = document.getElementById('login-pass').value.trim();
-            currentUserData = usuarios.find(u => u.pin === pass);
+            const hashedPass = await hashPIN(pass);
+            currentUserData = usuarios.find(u => u.pin === hashedPass);
 
             if (currentUserData) {
                 document.getElementById('login-screen').style.display = 'none';
@@ -753,7 +767,8 @@
 
             const pass = await solicitarPassword("Ingrese PIN de Dueño para acceder a la Configuración:");
             if (pass !== null) {
-                if (esDueno(pass)) {
+                const verificado = await esDueno(pass);
+                if (verificado) {
                     cambiarPestaña('ajustes');
                 } else {
                     alert("❌ Acceso denegado. PIN incorrecto o no tiene permisos de Dueño.");
@@ -796,15 +811,17 @@
             box.style.display = rol === 'dueno' ? 'none' : 'block';
         }
 
-        function crearUsuario() {
+        async function crearUsuario() {
             if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para crear usuarios.");
 
             const nombre = document.getElementById('nuevo-user-nombre').value.trim();
-            const pin = document.getElementById('nuevo-user-pin').value.trim();
+            const pinCrudo = document.getElementById('nuevo-user-pin').value.trim();
             const rol = document.getElementById('nuevo-user-rol').value;
 
-            if(!nombre || !pin) return alert('Completa todos los campos');
-            if(usuarios.find(u => u.pin === pin)) return alert('Este PIN ya está en uso. Elige otro.');
+            if(!nombre || !pinCrudo) return alert('Completa todos los campos');
+            
+            const hashedPin = await hashPIN(pinCrudo);
+            if(usuarios.find(u => u.pin === hashedPin)) return alert('Este PIN ya está en uso. Elige otro.');
 
             let permisos = { ventas: true, cotizacion: true, inventario: false, ingreso: false, alertas: false };
             if (rol === 'empleado') {
@@ -815,7 +832,7 @@
                 permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
             }
 
-            usuarios.push({ id: generarIDSeguro(), nombre, pin, rol, permisos });
+            usuarios.push({ id: generarIDSeguro(), nombre, pin: hashedPin, rol, permisos });
             guardarUsuarios();
             document.getElementById('nuevo-user-nombre').value = '';
             document.getElementById('nuevo-user-pin').value = '';
@@ -844,23 +861,24 @@
 
         function cerrarModalEditarUser() { document.getElementById('modal-editar-user').style.display = 'none'; }
 
-        function guardarEdicionUser() {
+        async function guardarEdicionUser() {
             if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
             const id = document.getElementById('edit-user-id').value;
             const user = usuarios.find(u => u.id == id);
             if (!user) return;
 
             const nombre = document.getElementById('edit-user-nombre').value.trim();
-            const nuevoPin = document.getElementById('edit-user-pin').value.trim();
+            const nuevoPinCrudo = document.getElementById('edit-user-pin').value.trim();
             const rol = document.getElementById('edit-user-rol').value;
 
             if(!nombre) return alert('El nombre no puede estar vacío');
             
-            if (nuevoPin !== '') {
-                if(usuarios.find(u => u.pin === nuevoPin && String(u.id) !== String(id))) {
+            if (nuevoPinCrudo !== '') {
+                const hashedNuevoPin = await hashPIN(nuevoPinCrudo);
+                if(usuarios.find(u => u.pin === hashedNuevoPin && String(u.id) !== String(id))) {
                     return alert('Este PIN ya está en uso. Elige otro.');
                 }
-                user.pin = nuevoPin;
+                user.pin = hashedNuevoPin;
             }
 
             user.nombre = nombre;
@@ -925,7 +943,7 @@
                 html += `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding: 10px 0;">
                     <div class="item-info">
                         <p class="item-title">${icono} ${u.nombre} (${rolName})</p>
-                        <p class="item-details">PIN: ${u.rol === 'dueno' ? '****' : u.pin}</p>
+                        <p class="item-details">PIN: **** (Encriptado)</p>
                     </div>
                     <div class="item-actions">
                         <button onclick="abrirModalEditarUser('${u.id}')" class="btn-sm btn-edit">Modificar</button>
@@ -1078,7 +1096,7 @@
         async function crearCategoriaVacia() {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para crear una categoría:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
@@ -1115,7 +1133,7 @@
             
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para renombrar:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             let contador = 0;
             inventario.forEach(p => {
@@ -1180,7 +1198,7 @@
 
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if (prodsAfectados.length > 0) {
                 inventario.forEach(p => {
@@ -1204,13 +1222,14 @@
             else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
 
+        // Modificación Lógica: Bloques try/catch individuales para mitigar errores de Quota de Storage
         function guardarDatos() {
-            localStorage.setItem(KEY_INV, JSON.stringify(inventario));
-            localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas));
-            localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos));
-            localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos));
-            localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones));
-            localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros));
+            try { localStorage.setItem(KEY_INV, JSON.stringify(inventario)); } catch (e) { console.warn("Límite de cuota en Inventario", e); }
+            try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas)); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
+            try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (e) { console.warn("Límite de cuota en Fondos", e); }
+            try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos)); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
+            try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones)); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
+            try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros)); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
         }
 
         async function cargarDatos() {
@@ -1271,7 +1290,7 @@
                     });
                     
                     window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = []; snap.forEach(d => push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
+                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
                     });
                     
                     datosCargadosDeLaNube = true; mostrarLogo(); 
@@ -1384,33 +1403,38 @@
             }
         }
 
+        // Modificación Lógica: Integrado Debouncing
         function renderSugerenciasIngreso(mostrarTodo = false) {
-            const input = document.getElementById('buscador-ingreso-producto');
-            const box = document.getElementById('sugerencias-ingreso-box');
-            const hiddenId = document.getElementById('ingreso-producto-id');
-            const textoBuscado = input.value; // Ya no bajamos a lowercase aquí para dejar a busquedaInteligente trabajar
-            box.innerHTML = '';
-            
-            if(!mostrarTodo) hiddenId.value = ''; 
-            if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
-
-            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-            // MODIFICACIÓN: Buscador inteligente para ingresos
-            let invFiltrado = invOrdenado.filter(p => !p.isService && busquedaInteligente(p.nombre || '', textoBuscado));
-
-            let hayResultados = false;
-            invFiltrado.forEach(p => { 
-                hayResultados = true;
-                const div = document.createElement('div');
-                div.className = 'sugerencia-item';
-                div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${p.stock})</span>`;
+            const execute = () => {
+                const input = document.getElementById('buscador-ingreso-producto');
+                const box = document.getElementById('sugerencias-ingreso-box');
+                const hiddenId = document.getElementById('ingreso-producto-id');
+                const textoBuscado = input.value; 
+                box.innerHTML = '';
                 
-                div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
-                box.appendChild(div);
-            });
+                if(!mostrarTodo) hiddenId.value = ''; 
+                if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">No existe, crea uno nuevo</div>';
-            box.style.display = 'block';
+                let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+                let invFiltrado = invOrdenado.filter(p => !p.isService && busquedaInteligente(p.nombre || '', textoBuscado));
+
+                let hayResultados = false;
+                invFiltrado.forEach(p => { 
+                    hayResultados = true;
+                    const div = document.createElement('div');
+                    div.className = 'sugerencia-item';
+                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${p.stock})</span>`;
+                    
+                    div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
+                    box.appendChild(div);
+                });
+
+                if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">No existe, crea uno nuevo</div>';
+                box.style.display = 'block';
+            };
+            
+            if(mostrarTodo) execute();
+            else debouncedEjecucion('ingreso', execute, 250);
         }
 
         function cambiarLabelCosto() {
@@ -1548,7 +1572,6 @@
             popularSelectMeses(historialIngresos, 'filtro-mes-ingresos');
             const mesFiltro = document.getElementById('filtro-mes-ingresos') ? document.getElementById('filtro-mes-ingresos').value : 'todos';
             
-            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
             let data = [...historialIngresos].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 data = data.filter(r => getMesAnioFromDate(r.fecha, r.timestamp) === mesFiltro);
@@ -1596,7 +1619,7 @@
         async function editarIngreso(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar este ingreso:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(!reg || reg.anulada) return;
@@ -1632,6 +1655,7 @@
                 };
             });
 
+            // Modificación Lógica Matemática: Reset de Costo a 0.
             reg.items.forEach(item => { 
                 let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                 if(p) { 
@@ -1643,10 +1667,13 @@
                         if (p.stock > 0) {
                             let nuevoCosto = (valorActualTotal - valorIngresoAnulado) / p.stock;
                             p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0; 
-                        } else { p.costo = 0; }
+                        } else { 
+                            p.costo = 0; 
+                        }
                     } else {
                         p.stock -= item.stock; 
                         p.lastModified = Date.now();
+                        if (p.stock <= 0) p.costo = 0;
                     }
                     if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                 }
@@ -1661,7 +1688,7 @@
         async function borrarIngreso(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para anular este ingreso:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(reg && !reg.anulada) {
@@ -1680,6 +1707,7 @@
 
                 if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario y se ajustará el costo promedio.")) return;
                 
+                // Modificación Lógica Matemática: Reset explícito.
                 reg.items.forEach(item => { 
                     let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                     if(p) { 
@@ -1691,10 +1719,13 @@
                             if (p.stock > 0) {
                                 let nuevoCosto = (valorActualTotal - valorIngresoAnulado) / p.stock;
                                 p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0; 
-                            } else { p.costo = 0; }
+                            } else { 
+                                p.costo = 0; 
+                            }
                         } else {
                             p.stock -= item.stock; 
                             p.lastModified = Date.now();
+                            if (p.stock <= 0) p.costo = 0;
                         }
                         if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p);
                     }
@@ -1715,7 +1746,7 @@
         async function abrirModalEditar(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar productos:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const prod = inventario.find(p => String(p.id) === String(id));
             if(!prod) return;
@@ -1776,7 +1807,7 @@
             
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para borrar este producto:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar definitivamente del inventario?")) { 
                 inventario = inventario.filter(p => String(p.id) !== String(id)); 
@@ -1822,7 +1853,6 @@
             }
             
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            // MODIFICACIÓN: Buscador Inteligente
             let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
             
             if(invFiltrado.length === 0) {
@@ -1859,34 +1889,39 @@
             contInv.innerHTML = html;
         }
 
+        // Modificación Lógica: Integrado Debouncing
         function renderSelectVentas(mostrarTodo = false) {
-            const input = document.getElementById('buscador-venta-producto');
-            const box = document.getElementById('sugerencias-ventas-box');
-            const hiddenId = document.getElementById('venta-producto');
-            const textoBuscado = input.value;
-            box.innerHTML = '';
-            if(!mostrarTodo) hiddenId.value = ''; 
-            if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
+            const execute = () => {
+                const input = document.getElementById('buscador-venta-producto');
+                const box = document.getElementById('sugerencias-ventas-box');
+                const hiddenId = document.getElementById('venta-producto');
+                const textoBuscado = input.value;
+                box.innerHTML = '';
+                if(!mostrarTodo) hiddenId.value = ''; 
+                if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            // MODIFICACIÓN: Buscador inteligente para ventas
-            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
+                let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
+                let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
 
-            let hayResultados = false;
-            invFiltrado.forEach(p => { 
-                if(p.stock > 0 || p.isService) {
-                    hayResultados = true;
-                    const div = document.createElement('div');
-                    div.className = 'sugerencia-item';
-                    let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
-                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
-                    div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
-                    box.appendChild(div);
-                }
-            });
+                let hayResultados = false;
+                invFiltrado.forEach(p => { 
+                    if(p.stock > 0 || p.isService) {
+                        hayResultados = true;
+                        const div = document.createElement('div');
+                        div.className = 'sugerencia-item';
+                        let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
+                        div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
+                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
+                        box.appendChild(div);
+                    }
+                });
 
-            if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Sin stock o no existe</div>';
-            box.style.display = 'block';
+                if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Sin stock o no existe</div>';
+                box.style.display = 'block';
+            };
+
+            if(mostrarTodo) execute();
+            else debouncedEjecucion('ventas', execute, 250);
         }
 
         function cambiarRolVenta() {
@@ -1900,7 +1935,7 @@
             if(!prod) return 0;
             if(prod.isService) return 9999;
             let qtyEnCarrito = carritoVentas.filter(item => String(item.idProd) === String(idProd)).reduce((sum, item) => sum + item.qty, 0);
-            return prod.stock - qtyEnCarrito;
+            return Math.max(0, prod.stock - qtyEnCarrito);
         }
 
         function agregarAlCarritoVenta() {
@@ -2012,7 +2047,8 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                            // Modificación Lógica Estructural: Clonación profunda para reintentos idempotentes
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                             const resumenSnap = await t.get(resumenRef);
@@ -2106,6 +2142,7 @@
                 }
 
                 if (ventaProcesada || (!ventaProcesada && carritoVentas.length > 0)) {
+                    // Integración Matemática Segura para evitar el float residual:
                     fondos.costoProducto = redondear(fondos.costoProducto);
                     fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
                     fondos.gananciaLibre = redondear(fondos.gananciaLibre);
@@ -2141,7 +2178,7 @@
         async function editarVenta(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta venta:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const v = ventas.find(x => String(x.id) === String(id));
             if(!v || v.anulada) return; 
@@ -2172,6 +2209,8 @@
                         if(p.stock > 0) {
                              let nuevoCosto = (valorActualEnBodega + valorDevuelto) / p.stock;
                              p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0;
+                        } else {
+                             p.costo = 0;
                         }
                         p.lastModified = Date.now(); 
                     }
@@ -2197,7 +2236,7 @@
         async function borrarVenta(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para deshacer esta venta:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const v = ventas.find(x => String(x.id) === String(id));
             if(!v || v.anulada) return; 
@@ -2218,6 +2257,8 @@
                         if(p.stock > 0) { 
                              let nuevoCosto = (valorActualEnBodega + valorDevuelto) / p.stock;
                              p.costo = nuevoCosto > 0.01 ? nuevoCosto : 0;
+                        } else {
+                             p.costo = 0;
                         }
                         p.lastModified = Date.now(); 
                     }
@@ -2240,35 +2281,39 @@
             guardarDatos(); actualizarUI();
         }
 
+        // Modificación Lógica: Integrado Debouncing
         function renderSelectCotizacion(mostrarTodo = false) {
-            const input = document.getElementById('buscador-cotiza-producto');
-            const box = document.getElementById('sugerencias-cotiza-box');
-            const hiddenId = document.getElementById('cotiza-producto');
-            const textoBuscado = input.value; box.innerHTML = '';
-            
-            if(!mostrarTodo) hiddenId.value = '';
-            if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
+            const execute = () => {
+                const input = document.getElementById('buscador-cotiza-producto');
+                const box = document.getElementById('sugerencias-cotiza-box');
+                const hiddenId = document.getElementById('cotiza-producto');
+                const textoBuscado = input.value; box.innerHTML = '';
+                
+                if(!mostrarTodo) hiddenId.value = '';
+                if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
-            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            // MODIFICACIÓN: Buscador inteligente para cotizaciones
-            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
+                let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
+                let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
 
-            let hayResultados = false;
-            invFiltrado.forEach(p => { 
-                if(p.stock >= 0 || p.isService) { 
-                    hayResultados = true;
-                    const div = document.createElement('div'); div.className = 'sugerencia-item';
-                    let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
-                    if (!p.isService && p.stock === 0) stockText = `<span style="color:var(--primary-red); font-weight:bold;">(Sin Stock)</span>`;
-                    
-                    div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
-                    div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
-                    box.appendChild(div);
-                }
-            });
+                let hayResultados = false;
+                invFiltrado.forEach(p => { 
+                    if(p.stock >= 0 || p.isService) { 
+                        hayResultados = true;
+                        const div = document.createElement('div'); div.className = 'sugerencia-item';
+                        let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
+                        if (!p.isService && p.stock === 0) stockText = `<span style="color:var(--primary-red); font-weight:bold;">(Sin Stock)</span>`;
+                        
+                        div.innerHTML = `<span>${p.nombre}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
+                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
+                        box.appendChild(div);
+                    }
+                });
 
-            if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Producto no encontrado</div>';
-            box.style.display = 'block';
+                if(!hayResultados) box.innerHTML = '<div class="sugerencia-item" style="color:var(--primary-red); justify-content:center;">Producto no encontrado</div>';
+                box.style.display = 'block';
+            };
+            if(mostrarTodo) execute();
+            else debouncedEjecucion('cotiza', execute, 250);
         }
 
         function cambiarRolCotizacion() {
@@ -2480,7 +2525,6 @@
             popularSelectMeses(historialCotizaciones, 'filtro-mes-cotizaciones');
             const mesFiltro = document.getElementById('filtro-mes-cotizaciones') ? document.getElementById('filtro-mes-cotizaciones').value : 'todos';
 
-            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
             let data = [...historialCotizaciones].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 data = data.filter(c => getMesAnioFromDate(c.fecha, c.timestamp) === mesFiltro);
@@ -2510,7 +2554,7 @@
         async function editarCotizacionPasada(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para cargar esta cotización:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             const cot = historialCotizaciones.find(c => String(c.id) === String(id)); if(!cot) return;
             if(!confirm("¿Deseas cargar esta cotización para editarla?\n\nLa cotización original se mantendrá en tu historial hasta que decidas borrarla o la conviertas en una venta real.")) return;
@@ -2528,7 +2572,7 @@
         async function borrarHistorialCotizacion(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar esta cotización:");
             if(pass === null) return;
-            if(!esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
             if(confirm("¿Eliminar esta cotización del historial?")) {
                 const cot = historialCotizaciones.find(c => String(c.id) === String(id));
@@ -2573,7 +2617,8 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : fondos;
+                            // Modificación Lógica Estructural
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                             const resumenSnap = await t.get(resumenRef);
@@ -2663,6 +2708,12 @@
                     }
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
+                
+                // Integración Matemática:
+                fondos.costoProducto = redondear(fondos.costoProducto);
+                fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
+                fondos.gananciaLibre = redondear(fondos.gananciaLibre);
+                if (fondos.fondoImpuestos) fondos.fondoImpuestos = redondear(fondos.fondoImpuestos);
 
                 guardarDatos(); actualizarUI(); alert("✅ ¡Venta registrada con éxito desde el historial!"); cambiarPestaña('ventas');
             } catch (error) {
@@ -2709,7 +2760,8 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? configSnap.data().fondos : fondos;
+                            // Modificación Lógica Estructural
+                            let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                             const resumenSnap = await t.get(resumenRef);
@@ -2798,6 +2850,12 @@
 
                     if (promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
+                
+                // Integración Matemática:
+                fondos.costoProducto = redondear(fondos.costoProducto);
+                fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
+                fondos.gananciaLibre = redondear(fondos.gananciaLibre);
+                if (fondos.fondoImpuestos) fondos.fondoImpuestos = redondear(fondos.fondoImpuestos);
 
                 carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
                 
@@ -2887,7 +2945,6 @@
             }
             
             let html = '';
-            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
             [...historialRetiros].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0)).slice(0, 50).forEach(r => { 
                 html += `<div class="item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
                     <div class="item-info">
@@ -2923,7 +2980,7 @@
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
         function actualizarGraficoVentas() {
-            if(typeof Chart === 'undefined') return; // Evitar crash offline si Chart no cargó
+            if(typeof Chart === 'undefined') return; 
             if(!document.getElementById('graficoVentas')) return; let conteo = {};
             ventas.forEach(v => { if(v.anulada) return; if(v.detalleItems) { v.detalleItems.forEach(item => { if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty; }); } });
             let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5); let ctx = document.getElementById('graficoVentas').getContext('2d');
@@ -2979,7 +3036,7 @@
                 let listaProductos = "Sin detalles (sincronizado desde la nube sin productos)";
                 if(agrupadoVentasLocales[data.id] && Object.keys(agrupadoVentasLocales[data.id]).length > 0) {
                     listaProductos = Object.entries(agrupadoVentasLocales[data.id])
-                        .sort((a,b) => b[1] - a[1]) // Ordenar por cantidad (los más vendidos primero)
+                        .sort((a,b) => b[1] - a[1]) 
                         .map(([nombre, cant]) => `<b>${cant}x</b> ${nombre}`)
                         .join(', ');
                 }
@@ -3059,7 +3116,6 @@
             popularSelectMeses(ventas, 'filtro-mes-ventas');
             const mesFiltro = document.getElementById('filtro-mes-ventas') ? document.getElementById('filtro-mes-ventas').value : 'todos';
             
-            // MODIFICACIÓN: Obligando orden matemático por timestamp descendente
             let dataVentas = [...ventas].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 dataVentas = dataVentas.filter(v => getMesAnioFromDate(v.fecha, v.timestamp) === mesFiltro);
@@ -3094,7 +3150,7 @@
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
-        // --- SOLUCIÓN 2: CÓDIGO DE AUTO-ACTUALIZACIÓN DEFINITIVA ---
+        // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
         const APP_VERSION = "1.0.2";
 
         function forzarActualizacionApp(versionObjetivo) {
@@ -3127,15 +3183,19 @@
             }
 
             setTimeout(() => {
-                fetch(window.location.href.split('?')[0] + '?ts=' + new Date().getTime(), { cache: 'no-store' })
-                .then(res => res.text())
-                .then(html => {
-                    const match = html.match(/const APP_VERSION = "([^"]+)";/);
-                    if (match && match[1] && match[1] !== APP_VERSION) {
-                        console.log("¡Nueva actualización detectada en la nube! Actualizando de " + APP_VERSION + " a " + match[1]);
-                        forzarActualizacionApp(match[1]);
+                // Modificación Lógica: Petición a version.json alojado en tu GitHub o servidor para no fallar leyendo el HTML.
+                // IMPORTANTE: Asegúrate de tener un archivo 'version.json' en la raíz de tu proyecto con el formato: { "version": "1.0.3" }
+                fetch('version.json?ts=' + new Date().getTime(), { cache: 'no-store' })
+                .then(res => {
+                    if(!res.ok) throw new Error("version.json no encontrado");
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.version && data.version !== APP_VERSION) {
+                        console.log("¡Nueva actualización detectada en la nube! Actualizando de " + APP_VERSION + " a " + data.version);
+                        forzarActualizacionApp(data.version);
                     }
-                }).catch(e => console.log("Modo offline activo o no se pudo buscar actualización."));
+                }).catch(e => console.log("Modo offline activo o version.json no configurado."));
             }, 3000);
         });
 
