@@ -1470,14 +1470,6 @@
             if (modo === 'nuevo') {
                 nombreProd = escaparHTML(document.getElementById('inv-nombre').value.trim().toUpperCase()); 
                 
-                // --- NUEVO BLOQUEO DE CLONES ---
-                const existe = inventario.find(p => p.nombre.toUpperCase() === nombreProd);
-                if(existe) {
-                    alert(`❌ El producto "${nombreProd}" ya existe. Por favor, cambia la opción de arriba a "Producto Existente" para sumarle stock a ese artículo.`);
-                    return;
-                }
-                // -------------------------------
-                
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
                 categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('inv-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
@@ -1493,6 +1485,22 @@
                 minStock = prod && prod.min !== undefined ? prod.min : 5;
                 categoria = prod && prod.categoria ? prod.categoria : "OTROS";
                 selectId = idExistente;
+            }
+
+            // 1. Bloqueo de clones en la Base de Datos (Mejorado para evitar errores si un nombre es undefined)
+            if (modo === 'nuevo') {
+                const existeEnDB = inventario.find(p => (p.nombre || '').toUpperCase() === nombreProd);
+                if(existeEnDB) {
+                    alert(`❌ El producto "${nombreProd}" ya existe en tu inventario. Por favor, cambia la opción de arriba a "Producto Existente" para sumarle stock.`);
+                    return;
+                }
+            }
+
+            // 2. NUEVO: Bloqueo de duplicados en la lista previa (Carrito)
+            const existeEnCarrito = carritoIngresos.find(item => item.nombre === nombreProd);
+            if (existeEnCarrito) {
+                alert(`🔔 El artículo "${nombreProd}" ya está en la lista de ingresos pendiente. Si necesitas cambiar la cantidad, elimínalo de la lista inferior y vuelve a agregarlo con la cantidad correcta.`);
+                return;
             }
             
             carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, stock: stock, min: minStock, costoBase: costoBase, proveedor: proveedor, nit: nit, factura: factura, categoria: categoria });
@@ -3191,6 +3199,10 @@
             url.searchParams.set('v', versionObjetivo);
             window.location.replace(url.toString());
         }
+        
+        window.addEventListener('firebaseListo', () => {
+            cargarDatos();
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
             const currentVersion = localStorage.getItem("app_version");
@@ -3198,7 +3210,7 @@
             if (currentVersion !== APP_VERSION) {
                 forzarActualizacionApp(APP_VERSION);
             } else {
-                cargarDatos();
+                // La carga de datos se movió a 'firebaseListo' para evitar errores de sincronización.
             }
 
             setTimeout(() => {
