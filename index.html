@@ -29,17 +29,90 @@
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); 
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+            background-color: var(--bg-color); 
+            background-image: radial-gradient(circle at top right, #1f2937 0%, var(--bg-color) 40%);
+            color: var(--text-dark); 
+            margin: 0; padding: 0; 
+            display: flex; flex-direction: column; 
+            height: 100vh; overflow: hidden;
+        }
+
+        /* --- NUEVO LAYOUT PRINCIPAL --- */
+        .app-layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- MENÚ LATERAL (SIDEBAR) --- */
+        .sidebar {
+            width: 240px;
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding-top: 15px;
+            z-index: 100;
+        }
+        .sidebar.collapsed { width: 70px; }
+
+        .toggle-btn {
+            background: transparent; border: none; color: var(--text-light);
+            font-size: 20px; cursor: pointer; padding: 10px; margin: 0 15px 20px 15px;
+            align-self: flex-start; transition: transform 0.3s;
+            border-radius: 8px;
+        }
+        .toggle-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sidebar.collapsed .toggle-btn { align-self: center; margin: 0 0 20px 0; }
+
+        .menu-items { display: flex; flex-direction: column; gap: 5px; padding: 0 10px; }
+        
+        .tab-btn { 
+            display: flex; align-items: center; gap: 15px;
+            padding: 12px 15px; border: none; border-radius: 8px; 
+            font-size: 14px; font-weight: bold; cursor: pointer; 
+            background-color: transparent; color: var(--text-light); 
+            transition: all 0.2s ease; white-space: nowrap; overflow: hidden;
+            border-left: 3px solid transparent;
+        }
+        .tab-btn:hover { background-color: rgba(59, 130, 246, 0.1); color: white; }
+        .tab-btn.active { 
+            background-color: rgba(59, 130, 246, 0.15); 
+            color: #60a5fa; 
+            border-left: 3px solid var(--primary-blue); 
+            text-shadow: 0 0 10px rgba(59,130,246,0.5); /* Brillo futurista */
+        }
+        .sidebar.collapsed .menu-text { display: none; }
+        .sidebar.collapsed .tab-btn { justify-content: center; padding: 12px 0; gap: 0;}
+
+        /* --- CONTENIDO PRINCIPAL --- */
+        .main-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
 
-        /* Pestañas */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
-        .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
-
-        /* Tarjetas */
-        .card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
-        .section-title { margin-top: 0; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; color: var(--text-dark); }
+        /* Tarjetas estilo Glassmorphism limpio */
+        .card { 
+            background: rgba(31, 41, 55, 0.6); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); 
+            padding: 25px; margin-bottom: 25px; 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        .section-title { margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; color: white; font-weight: 600; letter-spacing: 0.5px;}
         .sub-title { font-size: 15px; color: var(--text-dark); margin-bottom: 10px; margin-top: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
 
         /* Logo */
@@ -154,29 +227,37 @@
         </div>
     </div>
 
-    <div class="container" id="main-app" style="display: none;">
+    <div id="main-app" style="display: none; width: 100%; height: 100%;">
+        <div class="app-layout">
+            
+            <aside id="app-sidebar" class="sidebar">
+                <button class="toggle-btn" onclick="toggleSidebar()" title="Colapsar/Expandir menú">☰</button>
+                
+                <div class="menu-items">
+                    <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')"><span style="font-size: 18px;">📊</span><span class="menu-text"> Resumen</span></button>
+                    <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')"><span style="font-size: 18px;">📥</span><span class="menu-text"> Ingreso</span></button>
+                    <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')"><span style="font-size: 18px;">📦</span><span class="menu-text"> Inventario</span></button>
+                    <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')"><span style="font-size: 18px;">🛒</span><span class="menu-text"> Ventas</span></button>
+                    <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')"><span style="font-size: 18px;">📄</span><span class="menu-text"> Cotización</span></button>
+                    <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')"><span style="font-size: 18px;">⚠️</span><span class="menu-text"> Por Surtir</span></button>
+                </div>
+            </aside>
 
-        <div class="logo-container" id="main-logo-container" style="display: block;">
-            <div class="logo-wrapper">
-                <img id="logo-img" src="" alt="Logo SubliCosturas">
-                <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
-                <button id="btn-config-logo" class="logo-edit-btn" style="right: 35px; font-size: 18px; font-weight: normal;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
-            </div>
-            <div id="logo-upload-wrapper" class="file-input-wrapper">
-                <button class="btn-upload">📸 Subir Logo de mi Marca</button>
-                <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
-                <button class="btn-upload" style="margin-left: 5px;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
-            </div>
-        </div>
-
-        <div class="tabs">
-            <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
-            <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
-            <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
-            <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
-            <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
-            <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
-        </div>
+            <main class="main-wrapper">
+                <div class="container">
+                    
+                    <div class="logo-container" id="main-logo-container" style="display: block;">
+                        <div class="logo-wrapper">
+                            <img id="logo-img" src="" alt="Logo SubliCosturas">
+                            <button id="btn-edit-logo" class="logo-edit-btn" onclick="document.getElementById('logo-input').click()">•</button>
+                            <button id="btn-config-logo" class="logo-edit-btn" style="right: 35px; font-size: 18px; font-weight: normal;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
+                        </div>
+                        <div id="logo-upload-wrapper" class="file-input-wrapper">
+                            <button class="btn-upload">📸 Subir Logo de mi Marca</button>
+                            <input type="file" id="logo-input" onchange="cargarLogo(event)" accept="image/*">
+                            <button class="btn-upload" style="margin-left: 5px;" onclick="accederAjustesProtegidos()" title="Configuración">⚙️</button>
+                        </div>
+                    </div>
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
@@ -531,6 +612,9 @@
             </div>
         </div>
 
+                </div>
+            </main>
+        </div>
     </div>
 
     <div id="modal-editar-user" class="modal-overlay">
@@ -656,6 +740,12 @@
     </script>
 
     <script>
+        // --- SCRIPT NUEVO MENÚ LATERAL ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('app-sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
         // ================= INTEGRACIÓN: FUNCIONES CRIPTOGRÁFICAS Y DEBOUNCE =================
         async function hashPIN(pin) {
             if (!pin) return "";
