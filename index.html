@@ -1329,7 +1329,7 @@
             if (btnPestaña) btnPestaña.classList.add('active');
             
             if(pestaña === 'inicio') actualizarUI(); 
-            if(pestaña === 'ingreso') renderHistorialIngresos(); 
+           if(pestaña === 'ingreso') { renderHistorialIngresos(); actualizarListaCategorias(); } 
             if(pestaña === 'inventario') renderInventario(); 
             if(pestaña === 'cotizacion') renderHistorialCotizaciones(); 
             if(pestaña === 'alertas') renderAlertas();
@@ -3158,9 +3158,9 @@
             }
             if (document.getElementById('sec-cotizacion').style.display === 'block') {
                 renderHistorialCotizaciones();
-            }
             if (document.getElementById('sec-ingreso').style.display === 'block') {
-                renderHistorialIngresos();
+            actualizarListaCategorias();
+            renderHistorialIngresos();
             }
             if (document.getElementById('tab-alertas').classList.contains('active')) {
                 renderAlertas();
