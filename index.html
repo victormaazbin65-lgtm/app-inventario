@@ -968,26 +968,13 @@
             modales.forEach(m => m.style.display = 'none');
         }
 
+        // --- SOLUCIÓN 1: TEMPORIZADOR DESACTIVADO ---
         function bloquearSistema() {
-            if (document.getElementById('main-app').style.display === 'block') {
-                const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
-                if(!dueñosRegistrados) return; 
-
-                ocultarModales();
-                currentUserData = null;
-                document.getElementById('main-app').style.display = 'none';
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('login-pass').value = '';
-                document.getElementById('login-pass').focus();
-                alert("🔒 El sistema se ha bloqueado por inactividad (15 minutos) para proteger tus datos.");
-            }
+            // Función vaciada: El sistema ya no se bloqueará por inactividad.
         }
 
         function reiniciarTemporizador() {
-            if (document.getElementById('main-app').style.display === 'block') {
-                clearTimeout(inactividadTimer);
-                inactividadTimer = setTimeout(bloquearSistema, TIEMPO_INACTIVIDAD);
-            }
+            // Función vaciada: El sistema ya no iniciará la cuenta regresiva.
         }
 
         function redondear(num) {
@@ -1231,7 +1218,6 @@
             else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
 
-        // Modificación Lógica: Bloques try/catch individuales para mitigar errores de Quota de Storage
         function guardarDatos() {
             try { localStorage.setItem(KEY_INV, JSON.stringify(inventario)); } catch (e) { console.warn("Límite de cuota en Inventario", e); }
             try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas)); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
@@ -1413,7 +1399,6 @@
             }
         }
 
-        // Modificación Lógica: Integrado Debouncing
         function renderSugerenciasIngreso(mostrarTodo = false) {
             const execute = () => {
                 const input = document.getElementById('buscador-ingreso-producto');
@@ -1487,7 +1472,6 @@
                 selectId = idExistente;
             }
 
-            // 1. Bloqueo de clones en la Base de Datos (Mejorado para evitar errores si un nombre es undefined)
             if (modo === 'nuevo') {
                 const existeEnDB = inventario.find(p => (p.nombre || '').toUpperCase() === nombreProd);
                 if(existeEnDB) {
@@ -1496,7 +1480,6 @@
                 }
             }
 
-            // 2. NUEVO: Bloqueo de duplicados en la lista previa (Carrito)
             const existeEnCarrito = carritoIngresos.find(item => item.nombre === nombreProd);
             if (existeEnCarrito) {
                 alert(`🔔 El artículo "${nombreProd}" ya está en la lista de ingresos pendiente. Si necesitas cambiar la cantidad, elimínalo de la lista inferior y vuelve a agregarlo con la cantidad correcta.`);
@@ -1682,7 +1665,6 @@
                 };
             });
 
-            // Modificación Lógica Matemática: Reset de Costo a 0.
             reg.items.forEach(item => { 
                 let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                 if(p) { 
@@ -1734,7 +1716,6 @@
 
                 if(!confirm("¿Anular este ingreso? Se restará la cantidad del inventario y se ajustará el costo promedio.")) return;
                 
-                // Modificación Lógica Matemática: Reset explícito.
                 reg.items.forEach(item => { 
                     let p = inventario.find(inv => String(inv.id) === String(item.idFinal)); 
                     if(p) { 
@@ -1916,7 +1897,6 @@
             contInv.innerHTML = html;
         }
 
-        // Modificación Lógica: Integrado Debouncing
         function renderSelectVentas(mostrarTodo = false) {
             const execute = () => {
                 const input = document.getElementById('buscador-venta-producto');
@@ -2074,7 +2054,6 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            // Modificación Lógica Estructural: Clonación profunda para reintentos idempotentes
                             let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
@@ -2169,7 +2148,6 @@
                 }
 
                 if (ventaProcesada || (!ventaProcesada && carritoVentas.length > 0)) {
-                    // Integración Matemática Segura para evitar el float residual:
                     fondos.costoProducto = redondear(fondos.costoProducto);
                     fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
                     fondos.gananciaLibre = redondear(fondos.gananciaLibre);
@@ -2308,7 +2286,6 @@
             guardarDatos(); actualizarUI();
         }
 
-        // Modificación Lógica: Integrado Debouncing
         function renderSelectCotizacion(mostrarTodo = false) {
             const execute = () => {
                 const input = document.getElementById('buscador-cotiza-producto');
@@ -2644,7 +2621,6 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            // Modificación Lógica Estructural
                             let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
@@ -2736,7 +2712,6 @@
                     if(promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
                 
-                // Integración Matemática:
                 fondos.costoProducto = redondear(fondos.costoProducto);
                 fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
                 fondos.gananciaLibre = redondear(fondos.gananciaLibre);
@@ -2787,7 +2762,6 @@
 
                             const configRef = window.doc(window.db, "sistema", "config");
                             const configSnap = await t.get(configRef);
-                            // Modificación Lógica Estructural
                             let dbFondos = configSnap.exists() && configSnap.data().fondos ? JSON.parse(JSON.stringify(configSnap.data().fondos)) : JSON.parse(JSON.stringify(fondos));
 
                             const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
@@ -2878,7 +2852,6 @@
                     if (promesasOffline.length > 0) Promise.all(promesasOffline).catch(e=>{});
                 }
                 
-                // Integración Matemática:
                 fondos.costoProducto = redondear(fondos.costoProducto);
                 fondos.costoLuzTinta = redondear(fondos.costoLuzTinta);
                 fondos.gananciaLibre = redondear(fondos.gananciaLibre);
@@ -3117,7 +3090,8 @@
             if([...selectEdit.options].some(o => o.value === valEdit)) selectEdit.value = valEdit;
         }
 
-        function actualizarUI() {
+        // --- SOLUCIÓN 2 Y 3: EMBOUDO DE RENDERIZADO Y OPTIMIZACIÓN DE CHART.JS ---
+        function renderizarTodo() {
             const ID_CREACION = "srv_creacion_01"; let existeCreacion = inventario.find(p => p.id === ID_CREACION);
             if (!existeCreacion) {
                 let rec = { id: ID_CREACION, nombre: "CREACIÓN (SERVICIO/DISEÑO)", stock: 9999, min: 0, costo: 0, proveedor: "SERVICIO INTERNO", categoria: "SERVICIOS", lastModified: Date.now(), isService: true };
@@ -3134,7 +3108,14 @@
             let totalCaja = fondos.costoProducto + fondos.costoLuzTinta + fondos.gananciaLibre + (fondos.fondoImpuestos || 0);
             document.getElementById('dash-total-caja').innerText = 'Q ' + totalCaja.toFixed(2);
 
-            actualizarListaCategorias(); renderInventario(); actualizarGraficoVentas(); renderResumenMensual(); actualizarListaClientes();
+            actualizarListaCategorias(); renderInventario(); 
+            
+            // OPTIMIZACIÓN: Solo dibuja el gráfico si el panel de finanzas está visible
+            if (document.getElementById('tab-inicio').classList.contains('active')) {
+                actualizarGraficoVentas();
+            }
+            
+            renderResumenMensual(); actualizarListaClientes();
             renderHistorialRetiros(); 
 
             // RENDER HISTORIAL VENTAS
@@ -3177,8 +3158,13 @@
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
+        function actualizarUI() {
+            // Agrupamos las llamadas repetidas en una sola, esperando 300 milisegundos.
+            debouncedEjecucion('render_global', renderizarTodo, 300);
+        }
+
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.0.2";
+        const APP_VERSION = "1.0.5";
 
         function forzarActualizacionApp(versionObjetivo) {
             console.log("Instalando actualización: " + versionObjetivo);
@@ -3214,8 +3200,6 @@
             }
 
             setTimeout(() => {
-                // Modificación Lógica: Petición a version.json alojado en tu GitHub o servidor para no fallar leyendo el HTML.
-                // IMPORTANTE: Asegúrate de tener un archivo 'version.json' en la raíz de tu proyecto con el formato: { "version": "1.0.3" }
                 fetch('version.json?ts=' + new Date().getTime(), { cache: 'no-store' })
                 .then(res => {
                     if(!res.ok) throw new Error("version.json no encontrado");
