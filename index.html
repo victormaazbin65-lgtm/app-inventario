@@ -2925,7 +2925,18 @@
                 monto: val 
             };
             historialRetiros.push(nuevoRetiro);
-            if(window.db) window.setDoc(window.doc(window.db, "retiros", String(nuevoRetiro.id)), nuevoRetiro);
+            
+            if(window.db) {
+                // 1. Guarda en el historial de retiros (Esto ya lo hacía)
+                window.setDoc(window.doc(window.db, "retiros", String(nuevoRetiro.id)), nuevoRetiro);
+                
+                // 2. SOLUCIÓN: Actualiza los fondos maestros en Firebase para que no revivan
+                window.updateDoc(window.doc(window.db, "sistema", "config"), { 
+                    fondos: fondos, 
+                    ultimaActualizacion: Date.now() 
+                }).catch(e => console.log("Error sincronizando fondos: ", e));
+            }
+            
             guardarDatos(); 
             actualizarUI();
             alert(`✅ Se han retirado Q ${val.toFixed(2)} exitosamente.`);
