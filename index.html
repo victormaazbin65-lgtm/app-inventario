@@ -282,6 +282,74 @@
         .product-code.pending { border-color: rgba(251,146,60,.3); background: rgba(249,115,22,.1); color: #fed7aa; }
         .category-code { color: var(--text-light); font-size: 11px; font-weight: 700; }
         .btn-label { color: #dbeafe; background: rgba(37,99,235,.28); border: 1px solid rgba(96,165,250,.35); }
+        .nav-icon { font-size: 16px; line-height: 1; }
+        .nav-label { white-space: nowrap; }
+        .smart-panel { border-color: rgba(167, 139, 250, .32); }
+        .smart-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+        .smart-status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid rgba(52, 211, 153, .30); border-radius: 999px; background: rgba(16, 185, 129, .09); color: #a7f3d0; font-size: 11px; font-weight: 800; }
+        .smart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+        .smart-card { min-width: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: 15px; background: rgba(5, 11, 22, .48); }
+        .smart-card h4 { margin: 0 0 8px; color: var(--text-dark); font-size: 14px; }
+        .smart-card p, .smart-card li { color: var(--text-light); font-size: 12px; line-height: 1.55; }
+        .smart-card ul { margin: 0; padding-left: 18px; }
+        .smart-card .smart-action { width: 100%; margin-top: 10px; padding: 8px 10px; border: 1px solid rgba(96,165,250,.30); border-radius: 9px; background: rgba(37,99,235,.20); color: #dbeafe; cursor: pointer; font-weight: 800; }
+        .smart-query { display: flex; gap: 8px; margin-top: 10px; }
+        .smart-query input { flex: 1; }
+        .smart-query button { flex: 0 0 auto; padding: 10px 14px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; font-weight: 800; cursor: pointer; }
+        .smart-query-result { margin-top: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(15,23,42,.72); color: var(--text-light); font-size: 12px; line-height: 1.6; }
+        .smart-price-help { margin-top: 9px; padding: 8px 10px; border: 1px solid rgba(52,211,153,.26); border-radius: 9px; background: rgba(16,185,129,.08); color: #a7f3d0; font-size: 12px; text-align: center; }
+        .settings-note { margin: -5px 0 15px; color: var(--text-light); font-size: 12px; line-height: 1.55; }
+        .settings-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .settings-choice label, .smart-setting-row { border: 1px solid var(--border-color); border-radius: 12px; background: rgba(5,11,22,.42); }
+        .settings-choice label { display: flex; align-items: center; gap: 9px; padding: 12px; color: var(--text-dark); cursor: pointer; }
+        .settings-choice input, .smart-setting-row input { width: 18px; min-height: 18px; height: 18px; margin: 0; }
+        .smart-settings { display: grid; gap: 9px; }
+        .smart-setting-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(150px, 210px); gap: 12px; align-items: center; padding: 11px 12px; }
+        .smart-setting-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .smart-setting-main span { color: var(--text-dark); font-size: 13px; font-weight: 700; }
+        .smart-setting-row select { min-height: 38px; padding: 8px 10px; }
+        .master-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; margin-bottom: 12px; border: 1px solid rgba(167,139,250,.32); border-radius: 13px; background: rgba(124,58,237,.09); }
+        .master-switch label { margin: 0; color: var(--text-dark); font-size: 14px; }
+        .master-switch input { width: 22px; min-height: 22px; height: 22px; }
+
+        @media (min-width: 900px) {
+            body.layout-lateral { align-items: stretch; }
+            body.layout-lateral #main-app { width: auto; max-width: none; }
+            body.layout-lateral.menu-compacto #main-app { margin-left: 88px; }
+            body.layout-lateral.menu-expandido #main-app { margin-left: 246px; }
+            body.layout-lateral .tabs {
+                position: fixed;
+                left: 16px;
+                top: 16px;
+                bottom: 16px;
+                z-index: 100;
+                margin: 0;
+                flex-direction: column;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 8px;
+                border-radius: 20px;
+            }
+            body.layout-lateral.menu-compacto .tabs { width: 58px; }
+            body.layout-lateral.menu-expandido .tabs { width: 212px; }
+            body.layout-lateral .tab-btn {
+                flex: 0 0 auto;
+                width: 100%;
+                min-width: 0;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 11px;
+                padding: 13px;
+                text-align: left;
+            }
+            body.layout-lateral.menu-compacto .tab-btn { justify-content: center; padding: 13px 8px; }
+            body.layout-lateral.menu-compacto .nav-label { display: none; }
+            body.layout-lateral.menu-expandido .nav-label { display: inline; }
+            body.layout-lateral .logo-container { margin-top: 2px; }
+        }
 
         :focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
         @media (max-width: 680px) {
@@ -296,6 +364,9 @@
             .item-actions .btn-sm { flex: 1; }
             .inventory-toolbar > *, .inventory-toolbar > div { width: 100%; max-width: none !important; }
             .inventory-toolbar > div { display: grid !important; grid-template-columns: 1fr 1fr; }
+            .smart-grid, .settings-choice { grid-template-columns: 1fr; }
+            .smart-query { flex-direction: column; }
+            .smart-setting-row { grid-template-columns: 1fr; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
@@ -343,16 +414,37 @@
             </div>
         </div>
 
-        <div class="tabs">
-            <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')">📊 Resumen</button>
-            <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')">📥 Ingreso</button>
-            <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')">📦 Inventario</button>
-            <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')">🛒 Ventas</button>
-            <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')">📄 Cotización</button>
-            <button id="tab-alertas" class="tab-btn" style="color: var(--primary-red);" onclick="cambiarPestaña('alertas')">⚠️ Por Surtir</button>
+        <div class="tabs" aria-label="Navegación principal">
+            <button id="tab-inicio" class="tab-btn active" onclick="cambiarPestaña('inicio')" title="Resumen"><span class="nav-icon">📊</span><span class="nav-label">Resumen</span></button>
+            <button id="tab-ingreso" class="tab-btn" onclick="cambiarPestaña('ingreso')" title="Ingreso"><span class="nav-icon">📥</span><span class="nav-label">Ingreso</span></button>
+            <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')" title="Inventario"><span class="nav-icon">📦</span><span class="nav-label">Inventario</span></button>
+            <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')" title="Ventas"><span class="nav-icon">🛒</span><span class="nav-label">Ventas</span></button>
+            <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')" title="Cotización"><span class="nav-icon">📄</span><span class="nav-label">Cotización</span></button>
+            <button id="tab-alertas" class="tab-btn" onclick="cambiarPestaña('alertas')" title="Por surtir"><span class="nav-icon">⚠️</span><span class="nav-label">Por Surtir</span></button>
+            <button id="tab-ajustes" class="tab-btn" onclick="accederAjustesProtegidos()" title="Opciones"><span class="nav-icon">⚙️</span><span class="nav-label">Opciones</span></button>
         </div>
 
         <div id="sec-inicio" style="display: block;">
+            <div id="panel-inteligente" class="card smart-panel" style="display: none;">
+                <div class="smart-panel-header">
+                    <div>
+                        <h3 class="section-title" style="margin-bottom: 5px; border-bottom: none; padding-bottom: 0;">✨ Centro inteligente</h3>
+                        <p style="margin:0; color:var(--text-light); font-size:12px;">Analiza los datos disponibles sin modificar inventario, ventas ni fondos.</p>
+                    </div>
+                    <span class="smart-status">● ACTIVO Y SOLO BAJO TU CONTROL</span>
+                </div>
+                <div id="contenido-inteligente" class="smart-grid"></div>
+                <div id="consulta-inteligente-contenedor" class="smart-card" style="margin-top:12px; display:none;">
+                    <h4>💬 Pregunta al sistema</h4>
+                    <p style="margin:0;">Ejemplos: “qué debo surtir”, “ventas de hoy”, “productos sin código” o “cuánto hay en caja”.</p>
+                    <div class="smart-query">
+                        <input id="consulta-inteligente" type="text" placeholder="Escribe una consulta..." onkeydown="if(event.key === 'Enter') ejecutarConsultaInteligente()">
+                        <button onclick="ejecutarConsultaInteligente()">Analizar</button>
+                    </div>
+                    <div id="resultado-consulta-inteligente" class="smart-query-result" aria-live="polite">La consulta es local y no envía datos a servicios externos.</div>
+                </div>
+            </div>
+
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Panel de Finanzas</h3>
@@ -406,6 +498,42 @@
         </div>
 
         <div id="sec-ajustes" style="display: none;">
+            <div class="card">
+                <h3 class="section-title">🖥️ Interfaz de computadora</h3>
+                <p class="settings-note">Cambia únicamente la presentación de este dispositivo. En celular se conserva automáticamente la interfaz actual.</p>
+                <div class="settings-choice">
+                    <label><input type="radio" name="interfaz-pc" id="ui-superior" value="superior" onchange="actualizarEstadoControlesInteligentes()"> <span>Superior<br><small style="color:var(--text-light);">Pestañas como ahora</small></span></label>
+                    <label><input type="radio" name="interfaz-pc" id="ui-lateral" value="lateral" onchange="actualizarEstadoControlesInteligentes()"> <span>Lateral<br><small style="color:var(--text-light);">Aprovecha más ancho</small></span></label>
+                </div>
+                <div class="form-group" id="grupo-tamano-menu" style="margin-top:14px;">
+                    <label>Panel lateral</label>
+                    <select id="ui-menu-lateral">
+                        <option value="compacto">Solo iconos</option>
+                        <option value="expandido">Iconos y nombres</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">✨ IA y funciones inteligentes</h3>
+                <p class="settings-note">El motor inteligente trabaja localmente con los datos ya cargados. Nunca vende, retira, borra ni cambia existencias por sí solo.</p>
+                <div class="master-switch">
+                    <label for="inteligencia-activa">Activar todas las funciones inteligentes</label>
+                    <input type="checkbox" id="inteligencia-activa" onchange="actualizarEstadoControlesInteligentes()">
+                </div>
+                <div id="lista-config-inteligente" class="smart-settings">
+                    <div class="smart-setting-row" data-modulo="alertas"><div class="smart-setting-main"><input type="checkbox" id="smart-alertas"><span>Alertas importantes</span></div><select id="smart-alertas-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar con opciones</option></select></div>
+                    <div class="smart-setting-row" data-modulo="abastecimiento"><div class="smart-setting-main"><input type="checkbox" id="smart-abastecimiento"><span>Predicción para surtir</span></div><select id="smart-abastecimiento-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar con opciones</option></select></div>
+                    <div class="smart-setting-row" data-modulo="precios"><div class="smart-setting-main"><input type="checkbox" id="smart-precios"><span>Precios y margen</span></div><select id="smart-precios-modo"><option value="informar">Solo informar</option><option value="ayudar">Sugerir precio</option></select></div>
+                    <div class="smart-setting-row" data-modulo="retiros"><div class="smart-setting-main"><input type="checkbox" id="smart-retiros"><span>Retiro inteligente</span></div><select id="smart-retiros-modo"><option value="informar">Solo informar</option><option value="ayudar">Permitir asistencia</option></select></div>
+                    <div class="smart-setting-row" data-modulo="anomalias"><div class="smart-setting-main"><input type="checkbox" id="smart-anomalias"><span>Detector de posibles errores</span></div><select id="smart-anomalias-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar a revisar</option></select></div>
+                    <div class="smart-setting-row" data-modulo="cierre"><div class="smart-setting-main"><input type="checkbox" id="smart-cierre"><span>Resumen del día</span></div><select id="smart-cierre-modo"><option value="informar">Solo informar</option><option value="ayudar">Mostrar accesos</option></select></div>
+                    <div class="smart-setting-row" data-modulo="busqueda"><div class="smart-setting-main"><input type="checkbox" id="smart-busqueda"><span>Consultas inteligentes</span></div><select id="smart-busqueda-modo"><option value="informar">Responder datos</option><option value="ayudar">Responder y dar accesos</option></select></div>
+                    <div class="smart-setting-row" data-modulo="etiquetas"><div class="smart-setting-main"><input type="checkbox" id="smart-etiquetas"><span>Etiquetas y códigos</span></div><select id="smart-etiquetas-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar con opciones</option></select></div>
+                </div>
+                <button class="btn-main btn-green" onclick="guardarPreferenciasSistemaDesdeUI()">Guardar preferencias de este dispositivo</button>
+            </div>
+
             <div class="card">
                 <h3 class="section-title">👥 Administración de Usuarios</h3>
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
@@ -1064,8 +1192,9 @@
         const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
         const KEY_RETIROS = 'subli_retiros_v10';
         const KEY_CODIGOS_INV = 'subli_codigos_inv_v1';
-        
-        const ALERTA_MARGEN_MINIMO = 0.10; 
+        const KEY_PREFERENCIAS_SISTEMA = 'subli_preferencias_sistema_v1';
+
+        const ALERTA_MARGEN_MINIMO = 0.10;
 
         let inventario = []; let ventas = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = [];
         let resumenMensualNube = [];
@@ -1078,7 +1207,128 @@
         let carritoIngresos = []; let carritoVentas = []; let carritoCotizacion = [];
         let ingresoEnEdicion = null;
 
-        let isProcessingTransaction = false; 
+        function crearPreferenciasSistemaPorDefecto() {
+            return {
+                interfazPc: 'superior',
+                menuLateral: 'compacto',
+                inteligenciaActiva: true,
+                modulos: {
+                    alertas: { activo: true, modo: 'informar' },
+                    abastecimiento: { activo: true, modo: 'ayudar' },
+                    precios: { activo: true, modo: 'ayudar' },
+                    retiros: { activo: true, modo: 'ayudar' },
+                    anomalias: { activo: true, modo: 'informar' },
+                    cierre: { activo: true, modo: 'informar' },
+                    busqueda: { activo: true, modo: 'ayudar' },
+                    etiquetas: { activo: true, modo: 'ayudar' }
+                }
+            };
+        }
+
+        function normalizarPreferenciasSistema(valor) {
+            const base = crearPreferenciasSistemaPorDefecto();
+            const entrada = valor && typeof valor === 'object' ? valor : {};
+            const resultado = {
+                interfazPc: ['superior', 'lateral'].includes(entrada.interfazPc) ? entrada.interfazPc : base.interfazPc,
+                menuLateral: ['compacto', 'expandido'].includes(entrada.menuLateral) ? entrada.menuLateral : base.menuLateral,
+                inteligenciaActiva: entrada.inteligenciaActiva === undefined ? base.inteligenciaActiva : Boolean(entrada.inteligenciaActiva),
+                modulos: {}
+            };
+            Object.keys(base.modulos).forEach(clave => {
+                const modulo = entrada.modulos && entrada.modulos[clave] ? entrada.modulos[clave] : {};
+                resultado.modulos[clave] = {
+                    activo: modulo.activo === undefined ? base.modulos[clave].activo : Boolean(modulo.activo),
+                    modo: ['informar', 'ayudar'].includes(modulo.modo) ? modulo.modo : base.modulos[clave].modo
+                };
+            });
+            return resultado;
+        }
+
+        function cargarPreferenciasSistema() {
+            try {
+                return normalizarPreferenciasSistema(JSON.parse(localStorage.getItem(KEY_PREFERENCIAS_SISTEMA) || 'null'));
+            } catch(error) {
+                console.warn('No se pudieron leer las preferencias; se usarán valores seguros.', error);
+                return crearPreferenciasSistemaPorDefecto();
+            }
+        }
+
+        let preferenciasSistema = cargarPreferenciasSistema();
+
+        function moduloInteligenteActivo(clave) {
+            return Boolean(preferenciasSistema.inteligenciaActiva && preferenciasSistema.modulos[clave] && preferenciasSistema.modulos[clave].activo);
+        }
+
+        function modoModuloInteligente(clave) {
+            return moduloInteligenteActivo(clave) ? preferenciasSistema.modulos[clave].modo : 'apagado';
+        }
+
+        function sincronizarControlesPreferencias() {
+            const superior = document.getElementById('ui-superior');
+            const lateral = document.getElementById('ui-lateral');
+            const menu = document.getElementById('ui-menu-lateral');
+            if(superior) superior.checked = preferenciasSistema.interfazPc === 'superior';
+            if(lateral) lateral.checked = preferenciasSistema.interfazPc === 'lateral';
+            if(menu) menu.value = preferenciasSistema.menuLateral;
+            const master = document.getElementById('inteligencia-activa');
+            if(master) master.checked = preferenciasSistema.inteligenciaActiva;
+            Object.entries(preferenciasSistema.modulos).forEach(([clave, configuracion]) => {
+                const check = document.getElementById('smart-' + clave);
+                const modo = document.getElementById('smart-' + clave + '-modo');
+                if(check) check.checked = configuracion.activo;
+                if(modo) modo.value = configuracion.modo;
+            });
+            actualizarEstadoControlesInteligentes();
+        }
+
+        function actualizarEstadoControlesInteligentes() {
+            const master = document.getElementById('inteligencia-activa');
+            const habilitado = master ? master.checked : preferenciasSistema.inteligenciaActiva;
+            document.querySelectorAll('#lista-config-inteligente input, #lista-config-inteligente select').forEach(control => {
+                control.disabled = !habilitado;
+            });
+            const grupoMenu = document.getElementById('grupo-tamano-menu');
+            const lateral = document.getElementById('ui-lateral');
+            if(grupoMenu && lateral) grupoMenu.style.display = lateral.checked ? 'block' : 'none';
+        }
+
+        function aplicarPreferenciasSistema() {
+            document.body.classList.toggle('layout-lateral', preferenciasSistema.interfazPc === 'lateral');
+            document.body.classList.toggle('menu-compacto', preferenciasSistema.menuLateral === 'compacto');
+            document.body.classList.toggle('menu-expandido', preferenciasSistema.menuLateral === 'expandido');
+            const botonRetiro = document.getElementById('btn-retiro-inteligente');
+            if(botonRetiro) botonRetiro.style.display = moduloInteligenteActivo('retiros') ? '' : 'none';
+            sincronizarControlesPreferencias();
+            renderPanelInteligente();
+            renderCarritoVentas();
+            renderCarritoCotizacion();
+        }
+
+        function guardarPreferenciasSistemaDesdeUI() {
+            if(currentUserData && currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede cambiar estas preferencias.');
+            const interfazSeleccionada = document.querySelector('input[name="interfaz-pc"]:checked');
+            const nueva = crearPreferenciasSistemaPorDefecto();
+            nueva.interfazPc = interfazSeleccionada ? interfazSeleccionada.value : preferenciasSistema.interfazPc;
+            nueva.menuLateral = document.getElementById('ui-menu-lateral')?.value || preferenciasSistema.menuLateral;
+            nueva.inteligenciaActiva = Boolean(document.getElementById('inteligencia-activa')?.checked);
+            Object.keys(nueva.modulos).forEach(clave => {
+                nueva.modulos[clave] = {
+                    activo: Boolean(document.getElementById('smart-' + clave)?.checked),
+                    modo: document.getElementById('smart-' + clave + '-modo')?.value || nueva.modulos[clave].modo
+                };
+            });
+            preferenciasSistema = normalizarPreferenciasSistema(nueva);
+            try {
+                localStorage.setItem(KEY_PREFERENCIAS_SISTEMA, JSON.stringify(preferenciasSistema));
+            } catch(error) {
+                return alert('No se pudieron guardar las preferencias en este dispositivo.');
+            }
+            aplicarPreferenciasSistema();
+            actualizarUI();
+            alert('✅ Preferencias guardadas. No se modificaron datos del negocio.');
+        }
+
+        let isProcessingTransaction = false;
 
         // ================= SISTEMA DE USUARIOS Y PERMISOS =================
         let usuarios = JSON.parse(localStorage.getItem('subli_usuarios')) || [];
@@ -1412,6 +1662,23 @@
                 advertencia = `<div class="financial-warning">⚠️ La ganancia libre es muy baja (${margenPorcentaje}%).</div>`;
             }
 
+            let ayudaPrecio = '';
+            if(typeof moduloInteligenteActivo === 'function' && moduloInteligenteActivo('precios')) {
+                const modoPrecio = modoModuloInteligente('precios');
+                if(modoPrecio === 'ayudar') {
+                    try {
+                        const precioObjetivo = calcularPrecioObjetivoInteligente(desglose, 0.30);
+                        ayudaPrecio = precioObjetivo > desglose.ingresoTotal + 0.009
+                            ? `<div class="smart-price-help">✨ Para buscar un margen libre del 30%, el total sugerido es al menos <strong>Q ${precioObjetivo.toFixed(2)}</strong>. Es una sugerencia; no cambia el cobro.</div>`
+                            : '<div class="smart-price-help">✨ El total actual ya alcanza un margen libre aproximado del 30% o más.</div>';
+                    } catch(error) {
+                        ayudaPrecio = '';
+                    }
+                } else {
+                    ayudaPrecio = `<div class="smart-price-help">✨ Margen observado: <strong>${margenPorcentaje}%</strong>. Modo solo información; no se sugiere ni cambia el precio.</div>`;
+                }
+            }
+
             return `<div class="financial-breakdown">
                 <div class="financial-row income" style="color:${colorIngreso};"><span>${etiquetaIngreso}</span><span>Q ${desglose.ingresoTotal.toFixed(2)}</span></div>
                 <div class="financial-row expense"><span>(−) Materiales/servicios</span><span>Q ${desglose.costosProductos.toFixed(2)}</span></div>
@@ -1421,7 +1688,217 @@
                 <div class="financial-row total-expense"><span>GASTOS TOTALES</span><span>Q ${desglose.totalGastos.toFixed(2)}</span></div>
                 <div class="financial-row profit${gananciaNegativa ? ' negative' : ''}"><span>GANANCIA LIBRE</span><span>Q ${desglose.gananciaNeta.toFixed(2)}</span></div>
                 <div class="financial-margin">Margen sobre la venta: ${margenPorcentaje}%</div>
-            </div>${advertencia}`;
+            </div>${advertencia}${ayudaPrecio}`;
+        }
+
+        function calcularPrecioObjetivoInteligente(desglose, margenObjetivo = 0.30) {
+            const margen = Number(margenObjetivo);
+            const tasaSAT = desglose && desglose.pideFactura ? 0.05 : 0;
+            const costosFijos = numeroFinito(desglose && desglose.costosProductos) + numeroFinito(desglose && desglose.costoTinta) + numeroFinito(desglose && desglose.costoEnvio);
+            const divisor = 1 - tasaSAT - margen;
+            if(!Number.isFinite(margen) || margen < 0 || divisor <= 0) throw new Error('El margen objetivo no es válido.');
+            if(costosFijos < 0 || !Number.isFinite(costosFijos)) throw new Error('Los costos no son válidos.');
+            return Math.ceil((costosFijos / divisor) * 100) / 100;
+        }
+
+        function inicioDiaLocal(timestamp) {
+            const fecha = new Date(timestamp);
+            fecha.setHours(0, 0, 0, 0);
+            return fecha.getTime();
+        }
+
+        function analizarSistemaInteligente(inventarioEntrada = [], ventasEntrada = [], fondosEntrada = null, ahora = Date.now()) {
+            const productos = (Array.isArray(inventarioEntrada) ? inventarioEntrada : []).filter(p => p && !p.isService);
+            const ventasValidas = (Array.isArray(ventasEntrada) ? ventasEntrada : []).filter(v => v && !v.anulada);
+            const inicioHoy = inicioDiaLocal(ahora);
+            const finHoy = inicioHoy + (24 * 60 * 60 * 1000);
+            const fechaAhora = new Date(ahora);
+            const inicioMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth(), 1).getTime();
+            const finMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth() + 1, 1).getTime();
+            const inicioTendencia = ahora - (30 * 24 * 60 * 60 * 1000);
+
+            const agotados = productos.filter(p => numeroFinito(p.stock) <= 0);
+            const stockBajo = productos.filter(p => numeroFinito(p.stock) <= Math.max(0, numeroFinito(p.min)));
+            const sinCodigo = productos.filter(p => !esCodigoInventarioValido(p.codigoInventario));
+            const stockNegativo = productos.filter(p => numeroFinito(p.stock) < 0);
+            const costosInvalidos = productos.filter(p => !Number.isFinite(Number(p.costo)) || Number(p.costo) < 0);
+
+            const propietariosCodigo = new Map();
+            const codigosDuplicados = new Set();
+            productos.forEach(p => {
+                if(!esCodigoInventarioValido(p.codigoInventario)) return;
+                const codigo = String(Number(p.codigoInventario));
+                if(propietariosCodigo.has(codigo) && propietariosCodigo.get(codigo) !== String(p.id)) codigosDuplicados.add(codigo);
+                else propietariosCodigo.set(codigo, String(p.id));
+            });
+
+            const resumirVentas = lista => lista.reduce((resumen, venta) => {
+                resumen.ingreso += numeroFinito(venta.ingresoTotal);
+                resumen.ganancia += numeroFinito(venta.ganancia !== undefined ? venta.ganancia : venta.gananciaNeta);
+                resumen.gastos += numeroFinito(venta.costosProductos) + numeroFinito(venta.costoTinta) + numeroFinito(venta.costoEnvio) + numeroFinito(venta.impuestoSAT);
+                resumen.operaciones++;
+                return resumen;
+            }, { ingreso: 0, ganancia: 0, gastos: 0, operaciones: 0 });
+
+            const ventasHoy = ventasValidas.filter(v => Number(v.timestamp) >= inicioHoy && Number(v.timestamp) < finHoy);
+            const ventasMes = ventasValidas.filter(v => Number(v.timestamp) >= inicioMes && Number(v.timestamp) < finMes);
+            const resumenHoy = resumirVentas(ventasHoy);
+            const resumenMes = resumirVentas(ventasMes);
+            Object.keys(resumenHoy).forEach(clave => { if(clave !== 'operaciones') resumenHoy[clave] = redondear(resumenHoy[clave]); });
+            Object.keys(resumenMes).forEach(clave => { if(clave !== 'operaciones') resumenMes[clave] = redondear(resumenMes[clave]); });
+
+            const demanda30 = new Map();
+            ventasValidas.forEach(venta => {
+                const timestamp = Number(venta.timestamp);
+                if(!Number.isFinite(timestamp) || timestamp < inicioTendencia || timestamp > ahora) return;
+                (Array.isArray(venta.detalleItems) ? venta.detalleItems : []).forEach(item => {
+                    if(item && !item.isService && numeroFinito(item.qty) > 0) {
+                        const clave = item.idProd !== undefined && item.idProd !== null ? 'id:' + String(item.idProd) : 'nombre:' + normalizarTexto(item.nombre);
+                        demanda30.set(clave, numeroFinito(demanda30.get(clave)) + numeroFinito(item.qty));
+                    }
+                });
+            });
+
+            const abastecimiento = productos.map(producto => {
+                const porId = demanda30.get('id:' + String(producto.id));
+                const cantidad30 = numeroFinito(porId !== undefined ? porId : demanda30.get('nombre:' + normalizarTexto(producto.nombre)));
+                const ritmoDiario = cantidad30 / 30;
+                const stock = Math.max(0, numeroFinito(producto.stock));
+                const diasRestantes = ritmoDiario > 0 ? stock / ritmoDiario : Infinity;
+                const sugerido30 = ritmoDiario > 0 ? Math.max(0, Math.ceil((ritmoDiario * 30) + Math.max(0, numeroFinito(producto.min)) - stock)) : 0;
+                return { id: producto.id, nombre: producto.nombre, stock, vendidos30: cantidad30, ritmoDiario, diasRestantes, sugerido30 };
+            }).filter(item => item.vendidos30 > 0 && (item.diasRestantes <= 30 || item.stock <= 0)).sort((a, b) => a.diasRestantes - b.diasRestantes);
+
+            const ventasConDiferencia = ventasValidas.filter(venta => {
+                const ingreso = Number(venta.ingresoTotal);
+                const ganancia = Number(venta.ganancia !== undefined ? venta.ganancia : venta.gananciaNeta);
+                const gastos = numeroFinito(venta.costosProductos) + numeroFinito(venta.costoTinta) + numeroFinito(venta.costoEnvio) + numeroFinito(venta.impuestoSAT);
+                return Number.isFinite(ingreso) && Number.isFinite(ganancia) && Math.abs((ingreso - gastos) - ganancia) > 0.02;
+            });
+            const margenesBajos = ventasValidas.filter(venta => {
+                const ingreso = numeroFinito(venta.ingresoTotal);
+                const ganancia = numeroFinito(venta.ganancia !== undefined ? venta.ganancia : venta.gananciaNeta);
+                return ingreso > 0 && (ganancia / ingreso) < ALERTA_MARGEN_MINIMO;
+            });
+
+            const totalCaja = ['costoProducto', 'costoLuzTinta', 'gananciaLibre', 'fondoImpuestos'].reduce((total, clave) => total + numeroFinito(fondosEntrada && fondosEntrada[clave]), 0);
+            const disponibleSinSAT = numeroFinito(fondosEntrada && fondosEntrada.costoProducto) + numeroFinito(fondosEntrada && fondosEntrada.costoLuzTinta) + numeroFinito(fondosEntrada && fondosEntrada.gananciaLibre);
+
+            return {
+                agotados,
+                stockBajo,
+                sinCodigo,
+                abastecimiento,
+                resumenHoy,
+                resumenMes,
+                fondos: {
+                    totalCaja: redondear(totalCaja),
+                    disponibleSinSAT: redondear(disponibleSinSAT),
+                    gananciaLibre: redondear(numeroFinito(fondosEntrada && fondosEntrada.gananciaLibre)),
+                    sat: redondear(numeroFinito(fondosEntrada && fondosEntrada.fondoImpuestos))
+                },
+                anomalias: {
+                    stockNegativo,
+                    costosInvalidos,
+                    codigosDuplicados: Array.from(codigosDuplicados),
+                    ventasConDiferencia,
+                    margenesBajos
+                }
+            };
+        }
+
+        function botonAyudaInteligente(modulo, pestaña, etiqueta) {
+            if(modoModuloInteligente(modulo) !== 'ayudar') return '';
+            return `<button class="smart-action" onclick="cambiarPestaña('${pestaña}')">${etiqueta}</button>`;
+        }
+
+        function renderPanelInteligente() {
+            const panel = document.getElementById('panel-inteligente');
+            const contenido = document.getElementById('contenido-inteligente');
+            const consulta = document.getElementById('consulta-inteligente-contenedor');
+            if(!panel || !contenido || !consulta) return;
+            if(!preferenciasSistema.inteligenciaActiva) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            const analisis = analizarSistemaInteligente(inventario, ventas, fondos);
+            let html = '';
+            if(moduloInteligenteActivo('alertas')) {
+                const mensajes = [];
+                if(analisis.agotados.length) mensajes.push(`${analisis.agotados.length} producto(s) agotado(s)`);
+                if(analisis.stockBajo.length) mensajes.push(`${analisis.stockBajo.length} en stock mínimo o menor`);
+                if(analisis.anomalias.margenesBajos.length) mensajes.push(`${analisis.anomalias.margenesBajos.length} venta(s) disponible(s) con margen menor al 10%`);
+                if(!mensajes.length) mensajes.push('No se observan alertas urgentes en los datos disponibles');
+                html += `<div class="smart-card"><h4>🚦 Alertas</h4><ul>${mensajes.map(m => `<li>${escaparHTML(m)}</li>`).join('')}</ul>${botonAyudaInteligente('alertas', 'alertas', 'Ver productos por surtir')}</div>`;
+            }
+            if(moduloInteligenteActivo('abastecimiento')) {
+                const principales = analisis.abastecimiento.slice(0, 4);
+                const contenidoAbastecimiento = principales.length
+                    ? `<ul>${principales.map(item => `<li><strong>${escaparHTML(item.nombre)}</strong>: ${Number.isFinite(item.diasRestantes) ? item.diasRestantes.toFixed(0) : '—'} días aprox.; sugerencia para 30 días: ${item.sugerido30}</li>`).join('')}</ul>`
+                    : '<p>No hay suficiente movimiento reciente para anticipar faltantes adicionales.</p>';
+                html += `<div class="smart-card"><h4>📦 Predicción para surtir</h4>${contenidoAbastecimiento}${botonAyudaInteligente('abastecimiento', 'alertas', 'Revisar surtido')}</div>`;
+            }
+            if(moduloInteligenteActivo('anomalias')) {
+                const totalAnomalias = analisis.anomalias.stockNegativo.length + analisis.anomalias.costosInvalidos.length + analisis.anomalias.codigosDuplicados.length + analisis.anomalias.ventasConDiferencia.length;
+                const texto = totalAnomalias === 0
+                    ? 'No se detectaron stocks negativos, costos inválidos, códigos duplicados ni diferencias matemáticas en los registros disponibles.'
+                    : `${totalAnomalias} posible(s) inconsistencia(s): ${analisis.anomalias.stockNegativo.length} stock negativo, ${analisis.anomalias.costosInvalidos.length} costo inválido, ${analisis.anomalias.codigosDuplicados.length} código duplicado y ${analisis.anomalias.ventasConDiferencia.length} venta con diferencia.`;
+                html += `<div class="smart-card"><h4>🛡️ Revisión de posibles errores</h4><p>${escaparHTML(texto)}</p>${botonAyudaInteligente('anomalias', 'inventario', 'Revisar inventario')}</div>`;
+            }
+            if(moduloInteligenteActivo('cierre')) {
+                html += `<div class="smart-card"><h4>📅 Resumen de hoy</h4><p>${analisis.resumenHoy.operaciones} venta(s) · Ingresos Q ${analisis.resumenHoy.ingreso.toFixed(2)} · Gastos Q ${analisis.resumenHoy.gastos.toFixed(2)} · Ganancia Q ${analisis.resumenHoy.ganancia.toFixed(2)}</p>${botonAyudaInteligente('cierre', 'ventas', 'Ver ventas')}</div>`;
+            }
+            if(moduloInteligenteActivo('retiros')) {
+                html += `<div class="smart-card"><h4>💵 Caja y retiro</h4><p>Total Q ${analisis.fondos.totalCaja.toFixed(2)} · Sin tocar SAT Q ${analisis.fondos.disponibleSinSAT.toFixed(2)} · Ganancia libre Q ${analisis.fondos.gananciaLibre.toFixed(2)}</p>${modoModuloInteligente('retiros') === 'ayudar' ? '<button class="smart-action" onclick="abrirRetiroInteligente()">Analizar un retiro</button>' : ''}</div>`;
+            }
+            if(moduloInteligenteActivo('etiquetas')) {
+                const texto = analisis.sinCodigo.length ? `${analisis.sinCodigo.length} producto(s) todavía no tienen código físico.` : 'Todos los productos disponibles tienen código físico.';
+                html += `<div class="smart-card"><h4>🏷️ Códigos y etiquetas</h4><p>${escaparHTML(texto)}</p>${botonAyudaInteligente('etiquetas', 'inventario', 'Abrir etiquetas')}</div>`;
+            }
+            if(moduloInteligenteActivo('precios')) {
+                html += `<div class="smart-card"><h4>📈 Precio y margen</h4><p>${modoModuloInteligente('precios') === 'ayudar' ? 'Ventas y cotizaciones mostrarán un total sugerido para buscar 30% de margen libre.' : 'Ventas y cotizaciones informarán el margen observado sin sugerir precios.'}</p>${botonAyudaInteligente('precios', 'cotizacion', 'Preparar cotización')}</div>`;
+            }
+
+            contenido.innerHTML = html;
+            consulta.style.display = moduloInteligenteActivo('busqueda') ? 'block' : 'none';
+            panel.style.display = (html || moduloInteligenteActivo('busqueda')) ? 'block' : 'none';
+        }
+
+        function ejecutarConsultaInteligente() {
+            const entrada = document.getElementById('consulta-inteligente');
+            const salida = document.getElementById('resultado-consulta-inteligente');
+            if(!entrada || !salida || !moduloInteligenteActivo('busqueda')) return;
+            const consulta = normalizarTexto(entrada.value.trim());
+            if(!consulta) {
+                salida.textContent = 'Escribe una consulta para analizar los datos disponibles.';
+                return;
+            }
+            const analisis = analizarSistemaInteligente(inventario, ventas, fondos);
+            const permiteAccesos = modoModuloInteligente('busqueda') === 'ayudar';
+            let respuesta = '';
+            if(/surtir|stock bajo|agotad/.test(consulta)) {
+                const lista = analisis.stockBajo.slice(0, 10).map(p => `${p.nombre} (${numeroFinito(p.stock)})`).join(', ');
+                respuesta = lista ? `Productos que requieren atención: ${escaparHTML(lista)}.` : 'No hay productos en el mínimo o por debajo.';
+                if(permiteAccesos) respuesta += '<button class="smart-action" onclick="cambiarPestaña(\'alertas\')">Abrir Por Surtir</button>';
+            } else if(/sin codigo|codigo faltante|etiqueta/.test(consulta)) {
+                const lista = analisis.sinCodigo.slice(0, 10).map(p => p.nombre).join(', ');
+                respuesta = lista ? `${analisis.sinCodigo.length} producto(s) sin código: ${escaparHTML(lista)}.` : 'Todos los productos tienen código asignado.';
+                if(permiteAccesos) respuesta += '<button class="smart-action" onclick="cambiarPestaña(\'inventario\')">Abrir Inventario</button>';
+            } else if(/hoy|cierre/.test(consulta)) {
+                respuesta = `Hoy: ${analisis.resumenHoy.operaciones} venta(s), Q ${analisis.resumenHoy.ingreso.toFixed(2)} ingresados, Q ${analisis.resumenHoy.gastos.toFixed(2)} en gastos y Q ${analisis.resumenHoy.ganancia.toFixed(2)} de ganancia.`;
+            } else if(/mes|ganancia|venta/.test(consulta)) {
+                respuesta = `Mes actual en los datos disponibles: ${analisis.resumenMes.operaciones} venta(s), Q ${analisis.resumenMes.ingreso.toFixed(2)} ingresados y Q ${analisis.resumenMes.ganancia.toFixed(2)} de ganancia.`;
+            } else if(/caja|retiro|fondos|efectivo/.test(consulta)) {
+                respuesta = `Caja total Q ${analisis.fondos.totalCaja.toFixed(2)}. Sin tocar SAT: Q ${analisis.fondos.disponibleSinSAT.toFixed(2)}. Ganancia libre: Q ${analisis.fondos.gananciaLibre.toFixed(2)}. Fondo SAT: Q ${analisis.fondos.sat.toFixed(2)}.`;
+                if(permiteAccesos && moduloInteligenteActivo('retiros') && modoModuloInteligente('retiros') === 'ayudar') respuesta += '<button class="smart-action" onclick="abrirRetiroInteligente()">Analizar retiro</button>';
+            } else {
+                const encontrados = inventario.filter(p => coincideBusquedaProducto(p, consulta)).slice(0, 10);
+                respuesta = encontrados.length
+                    ? `Coincidencias: ${encontrados.map(p => `${escaparHTML(p.nombre)} — stock ${escaparHTML(p.isService ? 'servicio' : numeroFinito(p.stock))}`).join('<br>')}`
+                    : 'No encontré coincidencias. Prueba con “qué debo surtir”, “ventas de hoy”, “productos sin código” o el nombre de un producto.';
+            }
+            salida.innerHTML = respuesta;
         }
 
         function copiarDatos(objeto) {
@@ -1979,10 +2456,10 @@
             
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
-            if(pestaña === 'inventario') renderInventario(); 
-            if(pestaña === 'cotizacion') renderHistorialCotizaciones(); 
+            if(pestaña === 'inventario') renderInventario();
+            if(pestaña === 'cotizacion') renderHistorialCotizaciones();
             if(pestaña === 'alertas') renderAlertas();
-            if(pestaña === 'ajustes') renderUsuarios();
+            if(pestaña === 'ajustes') { renderUsuarios(); sincronizarControlesPreferencias(); }
         }
 
         function cargarLogo(event) {
@@ -3897,11 +4374,19 @@
             } else {
                 aviso.textContent = 'Prioridad: ganancia, luego luz/tinta y por último productos. El fondo SAT no se toca.';
             }
+            const botonConfirmar = document.getElementById('btn-confirmar-retiro-inteligente');
+            const soloInformacion = modoModuloInteligente('retiros') !== 'ayudar';
+            if(botonConfirmar) {
+                botonConfirmar.disabled = soloInformacion;
+                botonConfirmar.textContent = soloInformacion ? 'Modo solo información' : 'Confirmar retiro';
+            }
+            if(soloInformacion) aviso.textContent += ' La confirmación está desactivada porque elegiste “Solo informar” en Opciones.';
             actualizarPreviewRetiroInteligente();
         }
 
         function abrirRetiroInteligente() {
             if(!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos de Dueño para registrar retiros.");
+            if(!moduloInteligenteActivo('retiros')) return alert('El retiro inteligente está desactivado en Opciones. Los retiros manuales continúan disponibles.');
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento e inténtalo de nuevo.");
             document.getElementById('ret-int-modo').value = 'inteligente';
             document.getElementById('ret-int-monto').value = '';
@@ -3920,6 +4405,7 @@
         async function procesarRetiroInteligente() {
             if(isProcessingTransaction) return;
             if(!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos de Dueño para registrar retiros.");
+            if(!moduloInteligenteActivo('retiros') || modoModuloInteligente('retiros') !== 'ayudar') return alert('Esta función está configurada en modo solo información. Puedes cambiarla en Opciones.');
             if(!window.db || !navigator.onLine) return alert("⚠️ Necesitas conexión para registrar el retiro sin arriesgar los fondos ni la bitácora.");
 
             const solicitud = obtenerSolicitudRetiroInteligente();
@@ -4004,8 +4490,8 @@
                 alert("❌ No se aplicó ningún cambio. " + error.message);
             } finally {
                 isProcessingTransaction = false;
-                botonConfirmar.disabled = false;
-                botonConfirmar.textContent = 'Confirmar retiro';
+                botonConfirmar.disabled = modoModuloInteligente('retiros') !== 'ayudar';
+                botonConfirmar.textContent = botonConfirmar.disabled ? 'Modo solo información' : 'Confirmar retiro';
             }
         }
 
@@ -4204,7 +4690,8 @@
             }
             
             renderResumenMensual(); actualizarListaClientes();
-            renderHistorialRetiros(); 
+            renderHistorialRetiros();
+            renderPanelInteligente();
 
             // RENDER HISTORIAL VENTAS
             const contVentas = document.getElementById('lista-ventas');
@@ -4252,7 +4739,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.0.8";
+        const APP_VERSION = "1.0.9";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -4294,6 +4781,8 @@
                 await forzarActualizacionApp(APP_VERSION);
                 return;
             }
+
+            aplicarPreferenciasSistema();
 
             if('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(error => console.warn("No se pudo registrar el modo instalable.", error));
