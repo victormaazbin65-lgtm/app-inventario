@@ -98,6 +98,16 @@
         .profit-text { color: var(--primary-green); font-weight: bold; font-size: 14px; display: block; margin-top: 3px;}
         .cost-text { color: var(--primary-red); font-size: 12px; }
         .cart-total { text-align: right; font-size: 18px; font-weight: bold; color: var(--text-dark); margin-top: 10px; }
+        .financial-breakdown { margin-top: 15px; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; background: rgba(31, 41, 55, 0.7); font-size: 13px; }
+        .financial-row { display: flex; justify-content: space-between; gap: 15px; padding: 7px 10px; color: var(--text-light); font-weight: normal; }
+        .financial-row span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .financial-row.income { color: var(--text-dark); font-size: 16px; font-weight: bold; padding-top: 10px; }
+        .financial-row.expense { color: var(--primary-red); }
+        .financial-row.total-expense { border-top: 1px dashed var(--border-color); color: var(--primary-orange); font-weight: bold; }
+        .financial-row.profit { border-top: 1px solid var(--border-color); color: var(--primary-green); font-size: 17px; font-weight: bold; padding: 10px; }
+        .financial-row.profit.negative { color: var(--primary-red); }
+        .financial-margin { padding: 0 10px 10px; text-align: right; color: var(--text-light); font-size: 12px; font-weight: normal; }
+        .financial-warning { color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 8px; background: rgba(239, 68, 68, 0.1); padding: 7px; border-radius: 6px; text-align: center; }
 
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
@@ -430,7 +440,7 @@
                         El cliente pide Factura (Separar 5% para SAT del total)
                     </label>
                 </div>
-                <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div>
 
@@ -503,7 +513,7 @@
                         Incluir Factura (Aplica 5% de retención para la SAT)
                     </label>
                 </div>
-                <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 
                 <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
                     <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
@@ -1034,6 +1044,76 @@
         function numeroFinito(valor, valorPorDefecto = 0) {
             const numero = Number(valor);
             return Number.isFinite(numero) ? numero : valorPorDefecto;
+        }
+
+        function calcularDesgloseFinanciero(detalleItems = [], costoTinta = 0, costoEnvio = 0, pideFactura = false) {
+            const tinta = Number(costoTinta);
+            const envio = Number(costoEnvio);
+            if(!Number.isFinite(tinta) || !Number.isFinite(envio) || tinta < 0 || envio < 0) {
+                throw new Error("Los gastos de producción y envío deben ser números válidos no negativos.");
+            }
+
+            let ingresoTotal = 0;
+            let costosProductos = 0;
+            for(const item of (Array.isArray(detalleItems) ? detalleItems : [])) {
+                const cantidad = Number(item.qty);
+                const precio = Number(item.precioCobrado);
+                const costoRegistrado = item.costoUnitarioReal === undefined || item.costoUnitarioReal === null
+                    ? item.costoBase
+                    : item.costoUnitarioReal;
+                const costoUnitario = Number(costoRegistrado);
+                if(!Number.isFinite(cantidad) || !Number.isFinite(precio) || !Number.isFinite(costoUnitario) || cantidad <= 0 || precio < 0 || costoUnitario < 0) {
+                    throw new Error(`Hay cantidades, precios o costos inválidos en "${item.nombre || 'un artículo'}".`);
+                }
+                ingresoTotal += cantidad * precio;
+                costosProductos += cantidad * costoUnitario;
+            }
+            if(!Number.isFinite(ingresoTotal) || !Number.isFinite(costosProductos)) {
+                throw new Error("Los montos son demasiado grandes para calcularse de forma segura.");
+            }
+
+            // La regla SAT permanece exactamente igual: 5% del ingreso solo con factura.
+            const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+            const totalGastos = costosProductos + tinta + envio + impuestoSAT;
+            const gananciaNeta = ingresoTotal - totalGastos;
+            const margen = ingresoTotal > 0 ? gananciaNeta / ingresoTotal : 0;
+            if(!Number.isFinite(impuestoSAT) || !Number.isFinite(totalGastos) || !Number.isFinite(gananciaNeta) || !Number.isFinite(margen)) {
+                throw new Error("El resultado financiero excede el límite numérico seguro.");
+            }
+
+            return {
+                ingresoTotal,
+                costosProductos,
+                costoTinta: tinta,
+                costoEnvio: envio,
+                impuestoSAT,
+                totalGastos,
+                gananciaNeta,
+                margen,
+                pideFactura: Boolean(pideFactura)
+            };
+        }
+
+        function generarHTMLDesgloseFinanciero(desglose, etiquetaIngreso, colorIngreso) {
+            const gananciaNegativa = desglose.gananciaNeta < 0;
+            const margenPorcentaje = desglose.ingresoTotal > 0 ? (desglose.margen * 100).toFixed(1) : '0.0';
+            let advertencia = '';
+            if(gananciaNegativa) {
+                advertencia = '<div class="financial-warning">⚠️ Esta operación produce pérdida. Revisa precio y gastos antes de continuar.</div>';
+            } else if(desglose.margen < ALERTA_MARGEN_MINIMO && desglose.ingresoTotal > 0) {
+                advertencia = `<div class="financial-warning">⚠️ La ganancia libre es muy baja (${margenPorcentaje}%).</div>`;
+            }
+
+            return `<div class="financial-breakdown">
+                <div class="financial-row income" style="color:${colorIngreso};"><span>${etiquetaIngreso}</span><span>Q ${desglose.ingresoTotal.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Materiales/servicios</span><span>Q ${desglose.costosProductos.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Producción (luz/tinta)</span><span>Q ${desglose.costoTinta.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Mensajero/envío</span><span>Q ${desglose.costoEnvio.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) SAT (5% con factura)</span><span>Q ${desglose.impuestoSAT.toFixed(2)}</span></div>
+                <div class="financial-row total-expense"><span>GASTOS TOTALES</span><span>Q ${desglose.totalGastos.toFixed(2)}</span></div>
+                <div class="financial-row profit${gananciaNegativa ? ' negative' : ''}"><span>GANANCIA LIBRE</span><span>Q ${desglose.gananciaNeta.toFixed(2)}</span></div>
+                <div class="financial-margin">Margen sobre la venta: ${margenPorcentaje}%</div>
+            </div>${advertencia}`;
         }
 
         function copiarDatos(objeto) {
@@ -2032,7 +2112,7 @@
             const prod = inventario.find(p => String(p.id) === String(id));
             if(!prod) return;
             actualizarListaCategorias(); 
-            document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = prod.costo.toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
+            document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = numeroFinito(prod.costo).toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
             
             if(prod.isService) { document.getElementById('edit-stock').disabled = true; document.getElementById('edit-min').disabled = true;
             } else { document.getElementById('edit-stock').disabled = false; document.getElementById('edit-min').disabled = false; }
@@ -2265,14 +2345,12 @@
         
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
-            let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoVentas.length === 0) { 
+            if (carritoVentas.length === 0) {
                 contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
             } else {
                 let html = '';
                 carritoVentas.forEach(item => {
-                    const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
-                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const subtotalCosto = item.qty * item.costoBase;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
                     const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
@@ -2282,20 +2360,15 @@
             }
 
             const pideFactura = document.getElementById('venta-factura')?.checked || false;
-            const costoTinta = parseFloat(document.getElementById('venta-tinta')?.value) || 0;
-            const costoEnvio = parseFloat(document.getElementById('venta-envio')?.value) || 0;
-            
-            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
-            let gastosExtra = costoTinta + costoEnvio;
-            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
-            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
-
-            let warningHTML = '';
-            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
-                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            const costoTinta = document.getElementById('venta-tinta')?.value || 0;
+            const costoEnvio = document.getElementById('venta-envio')?.value || 0;
+            const vistaPrevia = document.getElementById('venta-total-preview');
+            try {
+                const desglose = calcularDesgloseFinanciero(carritoVentas, costoTinta, costoEnvio, pideFactura);
+                vistaPrevia.innerHTML = generarHTMLDesgloseFinanciero(desglose, 'TOTAL A COBRAR', 'var(--primary-green)');
+            } catch(error) {
+                vistaPrevia.innerHTML = `<div class="financial-warning">⚠️ ${escaparHTML(error.message)}</div>`;
             }
-
-            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarVentaMultiple() {
@@ -2370,10 +2443,8 @@
                         costoBase: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)],
                         costoUnitarioReal: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)]
                     }));
-                    const ingresoTotal = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
-                    const costosProductos = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal)), 0);
-                    const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                    const gananciaNeta = ingresoTotal - costosProductos - costoTinta - costoEnvio - impuestoSAT;
+                    const desglose = calcularDesgloseFinanciero(detalleFinal, costoTinta, costoEnvio, pideFactura);
+                    const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
                     const itemsResumen = detalleFinal.map(item => {
                         let suffix = ''; if(item.rol === 'material') suffix = ' (M)'; if(item.rol === 'combo') suffix = ' (Combo)';
                         return `${item.qty}x ${item.nombre}${suffix}`;
@@ -2651,20 +2722,26 @@
 
         function renderCarritoCotizacion() {
             const contenedor = document.getElementById('lista-carrito-cotizacion');
-            let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoCotizacion.length === 0) { 
+            const cantidadesCotizadas = new Map();
+            carritoCotizacion.forEach(item => {
+                if(!item.isService) {
+                    const clave = String(item.idProd);
+                    cantidadesCotizadas.set(clave, numeroFinito(cantidadesCotizadas.get(clave)) + numeroFinito(item.qty));
+                }
+            });
+            if (carritoCotizacion.length === 0) {
                 contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
             } else {
                 let html = '';
                 carritoCotizacion.forEach(item => {
-                    const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
-                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const subtotalCosto = item.qty * item.costoBase;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
-                    
+
                     const prod = inventario.find(x => String(x.id) === String(item.idProd));
-                    const stockActual = prod ? prod.stock : 0;
-                    const alertaStock = (!item.isService && stockActual < item.qty) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
+                    const stockActual = prod ? numeroFinito(prod.stock) : 0;
+                    const cantidadCotizadaTotal = numeroFinito(cantidadesCotizadas.get(String(item.idProd)));
+                    const alertaStock = (!item.isService && stockActual < cantidadCotizadaTotal) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${cantidadCotizadaTotal - stockActual} en el total cotizado)</span>` : '';
                     const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
                     html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${numeroFinito(item.qty)}x ${escaparHTML(item.nombre)} ${alertaStock}</p><p class="item-details">${escaparHTML(detalleText)}</p></div><button onclick="borrarDelCarritoCotizacion(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
@@ -2673,20 +2750,15 @@
             }
 
             const pideFactura = document.getElementById('cotiza-factura')?.checked || false;
-            const costoTinta = parseFloat(document.getElementById('cotiza-tinta')?.value) || 0;
-            const costoEnvio = parseFloat(document.getElementById('cotiza-envio')?.value) || 0;
-            
-            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
-            let gastosExtra = costoTinta + costoEnvio;
-            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
-            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
-
-            let warningHTML = '';
-            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
-                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre calculada es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            const costoTinta = document.getElementById('cotiza-tinta')?.value || 0;
+            const costoEnvio = document.getElementById('cotiza-envio')?.value || 0;
+            const vistaPrevia = document.getElementById('cotiza-total-preview');
+            try {
+                const desglose = calcularDesgloseFinanciero(carritoCotizacion, costoTinta, costoEnvio, pideFactura);
+                vistaPrevia.innerHTML = generarHTMLDesgloseFinanciero(desglose, 'TOTAL COTIZADO', 'var(--primary-purple)');
+            } catch(error) {
+                vistaPrevia.innerHTML = `<div class="financial-warning">⚠️ ${escaparHTML(error.message)}</div>`;
             }
-
-            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarCotizacion() {
@@ -2714,17 +2786,15 @@
                     }
                 }
                 
-                let ingresoTotal = 0; let costosProductos = 0; let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
-                
+                let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
+
                 carritoCotizacion.forEach(item => {
-                    ingresoTotal += (item.qty * item.precioCobrado); costosProductos += (item.qty * item.costoBase); 
                     let priceStr = ''; if (item.rol === 'material') priceStr = '(Gasto Interno)'; else if (item.rol === 'combo') priceStr = '(🎁 INCLUIDO)'; else priceStr = `(Q${item.precioCobrado.toFixed(2)} c/u)`;
                     resumen += `- ${item.qty}x ${item.nombre} ${priceStr}\n`;
                 });
-                
-                let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const totalCostosOperativos = costosProductos + costoTinta + costoEnvio + impuestoSAT;
-                const gananciaNeta = ingresoTotal - totalCostosOperativos;
+
+                const desglose = calcularDesgloseFinanciero(carritoCotizacion, costoTinta, costoEnvio, pideFactura);
+                const { ingresoTotal, costosProductos, impuestoSAT, totalGastos, gananciaNeta } = desglose;
 
                 resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
                 resumen += `--------------------------------------\n`;
@@ -2732,6 +2802,7 @@
                 resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
                 resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
                 if(pideFactura) resumen += `🏛️ Impuesto SAT (5%): Q ${impuestoSAT.toFixed(2)}\n`;
+                resumen += `📉 GASTOS TOTALES: Q ${totalGastos.toFixed(2)}\n`;
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
@@ -2952,11 +3023,9 @@
                     costoBase: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)],
                     costoUnitarioReal: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)]
                 }));
-                const ingresoTotal = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
-                const costosProductos = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal)), 0);
                 const pideFactura = fuente.factura || false;
-                const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const gananciaNeta = ingresoTotal - costosProductos - costoTinta - costoEnvio - impuestoSAT;
+                const desglose = calcularDesgloseFinanciero(detalleFinal, costoTinta, costoEnvio, pideFactura);
+                const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
                 const resumenItems = detalleFinal.map(item => {
                     let suffix = ''; if(item.rol === 'material') suffix = ' (M)'; if(item.rol === 'combo') suffix = ' (Combo)';
                     return `${item.qty}x ${item.nombre}${suffix}`;
@@ -3110,7 +3179,7 @@
                 "Proveedor": p.proveedor || "NO ESPECIFICADO",
                 "Stock Actual": p.stock,
                 "Mínimo de Alerta": p.min || 0,
-                "Costo Unitario (Q)": p.costo.toFixed(2)
+                "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2)
             }));
 
             const libro = XLSX.utils.book_new();
@@ -3450,17 +3519,17 @@
             const inv = [...inventario].sort((a,b) => (a.nombre || '').localeCompare(b.nombre || ''));
             const vent = ventas.filter(v => !v.anulada); 
             const fnd = fondos; 
-            let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
+            let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (numeroFinito(p.stock) * numeroFinito(p.costo))), 0);
             const ret = historialRetiros;
             
             const libro = XLSX.utils.book_new();
             
-            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }];
+            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": numeroFinito(fnd.costoProducto).toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": numeroFinito(fnd.costoLuzTinta).toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": numeroFinito(fnd.fondoImpuestos).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": numeroFinito(fnd.gananciaLibre).toFixed(2) }];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen); XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Ventas Históricas": p.ventasTotales || 0, "Categoría": (p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": (p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
-            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": (v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": v.resumenItems.toUpperCase(), "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
-            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo.toUpperCase(), "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
+            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Ventas Históricas": numeroFinito(p.ventasTotales), "Categoría": String(p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : numeroFinito(p.stock), "Alerta Mínima": p.min !== undefined ? numeroFinito(p.min) : 0, "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2), "Proveedor": String(p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (numeroFinito(p.stock) * numeroFinito(p.costo)).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
+            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha || '', "Cliente": String(v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": String(v.resumenItems || '').toUpperCase(), "Total Cobrado (Q)": numeroFinito(v.ingresoTotal).toFixed(2), "Costo de Materiales (Q)": numeroFinito(v.costosProductos).toFixed(2), "Gasto Tinta/Luz (Q)": numeroFinito(v.costoTinta).toFixed(2), "Pago Mensajero (Q)": numeroFinito(v.costoEnvio).toFixed(2), "Impuesto Retenido (Q)": numeroFinito(v.impuestoSAT).toFixed(2), "Ganancia Neta (Q)": numeroFinito(v.ganancia).toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
+            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha || '', "Concepto/Caja": String(r.tipo || 'SIN CONCEPTO').toUpperCase(), "Monto Retirado (Q)": numeroFinito(r.monto).toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
             const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
@@ -3656,7 +3725,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.0.7";
+        const APP_VERSION = "1.0.8";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
