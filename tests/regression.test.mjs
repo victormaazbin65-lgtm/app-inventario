@@ -32,7 +32,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   assert.doesNotThrow(() => new Function(scriptClasico));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.0.8' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.0.9' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -457,10 +457,118 @@ test('el rediseño conserva el modo oscuro e incluye accesibilidad y adaptación
   assert.deepEqual(JSON.parse(leer('manifest.json')).theme_color, '#070b14');
 });
 
+test('las dos interfaces reutilizan la misma navegación y el celular conserva su diseño', () => {
+  assert.match(html, /id="ui-superior"/);
+  assert.match(html, /id="ui-lateral"/);
+  assert.match(html, /body\.layout-lateral \.tabs/);
+  assert.match(html, /@media \(min-width: 900px\)/);
+  assert.match(html, /@media \(max-width: 680px\)/);
+  assert.equal((html.match(/id="tab-inicio"/g) || []).length, 1);
+  assert.equal((html.match(/id="tab-inventario"/g) || []).length, 1);
+  assert.equal((html.match(/id="tab-ventas"/g) || []).length, 1);
+  assert.match(extraerFuncion('aplicarPreferenciasSistema'), /classList\.toggle\('layout-lateral'/);
+});
+
+test('la inteligencia tiene interruptor maestro y control independiente por módulo', () => {
+  const modulos = ['alertas', 'abastecimiento', 'precios', 'retiros', 'anomalias', 'cierre', 'busqueda', 'etiquetas'];
+  assert.match(html, /id="inteligencia-activa"/);
+  modulos.forEach(modulo => {
+    assert.match(html, new RegExp(`id="smart-${modulo}"`));
+    assert.match(html, new RegExp(`id="smart-${modulo}-modo"`));
+  });
+  assert.match(extraerFuncion('guardarPreferenciasSistemaDesdeUI'), /localStorage\.setItem\(KEY_PREFERENCIAS_SISTEMA/);
+  assert.doesNotMatch(extraerFuncion('guardarPreferenciasSistemaDesdeUI'), /window\.(?:setDoc|updateDoc|deleteDoc|runTransaction)/);
+  assert.match(html, /Nunca vende, retira, borra ni cambia existencias por sí solo/);
+
+  const contexto = vm.createContext({ Boolean, Object, Array });
+  vm.runInContext([
+    extraerFuncion('crearPreferenciasSistemaPorDefecto'),
+    extraerFuncion('normalizarPreferenciasSistema')
+  ].join('\n'), contexto);
+  const normalizadas = contexto.normalizarPreferenciasSistema({
+    interfazPc: 'desconocida',
+    menuLateral: 'expandido',
+    inteligenciaActiva: false,
+    modulos: { precios: { activo: false, modo: 'invalido' }, retiros: { activo: true, modo: 'informar' } }
+  });
+  assert.equal(normalizadas.interfazPc, 'superior');
+  assert.equal(normalizadas.menuLateral, 'expandido');
+  assert.equal(normalizadas.inteligenciaActiva, false);
+  assert.equal(normalizadas.modulos.precios.activo, false);
+  assert.equal(normalizadas.modulos.precios.modo, 'ayudar');
+  assert.equal(normalizadas.modulos.retiros.modo, 'informar');
+});
+
+test('el precio sugerido alcanza el margen objetivo sin cambiar la regla SAT', () => {
+  const contexto = vm.createContext({ Math, Number, Error });
+  vm.runInContext([
+    extraerFuncion('numeroFinito'),
+    extraerFuncion('calcularPrecioObjetivoInteligente')
+  ].join('\n'), contexto);
+
+  const sinFactura = { costosProductos: 60, costoTinta: 10, costoEnvio: 0, pideFactura: false };
+  const conFactura = { ...sinFactura, pideFactura: true };
+  assert.equal(contexto.calcularPrecioObjetivoInteligente(sinFactura, 0.30), 100);
+  assert.equal(contexto.calcularPrecioObjetivoInteligente(conFactura, 0.30), 107.70);
+
+  for(let costoCentavos = 0; costoCentavos <= 100000; costoCentavos += 37) {
+    const costo = costoCentavos / 100;
+    for(const factura of [false, true]) {
+      const precio = contexto.calcularPrecioObjetivoInteligente({ costosProductos: costo, costoTinta: 0, costoEnvio: 0, pideFactura: factura }, 0.30);
+      if(precio === 0) continue;
+      const ganancia = precio - costo - (factura ? precio * 0.05 : 0);
+      assert.ok((ganancia / precio) >= 0.30 - 1e-12);
+    }
+  }
+});
+
+test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir datos', () => {
+  const contexto = vm.createContext({ Math, Number, Error, Array, Boolean, String, Object, Map, Set, Date });
+  vm.runInContext(`
+    const ALERTA_MARGEN_MINIMO = 0.10;
+    const TAMANO_BLOQUE_CATEGORIA = 1000;
+    const PRIMER_BLOQUE_CATEGORIA = 1000;
+    ${extraerFuncion('normalizarTexto')}
+    ${extraerFuncion('redondear')}
+    ${extraerFuncion('numeroFinito')}
+    ${extraerFuncion('esCodigoInventarioValido')}
+    ${extraerFuncion('inicioDiaLocal')}
+    ${extraerFuncion('analizarSistemaInteligente')}
+  `, contexto);
+
+  const ahora = new Date(2026, 7, 24, 12, 0, 0).getTime();
+  const inventarioPrueba = [
+    { id: 'a', nombre: 'Pachón azul', stock: 2, min: 3, costo: 10, codigoInventario: 1001 },
+    { id: 'b', nombre: 'Taza', stock: 0, min: 2, costo: 8 },
+    { id: 'c', nombre: 'Error', stock: -1, min: 0, costo: 5, codigoInventario: 1001 }
+  ];
+  const ventasPrueba = [
+    { id: 'v1', timestamp: ahora - 1000, ingresoTotal: 100, costosProductos: 40, costoTinta: 10, costoEnvio: 0, impuestoSAT: 5, ganancia: 45, detalleItems: [{ idProd: 'a', nombre: 'Pachón azul', qty: 30 }] },
+    { id: 'v2', timestamp: ahora - 86400000, ingresoTotal: 50, costosProductos: 20, costoTinta: 0, costoEnvio: 0, impuestoSAT: 0, ganancia: 50, detalleItems: [{ idProd: 'b', nombre: 'Taza', qty: 2 }] }
+  ];
+  const fondosPrueba = { costoProducto: 300, costoLuzTinta: 100, gananciaLibre: 200, fondoImpuestos: 50 };
+  const copiaAntes = JSON.stringify({ inventarioPrueba, ventasPrueba, fondosPrueba });
+  const analisis = contexto.analizarSistemaInteligente(inventarioPrueba, ventasPrueba, fondosPrueba, ahora);
+
+  assert.equal(analisis.agotados.length, 2);
+  assert.equal(analisis.stockBajo.length, 3);
+  assert.equal(analisis.sinCodigo.length, 1);
+  assert.equal(analisis.anomalias.stockNegativo.length, 1);
+  assert.deepEqual(Array.from(analisis.anomalias.codigosDuplicados), ['1001']);
+  assert.equal(analisis.anomalias.ventasConDiferencia.length, 1);
+  assert.equal(analisis.resumenHoy.operaciones, 1);
+  assert.equal(analisis.resumenHoy.ganancia, 45);
+  assert.equal(analisis.fondos.totalCaja, 650);
+  assert.equal(analisis.fondos.disponibleSinSAT, 600);
+  assert.equal(analisis.abastecimiento[0].id, 'b');
+  assert.equal(JSON.stringify({ inventarioPrueba, ventasPrueba, fondosPrueba }), copiaAntes);
+  assert.doesNotMatch(extraerFuncion('analizarSistemaInteligente'), /window\.(?:setDoc|updateDoc|deleteDoc|runTransaction)/);
+});
+
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.0\.8"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.0\.8/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.0\.9"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.0\.9/);
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
     assert.ok(fs.existsSync(path.join(raiz, icono.src)), `Falta ${icono.src}`);
