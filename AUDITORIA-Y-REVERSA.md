@@ -13,6 +13,7 @@ Esta rama corrige riesgos de consistencia sin migrar, borrar ni reescribir los d
 - Se corrigen `version.json`, iconos, manifest y caché PWA. La limpieza de actualización afecta solamente Cache Storage y Service Workers; nunca elimina `localStorage` ni Firestore.
 - Se validan números finitos, cantidades, costos negativos y ventas por Q 0.00.
 - Se escapan datos dinámicos en los principales historiales y vistas para reducir inyección de HTML.
+- Se agrega un retiro inteligente opcional sin eliminar los cuatro retiros manuales. Puede retirar un monto priorizando ganancia, luz/tinta y productos sin tocar SAT; retirar solo ganancia; o retirar toda la caja con advertencia explícita. El desglose y los cuatro fondos se registran en una sola transacción de Firestore.
 
 ## Compatibilidad de datos
 
@@ -24,7 +25,8 @@ No hay una migración destructiva. Los documentos nuevos agregan campos compatib
 2. Ejecutar `node --experimental-vm-modules --test tests/*.test.mjs`.
 3. Probar en un proyecto Firebase de ensayo: ingreso, venta, cotización a venta, retiro, anulación inmediata y rechazo de anulación después de otro movimiento.
 4. Confirmar en dos dispositivos que una venta simultánea con stock insuficiente deja pasar solo una operación.
-5. Hacer una exportación o respaldo administrado de Firestore antes del despliegue. No usar datos reales para pruebas destructivas.
+5. Probar los tres modos de retiro en Firebase de ensayo y confirmar que un cambio simultáneo de fondos cancela el retiro antes de escribir.
+6. Hacer una exportación o respaldo administrado de Firestore antes del despliegue. No usar datos reales para pruebas destructivas.
 
 ## Cómo regresar
 

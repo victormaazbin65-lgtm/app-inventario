@@ -180,8 +180,9 @@
 
         <div id="sec-inicio" style="display: block;">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Panel de Finanzas</h3>
+                    <button id="btn-retiro-inteligente" class="btn-sm" style="background: var(--primary-green); color: white; padding: 9px 12px;" onclick="abrirRetiroInteligente()">💵 Retiro inteligente</button>
                 </div>
                 
                 <div class="dash-grid">
@@ -535,6 +536,43 @@
             </div>
         </div>
 
+    </div>
+
+    <div id="modal-retiro-inteligente" class="modal-overlay" style="z-index: 10000;">
+        <div class="modal-card" style="max-width: 460px;">
+            <h3 class="modal-title" style="color: var(--primary-green);">💵 Retiro inteligente</h3>
+            <p style="font-size: 12px; color: var(--text-light); line-height: 1.5; margin-top: -3px;">Registra un solo movimiento y el sistema descuenta los fondos necesarios dentro de una única operación segura.</p>
+
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--primary-green); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                <span style="font-size: 12px; color: var(--text-light);">Total disponible en caja</span>
+                <strong id="ret-int-total-caja" style="display: block; color: var(--primary-green); font-size: 22px; margin-top: 3px;">Q 0.00</strong>
+            </div>
+
+            <div class="form-group">
+                <label>¿Qué deseas retirar?</label>
+                <select id="ret-int-modo" onchange="actualizarVistaRetiroInteligente()">
+                    <option value="inteligente">Monto inteligente (protege SAT)</option>
+                    <option value="ganancia">Solo de ganancia libre</option>
+                    <option value="total">Toda la caja (incluye SAT)</option>
+                </select>
+            </div>
+
+            <div id="ret-int-grupo-monto" class="form-group">
+                <label id="ret-int-label-monto">Monto total a retirar</label>
+                <input type="number" id="ret-int-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="Q 0.00" oninput="actualizarPreviewRetiroInteligente()">
+            </div>
+
+            <div id="ret-int-aviso" style="font-size: 12px; line-height: 1.5; color: var(--text-light); margin-bottom: 12px;"></div>
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                <strong style="font-size: 13px; color: var(--text-dark);">Vista previa del descuento</strong>
+                <div id="ret-int-preview" style="font-size: 12px; color: var(--text-light); line-height: 1.7; margin-top: 7px;">Ingresa un monto para ver el desglose.</div>
+            </div>
+
+            <div class="modal-btn-row">
+                <button class="btn-cancel" onclick="cerrarRetiroInteligente()">Cancelar</button>
+                <button id="btn-confirmar-retiro-inteligente" style="background:var(--primary-green); color:white;" onclick="procesarRetiroInteligente()">Confirmar retiro</button>
+            </div>
+        </div>
     </div>
 
     <div id="modal-editar-user" class="modal-overlay">
@@ -3153,6 +3191,228 @@
         async function retirarGanancia() { await solicitarRetiroDesdeCampo('ret-ganancia', 'Ganancia Libre', 'gananciaLibre', '¿Retirar Q {monto} de la ganancia libre?', 'ganancia libre'); }
         async function retirarImpuesto() { await solicitarRetiroDesdeCampo('ret-impuesto', 'Pago Impuestos (SAT)', 'fondoImpuestos', '¿Retirar Q {monto} para pago de impuestos?', 'SAT'); }
 
+        function aCentavos(valor) {
+            const numero = Number(valor);
+            return Number.isFinite(numero) ? Math.round(numero * 100) : 0;
+        }
+
+        function desdeCentavos(centavos) {
+            return centavos / 100;
+        }
+
+        function calcularDesgloseRetiroInteligente(montoSolicitado, fondosDisponibles, modo = 'inteligente') {
+            if(!['inteligente', 'ganancia', 'total'].includes(modo)) throw new Error("El tipo de retiro seleccionado no es válido.");
+
+            const claves = ['costoProducto', 'costoLuzTinta', 'gananciaLibre', 'fondoImpuestos'];
+            const saldos = {};
+            claves.forEach(clave => {
+                saldos[clave] = Math.max(0, aCentavos(fondosDisponibles && fondosDisponibles[clave]));
+            });
+
+            let montoCentavos;
+            if(modo === 'total') {
+                montoCentavos = claves.reduce((total, clave) => total + saldos[clave], 0);
+            } else {
+                const montoNumero = Number(montoSolicitado);
+                if(!Number.isFinite(montoNumero) || montoNumero <= 0) throw new Error("Ingrese un monto válido mayor a Q 0.00.");
+                montoCentavos = aCentavos(montoNumero);
+            }
+            if(montoCentavos <= 0) throw new Error("No hay un monto disponible para retirar.");
+
+            const orden = modo === 'ganancia'
+                ? ['gananciaLibre']
+                : modo === 'total'
+                    ? claves
+                    : ['gananciaLibre', 'costoLuzTinta', 'costoProducto'];
+            const desgloseCentavos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+            let pendiente = montoCentavos;
+
+            orden.forEach(clave => {
+                const descuento = Math.min(pendiente, saldos[clave]);
+                desgloseCentavos[clave] = descuento;
+                pendiente -= descuento;
+            });
+
+            if(pendiente > 0) {
+                const mensaje = modo === 'ganancia'
+                    ? "La ganancia libre no alcanza para ese retiro."
+                    : "Los fondos disponibles sin usar SAT no alcanzan para ese retiro.";
+                throw new Error(mensaje);
+            }
+
+            return {
+                costoProducto: desdeCentavos(desgloseCentavos.costoProducto),
+                costoLuzTinta: desdeCentavos(desgloseCentavos.costoLuzTinta),
+                gananciaLibre: desdeCentavos(desgloseCentavos.gananciaLibre),
+                fondoImpuestos: desdeCentavos(desgloseCentavos.fondoImpuestos),
+                total: desdeCentavos(montoCentavos)
+            };
+        }
+
+        function formatearDesgloseRetiro(desglose) {
+            if(!desglose) return '';
+            const etiquetas = [
+                ['gananciaLibre', 'Ganancia'],
+                ['costoLuzTinta', 'Luz/Tinta'],
+                ['costoProducto', 'Productos'],
+                ['fondoImpuestos', 'SAT']
+            ];
+            return etiquetas
+                .filter(([clave]) => numeroFinito(desglose[clave]) > 0)
+                .map(([clave, etiqueta]) => `${etiqueta}: Q ${numeroFinito(desglose[clave]).toFixed(2)}`)
+                .join(' · ');
+        }
+
+        function obtenerSolicitudRetiroInteligente() {
+            const modo = document.getElementById('ret-int-modo').value;
+            const monto = modo === 'total' ? null : Number(document.getElementById('ret-int-monto').value);
+            return { modo, monto };
+        }
+
+        function actualizarPreviewRetiroInteligente() {
+            const preview = document.getElementById('ret-int-preview');
+            if(!preview) return;
+            const solicitud = obtenerSolicitudRetiroInteligente();
+            try {
+                const desglose = calcularDesgloseRetiroInteligente(solicitud.monto, fondos, solicitud.modo);
+                preview.innerHTML = `${formatearDesgloseRetiro(desglose)}<br><strong style="color:var(--text-dark);">Total: Q ${desglose.total.toFixed(2)}</strong>`;
+            } catch(error) {
+                const campoMonto = document.getElementById('ret-int-monto');
+                const sinMonto = solicitud.modo !== 'total' && campoMonto.value.trim() === '';
+                preview.textContent = sinMonto ? 'Ingresa un monto para ver el desglose.' : error.message;
+                preview.style.color = sinMonto ? 'var(--text-light)' : 'var(--primary-red)';
+                return;
+            }
+            preview.style.color = 'var(--text-light)';
+        }
+
+        function actualizarVistaRetiroInteligente() {
+            const modo = document.getElementById('ret-int-modo').value;
+            const grupoMonto = document.getElementById('ret-int-grupo-monto');
+            const labelMonto = document.getElementById('ret-int-label-monto');
+            const aviso = document.getElementById('ret-int-aviso');
+            grupoMonto.style.display = modo === 'total' ? 'none' : 'block';
+            labelMonto.textContent = modo === 'ganancia' ? 'Monto a retirar de ganancia' : 'Monto total a retirar';
+
+            if(modo === 'total') {
+                aviso.innerHTML = '<strong style="color:var(--primary-red);">Atención:</strong> este modo deja en Q 0.00 los cuatro fondos, incluido el fondo SAT. Pedirá una confirmación adicional.';
+            } else if(modo === 'ganancia') {
+                aviso.textContent = 'Solo descuenta la ganancia libre. Los otros tres fondos quedan intactos.';
+            } else {
+                aviso.textContent = 'Prioridad: ganancia, luego luz/tinta y por último productos. El fondo SAT no se toca.';
+            }
+            actualizarPreviewRetiroInteligente();
+        }
+
+        function abrirRetiroInteligente() {
+            if(!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos de Dueño para registrar retiros.");
+            if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento e inténtalo de nuevo.");
+            document.getElementById('ret-int-modo').value = 'inteligente';
+            document.getElementById('ret-int-monto').value = '';
+            const totalCaja = ['costoProducto', 'costoLuzTinta', 'gananciaLibre', 'fondoImpuestos']
+                .reduce((total, clave) => total + Math.max(0, aCentavos(fondos[clave])), 0);
+            document.getElementById('ret-int-total-caja').textContent = 'Q ' + desdeCentavos(totalCaja).toFixed(2);
+            document.getElementById('modal-retiro-inteligente').style.display = 'flex';
+            actualizarVistaRetiroInteligente();
+        }
+
+        function cerrarRetiroInteligente() {
+            if(isProcessingTransaction) return;
+            document.getElementById('modal-retiro-inteligente').style.display = 'none';
+        }
+
+        async function procesarRetiroInteligente() {
+            if(isProcessingTransaction) return;
+            if(!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos de Dueño para registrar retiros.");
+            if(!window.db || !navigator.onLine) return alert("⚠️ Necesitas conexión para registrar el retiro sin arriesgar los fondos ni la bitácora.");
+
+            const solicitud = obtenerSolicitudRetiroInteligente();
+            let vistaPrevia;
+            try {
+                vistaPrevia = calcularDesgloseRetiroInteligente(solicitud.monto, fondos, solicitud.modo);
+            } catch(error) {
+                return alert("❌ " + error.message);
+            }
+
+            const desgloseTexto = formatearDesgloseRetiro(vistaPrevia);
+            const mensajeConfirmacion = solicitud.modo === 'total'
+                ? `⚠️ RETIRO DE TODA LA CAJA\n\nSe retirarán Q ${vistaPrevia.total.toFixed(2)}, incluyendo Q ${vistaPrevia.fondoImpuestos.toFixed(2)} del fondo SAT.\n\n${desgloseTexto}\n\n¿Confirmas que deseas dejar los cuatro fondos en Q 0.00?`
+                : `Se retirarán Q ${vistaPrevia.total.toFixed(2)}.\n\n${desgloseTexto}\n\n¿Confirmas este retiro?`;
+            if(!confirm(mensajeConfirmacion)) return;
+
+            isProcessingTransaction = true;
+            const botonConfirmar = document.getElementById('btn-confirmar-retiro-inteligente');
+            botonConfirmar.disabled = true;
+            botonConfirmar.textContent = 'Procesando...';
+            const timestampActual = Date.now();
+            const retiroId = generarIDSeguro();
+
+            try {
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
+
+                    const fondosServidor = copiarDatos(configSnap.data().fondos);
+                    const desgloseServidor = calcularDesgloseRetiroInteligente(solicitud.monto, fondosServidor, solicitud.modo);
+                    const clavesFondos = ['costoProducto', 'costoLuzTinta', 'gananciaLibre', 'fondoImpuestos'];
+                    const cambioElDesglose = clavesFondos.some(clave => aCentavos(desgloseServidor[clave]) !== aCentavos(vistaPrevia[clave]));
+                    if(cambioElDesglose || aCentavos(desgloseServidor.total) !== aCentavos(vistaPrevia.total)) {
+                        throw new Error("Los fondos cambiaron después de la confirmación. Revisa el nuevo desglose y vuelve a confirmar.");
+                    }
+
+                    clavesFondos.forEach(clave => {
+                        const descuentoCentavos = aCentavos(desgloseServidor[clave]);
+                        if(descuentoCentavos > 0) {
+                            const saldoCentavos = Math.max(0, aCentavos(fondosServidor[clave]));
+                            fondosServidor[clave] = desdeCentavos(saldoCentavos - descuentoCentavos);
+                        }
+                    });
+
+                    const tipos = {
+                        inteligente: 'Retiro Inteligente (SAT protegido)',
+                        ganancia: 'Retiro de Ganancia Libre',
+                        total: 'Retiro de Toda la Caja'
+                    };
+                    const nuevoRetiro = {
+                        id: retiroId,
+                        timestamp: timestampActual,
+                        fecha: new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}),
+                        tipo: tipos[solicitud.modo].toUpperCase(),
+                        modoRetiro: solicitud.modo,
+                        monto: desgloseServidor.total,
+                        desglose: {
+                            costoProducto: desgloseServidor.costoProducto,
+                            costoLuzTinta: desgloseServidor.costoLuzTinta,
+                            gananciaLibre: desgloseServidor.gananciaLibre,
+                            fondoImpuestos: desgloseServidor.fondoImpuestos
+                        },
+                        satProtegido: solicitud.modo === 'inteligente',
+                        usuarioNombre: currentUserData.nombre || 'Dueño',
+                        versionCalculo: 3
+                    };
+
+                    t.update(configRef, { fondos: fondosServidor, ultimaActualizacion: timestampActual });
+                    t.set(window.doc(window.db, "retiros", String(retiroId)), nuevoRetiro);
+                    return { fondos: fondosServidor, retiro: nuevoRetiro };
+                });
+
+                fondos = resultado.fondos;
+                historialRetiros = fusionarPorId(historialRetiros, [resultado.retiro]);
+                guardarDatos();
+                document.getElementById('modal-retiro-inteligente').style.display = 'none';
+                actualizarUI();
+                alert(`✅ Retiro de Q ${resultado.retiro.monto.toFixed(2)} registrado en un solo movimiento.`);
+            } catch(error) {
+                console.error("No se pudo registrar el retiro inteligente:", error);
+                alert("❌ No se aplicó ningún cambio. " + error.message);
+            } finally {
+                isProcessingTransaction = false;
+                botonConfirmar.disabled = false;
+                botonConfirmar.textContent = 'Confirmar retiro';
+            }
+        }
+
         function renderHistorialRetiros() {
             const cont = document.getElementById('lista-retiros-historial');
             if(!cont) return;
@@ -3162,11 +3422,12 @@
             }
             
             let html = '';
-            [...historialRetiros].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0)).slice(0, 50).forEach(r => { 
+            [...historialRetiros].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0)).slice(0, 50).forEach(r => {
+                const detalleDesglose = formatearDesgloseRetiro(r.desglose);
                 html += `<div class="item-row" style="padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-red); font-size: 14px; margin:0 0 3px 0;">➖ Retiro: ${escaparHTML(r.tipo)}</p>
-                        <p class="item-details" style="font-size: 12px;">📅 ${escaparHTML(r.fecha)}</p>
+                        <p class="item-details" style="font-size: 12px;">📅 ${escaparHTML(r.fecha)}${detalleDesglose ? `<br>📌 ${escaparHTML(detalleDesglose)}` : ''}</p>
                     </div>
                     <div style="font-weight: bold; color: var(--text-dark); font-size: 15px;">Q ${numeroFinito(r.monto).toFixed(2)}</div>
                 </div>`;

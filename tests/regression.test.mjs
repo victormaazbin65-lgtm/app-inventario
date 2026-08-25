@@ -79,12 +79,63 @@ test('SAT conserva el cálculo existente del cinco por ciento', () => {
   assert.match(scriptClasico, /Impuesto SAT \(5%\)/);
 });
 
+test('el retiro inteligente distribuye centavos con prioridad y protege SAT', () => {
+  const contexto = vm.createContext({ Math, Number, Error });
+  vm.runInContext([
+    extraerFuncion('aCentavos'),
+    extraerFuncion('desdeCentavos'),
+    extraerFuncion('calcularDesgloseRetiroInteligente')
+  ].join('\n'), contexto);
+
+  const fondos = { gananciaLibre: 1000, costoLuzTinta: 300, costoProducto: 700, fondoImpuestos: 250 };
+  const inteligente = contexto.calcularDesgloseRetiroInteligente(1400, fondos, 'inteligente');
+  assert.deepEqual(JSON.parse(JSON.stringify(inteligente)), {
+    costoProducto: 100,
+    costoLuzTinta: 300,
+    gananciaLibre: 1000,
+    fondoImpuestos: 0,
+    total: 1400
+  });
+  assert.throws(() => contexto.calcularDesgloseRetiroInteligente(2000.01, fondos, 'inteligente'), /sin usar SAT/);
+
+  const ganancia = contexto.calcularDesgloseRetiroInteligente(125.35, fondos, 'ganancia');
+  assert.equal(ganancia.gananciaLibre, 125.35);
+  assert.equal(ganancia.costoProducto, 0);
+  assert.equal(ganancia.fondoImpuestos, 0);
+
+  const total = contexto.calcularDesgloseRetiroInteligente(null, fondos, 'total');
+  assert.equal(total.total, 2250);
+  assert.equal(total.fondoImpuestos, 250);
+
+  const centavos = contexto.calcularDesgloseRetiroInteligente(0.30, { gananciaLibre: 0.10, costoLuzTinta: 0.20 }, 'inteligente');
+  assert.equal(centavos.total, 0.30);
+  assert.equal(centavos.gananciaLibre, 0.10);
+  assert.equal(centavos.costoLuzTinta, 0.20);
+});
+
 test('las operaciones críticas no conservan el fallback que escribía parcialmente', () => {
   assert.doesNotMatch(scriptClasico, /Fallback local activado|promesasOffline|usando Fallback/i);
   assert.match(scriptClasico, /venta\.versionCalculo !== 2/);
   assert.match(scriptClasico, /registro\.versionCalculo !== 2/);
   assert.match(scriptClasico, /resumenMensualContabilizado:\s*true/);
   assert.doesNotMatch(scriptClasico, /deleteDoc\(window\.doc\(window\.db,\s*["'](?:ventas|ingresos|cotizaciones|retiros)["']/);
+});
+
+test('el retiro inteligente conserva los retiros manuales y escribe un registro con desglose', () => {
+  const funcionRetiro = extraerFuncion('procesarRetiroInteligente');
+  assert.match(html, /id="btn-retiro-inteligente"/);
+  assert.match(scriptClasico, /async function retirarCostoProducto\(/);
+  assert.match(scriptClasico, /async function retirarCostoLuz\(/);
+  assert.match(scriptClasico, /async function retirarGanancia\(/);
+  assert.match(scriptClasico, /async function retirarImpuesto\(/);
+  assert.match(funcionRetiro, /window\.runTransaction/);
+  assert.equal((funcionRetiro.match(/t\.update\(/g) || []).length, 1);
+  assert.equal((funcionRetiro.match(/t\.set\(/g) || []).length, 1);
+  assert.doesNotMatch(funcionRetiro, /window\.(?:setDoc|updateDoc|deleteDoc)\(/);
+  assert.match(funcionRetiro, /modoRetiro:\s*solicitud\.modo/);
+  assert.match(funcionRetiro, /desglose:\s*\{/);
+  assert.match(funcionRetiro, /versionCalculo:\s*3/);
+  assert.match(funcionRetiro, /Los fondos cambiaron después de la confirmación/);
 });
 
 test('PWA usa la misma versión y sus iconos existen', () => {
