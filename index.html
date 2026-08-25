@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SubliCosturas - Sistema Pro</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#111827">
+    <meta name="theme-color" content="#070b14">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -98,6 +98,16 @@
         .profit-text { color: var(--primary-green); font-weight: bold; font-size: 14px; display: block; margin-top: 3px;}
         .cost-text { color: var(--primary-red); font-size: 12px; }
         .cart-total { text-align: right; font-size: 18px; font-weight: bold; color: var(--text-dark); margin-top: 10px; }
+        .financial-breakdown { margin-top: 15px; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; background: rgba(31, 41, 55, 0.7); font-size: 13px; }
+        .financial-row { display: flex; justify-content: space-between; gap: 15px; padding: 7px 10px; color: var(--text-light); font-weight: normal; }
+        .financial-row span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .financial-row.income { color: var(--text-dark); font-size: 16px; font-weight: bold; padding-top: 10px; }
+        .financial-row.expense { color: var(--primary-red); }
+        .financial-row.total-expense { border-top: 1px dashed var(--border-color); color: var(--primary-orange); font-weight: bold; }
+        .financial-row.profit { border-top: 1px solid var(--border-color); color: var(--primary-green); font-size: 17px; font-weight: bold; padding: 10px; }
+        .financial-row.profit.negative { color: var(--primary-red); }
+        .financial-margin { padding: 0 10px 10px; text-align: right; color: var(--text-light); font-size: 12px; font-weight: normal; }
+        .financial-warning { color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 8px; background: rgba(239, 68, 68, 0.1); padding: 7px; border-radius: 6px; text-align: center; }
 
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box;}
@@ -126,6 +136,170 @@
         /* Estilos checkbox de permisos */
         .permisos-check label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-dark); font-weight: normal; margin-bottom: 8px;}
         .permisos-check input { width: 18px; height: 18px; cursor: pointer; margin: 0; }
+
+        /* REDISEÑO OSCURO MODERNO — solo presentación, sin alterar los flujos */
+        :root {
+            --bg-color: #070b14;
+            --card-bg: rgba(15, 23, 42, 0.82);
+            --surface-bg: #111a2d;
+            --surface-soft: rgba(30, 41, 59, 0.64);
+            --primary-blue: #60a5fa;
+            --primary-green: #34d399;
+            --primary-red: #fb7185;
+            --primary-purple: #a78bfa;
+            --primary-orange: #fb923c;
+            --text-dark: #f8fafc;
+            --text-light: #a8b3c7;
+            --border-color: rgba(148, 163, 184, 0.18);
+            --shadow: 0 18px 45px -24px rgba(0, 0, 0, 0.85);
+            --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.22);
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 8% -10%, rgba(59, 130, 246, 0.17), transparent 34rem),
+                radial-gradient(circle at 96% 12%, rgba(139, 92, 246, 0.12), transparent 30rem),
+                var(--bg-color);
+            background-attachment: fixed;
+            padding: 22px;
+            line-height: 1.45;
+        }
+        .container { max-width: 1080px; }
+        .tabs {
+            position: sticky;
+            top: 10px;
+            z-index: 80;
+            gap: 6px;
+            padding: 7px;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            background: rgba(7, 11, 20, 0.78);
+            box-shadow: 0 16px 45px -28px rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .tab-btn {
+            min-width: 110px;
+            padding: 11px 13px;
+            border-color: transparent;
+            border-radius: 12px;
+            background: transparent;
+            box-shadow: none;
+            font-weight: 700;
+            transition: background-color .2s ease, color .2s ease, transform .2s ease;
+        }
+        .tab-btn:hover { background: rgba(96, 165, 250, 0.10); color: var(--text-dark); }
+        .tab-btn.active {
+            color: #fff;
+            border-color: rgba(147, 197, 253, 0.24);
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            box-shadow: 0 10px 25px -14px rgba(59, 130, 246, 0.95);
+        }
+        .card {
+            border-radius: 20px;
+            padding: 24px;
+            border-color: var(--border-color);
+            background: linear-gradient(145deg, rgba(17, 26, 45, .94), rgba(11, 17, 30, .90));
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .section-title {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 13px;
+            letter-spacing: -0.02em;
+        }
+        .sub-title { border-bottom-style: solid; }
+        .logo-container { margin-bottom: 24px; }
+        #logo-img { border-radius: 20px; box-shadow: var(--shadow); }
+        .dash-grid { gap: 14px; }
+        .dash-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .13);
+            border-radius: 18px;
+            text-align: left;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .dash-card::after {
+            content: '';
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -55px;
+            top: -55px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .12);
+        }
+        .dash-card:hover { transform: translateY(-2px); box-shadow: 0 20px 35px -24px rgba(0,0,0,.95); }
+        .bg-blue { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
+        .bg-purple { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
+        .bg-orange { background: linear-gradient(135deg, #c2410c, #ea580c); }
+        .bg-green { background: linear-gradient(135deg, #047857, #059669); }
+        .bg-gray { background: linear-gradient(135deg, #334155, #475569); }
+        .bg-dark { background: linear-gradient(135deg, #020617, #111827); }
+        .dash-value { font-variant-numeric: tabular-nums; letter-spacing: -0.035em; }
+        .dash-btn { border: 1px solid rgba(255,255,255,.12); border-radius: 9px; }
+        input, select, .autocomplete-input {
+            min-height: 43px;
+            padding: 11px 12px;
+            border-radius: 11px;
+            border-color: var(--border-color);
+            background: rgba(15, 23, 42, .86);
+            transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+        }
+        input:focus, select:focus, .autocomplete-input:focus {
+            border-color: var(--primary-blue);
+            background: #111a2d;
+            box-shadow: var(--focus-ring);
+        }
+        button.btn-main {
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            box-shadow: 0 14px 28px -18px rgba(59, 130, 246, .9);
+        }
+        button.btn-green { background: linear-gradient(135deg, #059669, #0d9488); }
+        .btn-sm { border-radius: 8px; }
+        .btn-edit { background: #b45309; }
+        .btn-delete { background: #9f1239; }
+        .btn-sell { background: #1e3a8a; }
+        .cart-container {
+            border-style: solid;
+            border-color: rgba(96, 165, 250, .32);
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(15, 23, 42, .92), rgba(8, 15, 29, .92));
+        }
+        .item-row { gap: 14px; }
+        .sugerencias-box { border-radius: 13px; background: #101827; }
+        .sugerencia-item:hover { background: #1d4ed8; }
+        .modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        .modal-card { border-radius: 20px; background: #101827; }
+        .financial-breakdown { background: rgba(5, 11, 22, .55); border-radius: 13px; }
+        .inventory-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .inventory-code-note { margin: 0 0 14px; padding: 11px 13px; border: 1px solid rgba(96,165,250,.22); border-radius: 12px; background: rgba(59,130,246,.08); color: var(--text-light); font-size: 12px; }
+        .product-code { display: inline-flex; align-items: center; padding: 3px 8px; margin-right: 7px; border: 1px solid rgba(96,165,250,.3); border-radius: 999px; background: rgba(59,130,246,.12); color: #bfdbfe; font-size: 11px; font-weight: 800; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+        .product-code.pending { border-color: rgba(251,146,60,.3); background: rgba(249,115,22,.1); color: #fed7aa; }
+        .category-code { color: var(--text-light); font-size: 11px; font-weight: 700; }
+        .btn-label { color: #dbeafe; background: rgba(37,99,235,.28); border: 1px solid rgba(96,165,250,.35); }
+
+        :focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+        @media (max-width: 680px) {
+            body { padding: 11px; }
+            .container { padding-bottom: 35px; }
+            .tabs { top: 6px; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+            .tab-btn { flex: 0 0 auto; min-width: 105px; }
+            .card { padding: 17px; border-radius: 17px; }
+            .grid-2 { grid-template-columns: 1fr; gap: 0; }
+            .item-row { flex-direction: column; }
+            .item-actions { width: 100%; }
+            .item-actions .btn-sm { flex: 1; }
+            .inventory-toolbar > *, .inventory-toolbar > div { width: 100%; max-width: none !important; }
+            .inventory-toolbar > div { display: grid !important; grid-template-columns: 1fr 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+        }
     </style>
 </head>
 <body>
@@ -280,7 +454,7 @@
 
                 <div class="form-group" id="grupo-buscador-ingreso" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-green);">🔍 Busca el artículo a surtir</label>
-                    <input type="text" id="buscador-ingreso-producto" autocomplete="off" placeholder="Escribe o toca aquí..." oninput="renderSugerenciasIngreso()" onclick="renderSugerenciasIngreso(true)" class="autocomplete-input">
+                    <input type="text" id="buscador-ingreso-producto" autocomplete="off" placeholder="Escribe nombre o código..." oninput="renderSugerenciasIngreso()" onclick="renderSugerenciasIngreso(true)" class="autocomplete-input">
                     <div id="sugerencias-ingreso-box" class="sugerencias-box"></div>
                     <input type="hidden" id="ingreso-producto-id">
                 </div>
@@ -363,13 +537,18 @@
             <div class="card">
                 <h3 class="section-title">Mi Inventario Actual</h3>
                 <div class="form-group">
-                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar producto por nombre..." oninput="renderInventario()" style="margin-bottom: 10px;">
-                    <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar por código, producto o categoría..." oninput="renderInventario()" style="margin-bottom: 10px;">
+                    <p class="inventory-code-note">🏷️ Cada categoría recibe un bloque de 1000. Ejemplo: bloque 1000 → productos 1001 a 1999. El código de un producto es permanente y sirve para su etiqueta física.</p>
+                    <div class="inventory-toolbar">
                         <button onclick="toggleVistaInv()" id="btn-vista-inv" class="btn-sm" style="background-color: #4b5563; color: white; padding: 10px 15px; flex-grow: 1; max-width: 200px;">🗂️ Ver A-Z</button>
                         <div style="display: flex; gap: 8px;">
                             <button onclick="crearCategoriaVacia()" class="btn-sm btn-green" style="padding: 10px 15px;">➕ Crear Cat.</button>
                             <button onclick="renombrarCategoriaGlobalUI()" class="btn-sm" style="background-color: var(--primary-blue); color: white; padding: 10px 15px;">✏️ Modificar Cat.</button>
                             <button onclick="eliminarCategoriaGlobalUI()" class="btn-sm btn-delete" style="padding: 10px 15px;">🗑️ Eliminar Cat.</button>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-asignar-codigos" onclick="asignarCodigosInventarioFaltantes()" class="btn-sm btn-label" style="padding: 10px 15px;">🏷️ Asignar códigos faltantes</button>
+                            <button onclick="imprimirEtiquetasInventario()" class="btn-sm" style="padding: 10px 15px; background:#334155; color:white;">🖨️ Imprimir etiquetas</button>
                         </div>
                     </div>
                 </div>
@@ -382,7 +561,7 @@
                 <h3 class="section-title">1. Agregar al Carrito</h3>
                 <div class="form-group" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
-                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. Escribe 'taza' o toca aquí..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
+                    <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. nombre o código 1001..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
                     <div id="sugerencias-ventas-box" class="sugerencias-box"></div>
                     <input type="hidden" id="venta-producto">
                 </div>
@@ -430,7 +609,7 @@
                         El cliente pide Factura (Separar 5% para SAT del total)
                     </label>
                 </div>
-                <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div>
 
@@ -456,7 +635,7 @@
                 
                 <div class="form-group" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-purple);">🔍 Busca y selecciona el artículo</label>
-                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. Escribe 'playera' o toca aquí..." oninput="renderSelectCotizacion()" onclick="renderSelectCotizacion(true)" class="autocomplete-input">
+                    <input type="text" id="buscador-cotiza-producto" autocomplete="off" placeholder="Ej. nombre o código 1001..." oninput="renderSelectCotizacion()" onclick="renderSelectCotizacion(true)" class="autocomplete-input">
                     <div id="sugerencias-cotiza-box" class="sugerencias-box"></div>
                     <input type="hidden" id="cotiza-producto">
                 </div>
@@ -503,7 +682,7 @@
                         Incluir Factura (Aplica 5% de retención para la SAT)
                     </label>
                 </div>
-                <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;">Total a Cobrar: Q 0.00</div>
+                <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 
                 <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
                     <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
@@ -725,6 +904,143 @@
             return terminos.every(term => txtLimpio.includes(term));
         }
 
+        const TAMANO_BLOQUE_CATEGORIA = 1000;
+        const PRIMER_BLOQUE_CATEGORIA = 1000;
+        const MAX_PRODUCTOS_POR_BLOQUE = 999;
+
+        function normalizarCategoriaCodigo(categoria) {
+            const nombre = String(categoria || 'OTROS').trim().toUpperCase();
+            return nombre || 'OTROS';
+        }
+
+        function esCodigoInventarioValido(valor) {
+            const codigo = Number(valor);
+            return Number.isInteger(codigo) && codigo > PRIMER_BLOQUE_CATEGORIA && codigo % TAMANO_BLOQUE_CATEGORIA !== 0;
+        }
+
+        function normalizarEstadoCodigosInventario(estado) {
+            estado = estado || {};
+            const resultado = { version: 1, bloques: {}, siguientes: {}, siguienteBloque: PRIMER_BLOQUE_CATEGORIA };
+            const bloquesOrigen = estado && typeof estado.bloques === 'object' && estado.bloques ? estado.bloques : {};
+            const siguientesOrigen = estado && typeof estado.siguientes === 'object' && estado.siguientes ? estado.siguientes : {};
+            const bloquesUsados = new Set();
+
+            Object.keys(bloquesOrigen).sort().forEach(categoriaOriginal => {
+                const categoria = normalizarCategoriaCodigo(categoriaOriginal);
+                const bloque = Number(bloquesOrigen[categoriaOriginal]);
+                const bloqueValido = Number.isInteger(bloque) && bloque >= PRIMER_BLOQUE_CATEGORIA && bloque % TAMANO_BLOQUE_CATEGORIA === 0;
+                if(!bloqueValido || bloquesUsados.has(bloque)) return;
+                resultado.bloques[categoria] = bloque;
+                bloquesUsados.add(bloque);
+            });
+
+            Object.entries(resultado.bloques).forEach(([categoria, bloque]) => {
+                const siguienteOrigen = Number(siguientesOrigen[categoria]);
+                const minimo = bloque + 1;
+                const agotado = bloque + TAMANO_BLOQUE_CATEGORIA;
+                resultado.siguientes[categoria] = Number.isInteger(siguienteOrigen)
+                    ? Math.min(agotado, Math.max(minimo, siguienteOrigen))
+                    : minimo;
+            });
+
+            const siguienteSolicitado = Number(estado?.siguienteBloque);
+            let siguienteBloque = Number.isInteger(siguienteSolicitado) && siguienteSolicitado >= PRIMER_BLOQUE_CATEGORIA
+                ? Math.ceil(siguienteSolicitado / TAMANO_BLOQUE_CATEGORIA) * TAMANO_BLOQUE_CATEGORIA
+                : PRIMER_BLOQUE_CATEGORIA;
+            if(bloquesUsados.size > 0) siguienteBloque = Math.max(siguienteBloque, Math.max(...bloquesUsados) + TAMANO_BLOQUE_CATEGORIA);
+            while(bloquesUsados.has(siguienteBloque)) siguienteBloque += TAMANO_BLOQUE_CATEGORIA;
+            resultado.siguienteBloque = siguienteBloque;
+            return resultado;
+        }
+
+        function incorporarCodigosExistentes(estado, productos = []) {
+            const resultado = normalizarEstadoCodigosInventario(estado);
+            const codigosOcupados = new Set();
+            const propietarioCodigo = new Map();
+            const bloquesUsados = new Set(Object.values(resultado.bloques));
+
+            productos.filter(p => !p?.isService).forEach(producto => {
+                const codigo = Number(producto.codigoInventario);
+                if(!Number.isInteger(codigo) || codigo <= PRIMER_BLOQUE_CATEGORIA || codigo % TAMANO_BLOQUE_CATEGORIA === 0) return;
+                const idProducto = String(producto.id ?? producto.nombre ?? 'SIN-ID');
+                if(propietarioCodigo.has(codigo) && propietarioCodigo.get(codigo) !== idProducto) {
+                    throw new Error(`El código ${codigo} está repetido. No se asignó ningún código nuevo.`);
+                }
+                propietarioCodigo.set(codigo, idProducto);
+                codigosOcupados.add(codigo);
+
+                const categoria = normalizarCategoriaCodigo(producto.categoria);
+                const bloqueDelCodigo = Math.floor(codigo / TAMANO_BLOQUE_CATEGORIA) * TAMANO_BLOQUE_CATEGORIA;
+                if(!resultado.bloques[categoria] && bloqueDelCodigo >= PRIMER_BLOQUE_CATEGORIA && !bloquesUsados.has(bloqueDelCodigo)) {
+                    resultado.bloques[categoria] = bloqueDelCodigo;
+                    resultado.siguientes[categoria] = bloqueDelCodigo + 1;
+                    bloquesUsados.add(bloqueDelCodigo);
+                }
+                if(resultado.bloques[categoria] === bloqueDelCodigo) {
+                    resultado.siguientes[categoria] = Math.min(
+                        bloqueDelCodigo + TAMANO_BLOQUE_CATEGORIA,
+                        Math.max(resultado.siguientes[categoria] || bloqueDelCodigo + 1, codigo + 1)
+                    );
+                }
+            });
+
+            if(bloquesUsados.size > 0) resultado.siguienteBloque = Math.max(resultado.siguienteBloque, Math.max(...bloquesUsados) + TAMANO_BLOQUE_CATEGORIA);
+            while(bloquesUsados.has(resultado.siguienteBloque)) resultado.siguienteBloque += TAMANO_BLOQUE_CATEGORIA;
+            return { estado: resultado, codigosOcupados };
+        }
+
+        function asegurarBloqueCategoria(estado, categoria) {
+            const resultado = normalizarEstadoCodigosInventario(estado);
+            const categoriaNormalizada = normalizarCategoriaCodigo(categoria);
+            if(resultado.bloques[categoriaNormalizada]) {
+                return { bloque: resultado.bloques[categoriaNormalizada], estado: resultado };
+            }
+
+            const bloquesUsados = new Set(Object.values(resultado.bloques));
+            let nuevoBloque = resultado.siguienteBloque;
+            while(bloquesUsados.has(nuevoBloque)) nuevoBloque += TAMANO_BLOQUE_CATEGORIA;
+            resultado.bloques[categoriaNormalizada] = nuevoBloque;
+            resultado.siguientes[categoriaNormalizada] = nuevoBloque + 1;
+            resultado.siguienteBloque = nuevoBloque + TAMANO_BLOQUE_CATEGORIA;
+            return { bloque: nuevoBloque, estado: resultado };
+        }
+
+        function asignarSiguienteCodigoInventario(estado, categoria, codigosOcupados = []) {
+            const categoriaNormalizada = normalizarCategoriaCodigo(categoria);
+            const ocupados = new Set(Array.from(codigosOcupados || []).map(Number));
+            const bloqueAsegurado = asegurarBloqueCategoria(estado, categoriaNormalizada);
+            const resultado = bloqueAsegurado.estado;
+            const bloque = bloqueAsegurado.bloque;
+            const limite = bloque + MAX_PRODUCTOS_POR_BLOQUE;
+            let codigo = Math.max(bloque + 1, numeroFinito(resultado.siguientes[categoriaNormalizada], bloque + 1));
+            while(codigo <= limite && ocupados.has(codigo)) codigo++;
+            if(codigo > limite) throw new Error(`La categoría "${categoriaNormalizada}" agotó sus ${MAX_PRODUCTOS_POR_BLOQUE} códigos disponibles.`);
+
+            resultado.siguientes[categoriaNormalizada] = codigo + 1;
+            ocupados.add(codigo);
+            return { codigo, bloque, estado: resultado, codigosOcupados: ocupados };
+        }
+
+        function renombrarCategoriaEnEstadoCodigos(estado, categoriaActual, categoriaNueva) {
+            const resultado = normalizarEstadoCodigosInventario(estado);
+            const actual = normalizarCategoriaCodigo(categoriaActual);
+            const nueva = normalizarCategoriaCodigo(categoriaNueva);
+            if(actual === nueva || !resultado.bloques[actual]) return resultado;
+            if(resultado.bloques[nueva] && resultado.bloques[nueva] !== resultado.bloques[actual]) {
+                throw new Error(`La categoría "${nueva}" ya tiene asignado el bloque ${resultado.bloques[nueva]}.`);
+            }
+            resultado.bloques[nueva] = resultado.bloques[actual];
+            resultado.siguientes[nueva] = resultado.siguientes[actual];
+            delete resultado.bloques[actual];
+            delete resultado.siguientes[actual];
+            return resultado;
+        }
+
+        function coincideBusquedaProducto(producto, textoBuscado) {
+            const codigo = esCodigoInventarioValido(producto?.codigoInventario) ? String(producto.codigoInventario) : '';
+            return busquedaInteligente(`${codigo} ${producto?.nombre || ''} ${producto?.categoria || ''}`, textoBuscado);
+        }
+
         function generarIDSeguro() {
             return Date.now().toString() + Math.random().toString(36).substring(2, 8);
         }
@@ -746,13 +1062,15 @@
         const KEY_FONDOS = 'subli_fondos_v10';
         const KEY_INGRESOS = 'subli_ingresos_v10';
         const KEY_COTIZ_HIST = 'subli_cotiz_hist_v10';
-        const KEY_RETIROS = 'subli_retiros_v10'; 
+        const KEY_RETIROS = 'subli_retiros_v10';
+        const KEY_CODIGOS_INV = 'subli_codigos_inv_v1';
         
         const ALERTA_MARGEN_MINIMO = 0.10; 
 
-        let inventario = []; let ventas = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = []; 
-        let resumenMensualNube = []; 
+        let inventario = []; let ventas = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = [];
+        let resumenMensualNube = [];
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+        let estadoCodigosInventario = normalizarEstadoCodigosInventario();
         let datosCargadosDeLaNube = false; 
         let cargaDatosIniciada = false;
         let historialCompletoCargado = { ventas: false, ingresos: false, cotizaciones: false, retiros: false };
@@ -1036,6 +1354,76 @@
             return Number.isFinite(numero) ? numero : valorPorDefecto;
         }
 
+        function calcularDesgloseFinanciero(detalleItems = [], costoTinta = 0, costoEnvio = 0, pideFactura = false) {
+            const tinta = Number(costoTinta);
+            const envio = Number(costoEnvio);
+            if(!Number.isFinite(tinta) || !Number.isFinite(envio) || tinta < 0 || envio < 0) {
+                throw new Error("Los gastos de producción y envío deben ser números válidos no negativos.");
+            }
+
+            let ingresoTotal = 0;
+            let costosProductos = 0;
+            for(const item of (Array.isArray(detalleItems) ? detalleItems : [])) {
+                const cantidad = Number(item.qty);
+                const precio = Number(item.precioCobrado);
+                const costoRegistrado = item.costoUnitarioReal === undefined || item.costoUnitarioReal === null
+                    ? item.costoBase
+                    : item.costoUnitarioReal;
+                const costoUnitario = Number(costoRegistrado);
+                if(!Number.isFinite(cantidad) || !Number.isFinite(precio) || !Number.isFinite(costoUnitario) || cantidad <= 0 || precio < 0 || costoUnitario < 0) {
+                    throw new Error(`Hay cantidades, precios o costos inválidos en "${item.nombre || 'un artículo'}".`);
+                }
+                ingresoTotal += cantidad * precio;
+                costosProductos += cantidad * costoUnitario;
+            }
+            if(!Number.isFinite(ingresoTotal) || !Number.isFinite(costosProductos)) {
+                throw new Error("Los montos son demasiado grandes para calcularse de forma segura.");
+            }
+
+            // La regla SAT permanece exactamente igual: 5% del ingreso solo con factura.
+            const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
+            const totalGastos = costosProductos + tinta + envio + impuestoSAT;
+            const gananciaNeta = ingresoTotal - totalGastos;
+            const margen = ingresoTotal > 0 ? gananciaNeta / ingresoTotal : 0;
+            if(!Number.isFinite(impuestoSAT) || !Number.isFinite(totalGastos) || !Number.isFinite(gananciaNeta) || !Number.isFinite(margen)) {
+                throw new Error("El resultado financiero excede el límite numérico seguro.");
+            }
+
+            return {
+                ingresoTotal,
+                costosProductos,
+                costoTinta: tinta,
+                costoEnvio: envio,
+                impuestoSAT,
+                totalGastos,
+                gananciaNeta,
+                margen,
+                pideFactura: Boolean(pideFactura)
+            };
+        }
+
+        function generarHTMLDesgloseFinanciero(desglose, etiquetaIngreso, colorIngreso) {
+            const gananciaNegativa = desglose.gananciaNeta < 0;
+            const margenPorcentaje = desglose.ingresoTotal > 0 ? (desglose.margen * 100).toFixed(1) : '0.0';
+            let advertencia = '';
+            if(gananciaNegativa) {
+                advertencia = '<div class="financial-warning">⚠️ Esta operación produce pérdida. Revisa precio y gastos antes de continuar.</div>';
+            } else if(desglose.margen < ALERTA_MARGEN_MINIMO && desglose.ingresoTotal > 0) {
+                advertencia = `<div class="financial-warning">⚠️ La ganancia libre es muy baja (${margenPorcentaje}%).</div>`;
+            }
+
+            return `<div class="financial-breakdown">
+                <div class="financial-row income" style="color:${colorIngreso};"><span>${etiquetaIngreso}</span><span>Q ${desglose.ingresoTotal.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Materiales/servicios</span><span>Q ${desglose.costosProductos.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Producción (luz/tinta)</span><span>Q ${desglose.costoTinta.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Mensajero/envío</span><span>Q ${desglose.costoEnvio.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) SAT (5% con factura)</span><span>Q ${desglose.impuestoSAT.toFixed(2)}</span></div>
+                <div class="financial-row total-expense"><span>GASTOS TOTALES</span><span>Q ${desglose.totalGastos.toFixed(2)}</span></div>
+                <div class="financial-row profit${gananciaNegativa ? ' negative' : ''}"><span>GANANCIA LIBRE</span><span>Q ${desglose.gananciaNeta.toFixed(2)}</span></div>
+                <div class="financial-margin">Margen sobre la venta: ${margenPorcentaje}%</div>
+            </div>${advertencia}`;
+        }
+
         function copiarDatos(objeto) {
             return JSON.parse(JSON.stringify(objeto));
         }
@@ -1183,17 +1571,35 @@
             const nueva = prompt("Escribe el nombre de la nueva categoría que deseas crear:");
             if(!nueva || nueva.trim() === "") return;
             
-            const nombreLimpio = nueva.trim().toUpperCase(); 
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-            
-            if(!customCats.includes(nombreLimpio)) {
-                customCats.push(nombreLimpio);
-                localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
-                guardarDatos(); 
-                actualizarUI(); 
-                alert(`✅ Categoría "${nombreLimpio}" creada exitosamente.\n\nYa puedes usarla al editar o ingresar productos.`);
-            } else {
-                alert("La categoría ya existe en la lista.");
+            const nombreLimpio = normalizarCategoriaCodigo(nueva);
+            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]').map(normalizarCategoriaCodigo);
+            if(customCats.includes(nombreLimpio) || inventario.some(p => normalizarCategoriaCodigo(p.categoria) === nombreLimpio)) return alert("La categoría ya existe en la lista.");
+            if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para reservar un bloque único para la categoría.");
+            if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
+
+            isProcessingTransaction = true;
+            try {
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+                    const bloqueAsegurado = asegurarBloqueCategoria(configSnap.data().codigosInventario || {}, nombreLimpio);
+                    let categoriasServidor = (configSnap.data().customCats || customCats).map(normalizarCategoriaCodigo);
+                    if(!categoriasServidor.includes(nombreLimpio)) categoriasServidor.push(nombreLimpio);
+                    categoriasServidor = [...new Set(categoriasServidor)].sort();
+                    t.update(configRef, { customCats: categoriasServidor, codigosInventario: bloqueAsegurado.estado, ultimaActualizacionCategorias: Date.now() });
+                    return { customCats: categoriasServidor, estado: bloqueAsegurado.estado, bloque: bloqueAsegurado.bloque };
+                });
+                estadoCodigosInventario = resultado.estado;
+                localStorage.setItem('subli_custom_cats', JSON.stringify(resultado.customCats));
+                guardarDatos();
+                actualizarUI();
+                alert(`✅ Categoría "${nombreLimpio}" creada con el bloque ${resultado.bloque}.\n\nSus productos usarán ${resultado.bloque + 1} a ${resultado.bloque + MAX_PRODUCTOS_POR_BLOQUE}.`);
+            } catch(error) {
+                console.error("No se pudo crear la categoría:", error);
+                alert("❌ No se realizó ningún cambio. " + error.message);
+            } finally {
+                isProcessingTransaction = false;
             }
         }
 
@@ -1207,35 +1613,67 @@
         }
 
         async function confirmarRenombrarCat() {
-            const catActual = document.getElementById('select-renombrar-cat').value;
-            const nuevoNombre = document.getElementById('input-nuevo-nombre-cat').value.trim().toUpperCase(); 
-            if(!catActual || !nuevoNombre || nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
-            
-            document.getElementById('modal-renombrar-cat').style.display = 'none'; 
-            
+            const catActual = normalizarCategoriaCodigo(document.getElementById('select-renombrar-cat').value);
+            const nuevoNombreCrudo = document.getElementById('input-nuevo-nombre-cat').value.trim();
+            if(!nuevoNombreCrudo) return alert("Nombre inválido o sin cambios.");
+            const nuevoNombre = normalizarCategoriaCodigo(nuevoNombreCrudo);
+            if(nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
+            const categoriasExistentes = new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p => p.categoria).filter(Boolean)].map(normalizarCategoriaCodigo));
+            if(categoriasExistentes.has(nuevoNombre)) return alert(`La categoría "${nuevoNombre}" ya existe. Para evitar mezclar bloques, elige otro nombre.`);
+
+            document.getElementById('modal-renombrar-cat').style.display = 'none';
+
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para renombrar:");
             if(pass === null) return;
             if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para renombrar la categoría sin separar los datos entre dispositivos.");
 
-            let contador = 0;
-            inventario.forEach(p => {
-                const catProd = p.categoria || "Otros";
-                if (catProd === catActual) {
-                    p.categoria = nuevoNombre;
-                    p.lastModified = Date.now();
-                    contador++;
-                    if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
-                }
-            });
+            const afectadosLocales = inventario.filter(p => normalizarCategoriaCodigo(p.categoria) === catActual);
+            if(afectadosLocales.length > 440) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
+            if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
+            isProcessingTransaction = true;
+            try {
+                const customCatsLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+                    const categoriasServidorActuales = (configSnap.data().customCats || customCatsLocales).map(normalizarCategoriaCodigo);
+                    if(categoriasServidorActuales.includes(nuevoNombre) && nuevoNombre !== catActual) {
+                        throw new Error(`La categoría "${nuevoNombre}" ya existe en otro dispositivo.`);
+                    }
 
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-            customCats = customCats.filter(c => c !== catActual);
-            if(!customCats.includes(nuevoNombre)) customCats.push(nuevoNombre);
-            localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
+                    const documentos = [];
+                    for(const productoLocal of afectadosLocales) {
+                        const ref = window.doc(window.db, "inventario", String(productoLocal.id));
+                        const snap = await t.get(ref);
+                        if(!snap.exists()) throw new Error(`El producto ${productoLocal.id} cambió o fue eliminado. Sincroniza e inténtalo de nuevo.`);
+                        documentos.push({ ref, datos: snap.data() });
+                    }
 
-            guardarDatos(); actualizarUI();
-            if (contador > 0) alert(`✅ ¡Listo! La categoría se renombró a "${nuevoNombre}". Se actualizaron ${contador} productos automáticamente.`);
-            else alert(`✅ La categoría "${catActual}" se cambió a "${nuevoNombre}".`);
+                    const estadoRenombrado = renombrarCategoriaEnEstadoCodigos(configSnap.data().codigosInventario || {}, catActual, nuevoNombre);
+                    let customCats = categoriasServidorActuales.filter(c => c !== catActual);
+                    if(!customCats.includes(nuevoNombre)) customCats.push(nuevoNombre);
+                    customCats = [...new Set(customCats)].sort();
+
+                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevoNombre }));
+                    productosActualizados.forEach((producto, indice) => t.set(documentos[indice].ref, producto));
+                    t.update(configRef, { customCats, codigosInventario: estadoRenombrado, ultimaActualizacionCategorias: Date.now() });
+                    return { productosActualizados, estadoRenombrado, customCats };
+                });
+
+                inventario = fusionarPorId(inventario, resultado.productosActualizados);
+                estadoCodigosInventario = resultado.estadoRenombrado;
+                localStorage.setItem('subli_custom_cats', JSON.stringify(resultado.customCats));
+                guardarDatos();
+                actualizarUI();
+                alert(`✅ La categoría se renombró a "${nuevoNombre}" en ${resultado.productosActualizados.length} producto(s), conservando todos sus códigos y etiquetas.`);
+            } catch(error) {
+                console.error("No se pudo renombrar la categoría:", error);
+                alert("❌ No se realizó ningún cambio. " + error.message);
+            } finally {
+                isProcessingTransaction = false;
+            }
         }
 
         function eliminarCategoriaGlobalUI() {
@@ -1267,13 +1705,14 @@
         }
 
         async function confirmarEliminarCat() {
-            const catActual = document.getElementById('select-eliminar-cat').value;
-            let prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === catActual);
+            const catActual = normalizarCategoriaCodigo(document.getElementById('select-eliminar-cat').value);
+            let prodsAfectados = inventario.filter(p => normalizarCategoriaCodigo(p.categoria) === catActual);
             let nuevaCategoria = "OTROS";
 
             if (prodsAfectados.length > 0) {
-                nuevaCategoria = document.getElementById('select-destino-cat').value;
+                nuevaCategoria = normalizarCategoriaCodigo(document.getElementById('select-destino-cat').value);
                 if (!nuevaCategoria) return alert("Debes seleccionar un destino.");
+                if(nuevaCategoria === catActual) return alert("No puedes eliminar la única categoría con productos. Crea primero una categoría de destino.");
             }
             
             document.getElementById('modal-eliminar-cat').style.display = 'none';
@@ -1281,27 +1720,48 @@
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para eliminar:");
             if(pass === null) return;
             if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
+            if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para mover los productos sin dejar cambios parciales.");
+            if(prodsAfectados.length > 440) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
+            if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
 
-            if (prodsAfectados.length > 0) {
-                inventario.forEach(p => {
-                    if ((p.categoria || "Otros") === catActual) {
-                        p.categoria = nuevaCategoria;
-                        p.lastModified = Date.now();
-                        if(window.db) window.setDoc(window.doc(window.db, "inventario", String(p.id)), p); 
+            isProcessingTransaction = true;
+            try {
+                const customCatsLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+
+                    const documentos = [];
+                    for(const productoLocal of prodsAfectados) {
+                        const ref = window.doc(window.db, "inventario", String(productoLocal.id));
+                        const snap = await t.get(ref);
+                        if(!snap.exists()) throw new Error(`El producto ${productoLocal.id} cambió o fue eliminado. Sincroniza e inténtalo de nuevo.`);
+                        documentos.push({ ref, datos: snap.data() });
                     }
+
+                    let customCats = (configSnap.data().customCats || customCatsLocales).map(normalizarCategoriaCodigo).filter(c => c !== catActual);
+                    if(documentos.length > 0 && !customCats.includes(nuevaCategoria)) customCats.push(nuevaCategoria);
+                    customCats = [...new Set(customCats)].sort();
+                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevaCategoria }));
+                    // Los códigos físicos permanecen iguales aunque el producto cambie de categoría.
+                    productosActualizados.forEach((producto, indice) => t.set(documentos[indice].ref, producto));
+                    t.update(configRef, { customCats, ultimaActualizacionCategorias: Date.now() });
+                    return { productosActualizados, customCats };
                 });
-            }
 
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-            customCats = customCats.filter(c => c !== catActual);
-            if (prodsAfectados.length > 0 && !customCats.includes(nuevaCategoria)) {
-                customCats.push(nuevaCategoria); 
+                inventario = fusionarPorId(inventario, resultado.productosActualizados);
+                localStorage.setItem('subli_custom_cats', JSON.stringify(resultado.customCats));
+                guardarDatos();
+                actualizarUI();
+                if (resultado.productosActualizados.length > 0) alert(`✅ Categoría eliminada. Los ${resultado.productosActualizados.length} productos fueron trasladados a "${nuevaCategoria}" conservando sus códigos físicos.`);
+                else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
+            } catch(error) {
+                console.error("No se pudo eliminar la categoría:", error);
+                alert("❌ No se realizó ningún cambio. " + error.message);
+            } finally {
+                isProcessingTransaction = false;
             }
-            localStorage.setItem('subli_custom_cats', JSON.stringify(customCats));
-
-            guardarDatos(); actualizarUI();
-            if (prodsAfectados.length > 0) alert(`✅ Categoría eliminada con éxito. Los ${prodsAfectados.length} productos fueron trasladados a "${nuevaCategoria}".`);
-            else alert(`✅ Categoría "${catActual}" eliminada exitosamente.`);
         }
 
         function cargarDatosLocales() {
@@ -1311,7 +1771,8 @@
                 [KEY_FONDOS, valor => fondos = valor],
                 [KEY_INGRESOS, valor => historialIngresos = valor],
                 [KEY_COTIZ_HIST, valor => historialCotizaciones = valor],
-                [KEY_RETIROS, valor => historialRetiros = valor]
+                [KEY_RETIROS, valor => historialRetiros = valor],
+                [KEY_CODIGOS_INV, valor => estadoCodigosInventario = normalizarEstadoCodigosInventario(valor)]
             ];
 
             asignaciones.forEach(([clave, asignar]) => {
@@ -1382,6 +1843,7 @@
             try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos)); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
             try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones)); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
             try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros)); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
+            try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (e) { console.warn("Límite de cuota en Códigos de inventario", e); }
         }
 
         async function cargarDatos() {
@@ -1411,7 +1873,7 @@
                             ventas.forEach(v => migraciones.push(window.setDoc(window.doc(window.db, "ventas", String(v.id)), v)));
                             historialIngresos.forEach(i => migraciones.push(window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i)));
                             historialCotizaciones.forEach(c => migraciones.push(window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c)));
-                            migraciones.push(window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios }));
+                            migraciones.push(window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios, codigosInventario: estadoCodigosInventario }));
                             await Promise.all(migraciones);
                             await window.updateDoc(docViejoRef, { migrado_v10: true });
                         }
@@ -1424,8 +1886,9 @@
                             datosCargadosDeLaNube = true;
                             const data = docSnap.data();
                             fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                            estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
                             let nubeCustomCats = data.customCats || [];
-                            if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                            if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
                             if (data.usuarios) {
                                 usuarios = data.usuarios;
                                 localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
@@ -1599,14 +2062,15 @@
                 if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
                 let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-                let invFiltrado = invOrdenado.filter(p => !p.isService && busquedaInteligente(p.nombre || '', textoBuscado));
+                let invFiltrado = invOrdenado.filter(p => !p.isService && coincideBusquedaProducto(p, textoBuscado));
 
                 let hayResultados = false;
                 invFiltrado.forEach(p => { 
                     hayResultados = true;
                     const div = document.createElement('div');
                     div.className = 'sugerencia-item';
-                    div.innerHTML = `<span>${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${numeroFinito(p.stock)})</span>`;
+                    const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
+                    div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${numeroFinito(p.stock)})</span>`;
                     
                     div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
                     box.appendChild(div);
@@ -1729,6 +2193,10 @@
                 const registroId = ingresoEditadoId || generarIDSeguro();
 
                 const resultado = await window.runTransaction(window.db, async (t) => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+
                     let ingresoAnterior = null;
                     const ingresoRef = window.doc(window.db, "ingresos", String(registroId));
                     if(ingresoEditadoId) {
@@ -1760,6 +2228,12 @@
 
                     const productosTrabajo = new Map();
                     documentosExistentes.forEach((valor, clave) => productosTrabajo.set(clave, copiarDatos(valor.datos)));
+                    const codigosPreparados = incorporarCodigosExistentes(
+                        configSnap.data().codigosInventario || {},
+                        Array.from(documentosExistentes.values()).map(valor => valor.datos)
+                    );
+                    let estadoCodigosTrabajo = codigosPreparados.estado;
+                    let codigosOcupados = codigosPreparados.codigosOcupados;
 
                     // Solo restauramos el estado anterior si el producto continúa exactamente
                     // como lo dejó este ingreso. Una venta, compra o edición posterior lo bloquea.
@@ -1816,8 +2290,16 @@
                             if(item.proveedor !== "NO ESPECIFICADO") producto.proveedor = item.proveedor;
                         }
 
+                        if(!producto.isService && !esCodigoInventarioValido(producto.codigoInventario)) {
+                            const asignacionCodigo = asignarSiguienteCodigoInventario(estadoCodigosTrabajo, producto.categoria, codigosOcupados);
+                            producto.codigoInventario = asignacionCodigo.codigo;
+                            producto.bloqueCategoria = asignacionCodigo.bloque;
+                            estadoCodigosTrabajo = asignacionCodigo.estado;
+                            codigosOcupados = asignacionCodigo.codigosOcupados;
+                        }
+
                         productosTrabajo.set(String(producto.id), producto);
-                        registroHistorial.items.push({ idFinal: item.idFinal, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
+                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: item.nombre, stock: item.stock, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
                     }
 
                     const productosActualizados = Array.from(productosTrabajo.values());
@@ -1825,12 +2307,14 @@
                         t.set(window.doc(window.db, "inventario", String(producto.id)), producto);
                     });
                     t.set(ingresoRef, registroHistorial);
+                    t.update(configRef, { codigosInventario: estadoCodigosTrabajo, ultimaActualizacion: timestampActual });
 
-                    return { productosActualizados, registroHistorial, valorTotalIngresado };
+                    return { productosActualizados, registroHistorial, valorTotalIngresado, estadoCodigos: estadoCodigosTrabajo };
                 });
 
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
                 historialIngresos = fusionarPorId(historialIngresos, [resultado.registroHistorial]);
+                estadoCodigosInventario = resultado.estadoCodigos;
 
                 carritoIngresos = [];
                 ingresoEnEdicion = null;
@@ -2032,7 +2516,7 @@
             const prod = inventario.find(p => String(p.id) === String(id));
             if(!prod) return;
             actualizarListaCategorias(); 
-            document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = prod.costo.toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
+            document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = numeroFinito(prod.costo).toFixed(2); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario'; cambiarLabelCostoEdit();
             
             if(prod.isService) { document.getElementById('edit-stock').disabled = true; document.getElementById('edit-min').disabled = true;
             } else { document.getElementById('edit-stock').disabled = false; document.getElementById('edit-min').disabled = false; }
@@ -2116,6 +2600,122 @@
             renderInventario();
         }
 
+        function obtenerBloqueCategoriaVisible(categoria, productos = []) {
+            const categoriaNormalizada = normalizarCategoriaCodigo(categoria);
+            const bloqueConfigurado = numeroFinito(estadoCodigosInventario.bloques?.[categoriaNormalizada]);
+            if(bloqueConfigurado >= PRIMER_BLOQUE_CATEGORIA) return bloqueConfigurado;
+            const productoConCodigo = productos.find(p => esCodigoInventarioValido(p.codigoInventario));
+            return productoConCodigo ? Math.floor(Number(productoConCodigo.codigoInventario) / TAMANO_BLOQUE_CATEGORIA) * TAMANO_BLOQUE_CATEGORIA : 0;
+        }
+
+        async function asignarCodigosInventarioFaltantes() {
+            if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
+            const faltantesLocales = inventario.filter(p => !p.isService && !esCodigoInventarioValido(p.codigoInventario));
+            if(faltantesLocales.length === 0) return alert("✅ Todos los productos ya tienen código.");
+            if(inventario.filter(p => !p.isService).length > 440) {
+                return alert("⚠️ Hay más de 440 productos. Para respetar el límite seguro de una transacción, la asignación debe dividirse antes de ejecutarse.");
+            }
+
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para asignar códigos al inventario:");
+            if(pass === null) return;
+            if(!await esDueno(pass)) return alert("❌ Contraseña incorrecta.");
+            if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para reservar códigos únicos entre todos los dispositivos.");
+            if(!confirm(`Se asignarán códigos permanentes a ${faltantesLocales.length} producto(s).\n\nEsta operación NO cambia existencias, costos, ventas, fondos ni fechas de movimientos. ¿Continuar?`)) return;
+
+            isProcessingTransaction = true;
+            const boton = document.getElementById('btn-asignar-codigos');
+            if(boton) { boton.disabled = true; boton.textContent = 'Asignando...'; }
+            try {
+                const idsInventario = [...new Set(inventario.filter(p => !p.isService).map(p => String(p.id)))];
+                const categoriasLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const configRef = window.doc(window.db, "sistema", "config");
+                    const configSnap = await t.get(configRef);
+                    if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+
+                    const documentos = [];
+                    for(const id of idsInventario) {
+                        const ref = window.doc(window.db, "inventario", id);
+                        const snap = await t.get(ref);
+                        if(!snap.exists()) throw new Error(`El producto ${id} cambió o fue eliminado. Sincroniza e inténtalo de nuevo.`);
+                        documentos.push({ ref, datos: snap.data() });
+                    }
+
+                    const preparados = incorporarCodigosExistentes(configSnap.data().codigosInventario || {}, documentos.map(x => x.datos));
+                    let estadoTrabajo = preparados.estado;
+                    let ocupados = preparados.codigosOcupados;
+                    const categoriasConocidas = [...new Set([
+                        ...(configSnap.data().customCats || categoriasLocales),
+                        ...documentos.map(x => x.datos.categoria)
+                    ].map(normalizarCategoriaCodigo))].sort();
+                    categoriasConocidas.forEach(categoria => {
+                        estadoTrabajo = asegurarBloqueCategoria(estadoTrabajo, categoria).estado;
+                    });
+                    const actualizados = [];
+                    const ordenados = documentos
+                        .filter(x => !x.datos.isService && !esCodigoInventarioValido(x.datos.codigoInventario))
+                        .sort((a, b) => normalizarCategoriaCodigo(a.datos.categoria).localeCompare(normalizarCategoriaCodigo(b.datos.categoria)) || String(a.datos.nombre || '').localeCompare(String(b.datos.nombre || '')) || String(a.datos.id).localeCompare(String(b.datos.id)));
+
+                    ordenados.forEach(entrada => {
+                        const asignacion = asignarSiguienteCodigoInventario(estadoTrabajo, entrada.datos.categoria, ocupados);
+                        const productoActualizado = { ...entrada.datos, codigoInventario: asignacion.codigo, bloqueCategoria: asignacion.bloque };
+                        estadoTrabajo = asignacion.estado;
+                        ocupados = asignacion.codigosOcupados;
+                        actualizados.push(productoActualizado);
+                        // Se conserva la huella de última modificación para no invalidar reversiones de ingresos.
+                        t.set(entrada.ref, productoActualizado);
+                    });
+
+                    t.update(configRef, { codigosInventario: estadoTrabajo, ultimaActualizacionCodigos: Date.now() });
+                    return { productos: actualizados, estado: estadoTrabajo };
+                });
+
+                inventario = fusionarPorId(inventario, resultado.productos);
+                estadoCodigosInventario = resultado.estado;
+                guardarDatos();
+                actualizarUI();
+                alert(`✅ Se asignaron ${resultado.productos.length} código(s) sin modificar cantidades ni valores.`);
+            } catch(error) {
+                console.error("No se pudieron asignar los códigos:", error);
+                alert("❌ No se asignó ningún código. " + error.message);
+            } finally {
+                isProcessingTransaction = false;
+                if(boton) { boton.disabled = false; boton.textContent = '🏷️ Asignar códigos faltantes'; }
+            }
+        }
+
+        function generarDocumentoEtiquetas(productos) {
+            const etiquetas = productos.map(p => {
+                const codigo = Number(p.codigoInventario);
+                return `<article class="etiqueta"><div class="marca">SUBLICOSTURAS</div><div class="codigo">${escaparHTML(codigo)}</div><div class="producto">${escaparHTML(p.nombre)}</div><div class="categoria">${escaparHTML(normalizarCategoriaCodigo(p.categoria))}</div></article>`;
+            }).join('');
+            return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Etiquetas de inventario</title><style>@page{margin:8mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#111;display:grid;grid-template-columns:repeat(3,1fr);gap:5mm}.etiqueta{min-height:35mm;border:1.5px solid #111;border-radius:3mm;padding:4mm;text-align:center;display:flex;flex-direction:column;justify-content:center;break-inside:avoid}.marca{font-size:8pt;font-weight:700;letter-spacing:.16em}.codigo{font-size:25pt;font-weight:900;line-height:1.1;margin:2mm 0;font-variant-numeric:tabular-nums}.producto{font-size:10pt;font-weight:700;text-transform:uppercase}.categoria{font-size:8pt;margin-top:1.5mm;color:#444}@media(max-width:700px){body{grid-template-columns:repeat(2,1fr)}}@media print{body{grid-template-columns:repeat(3,1fr)}}</style></head><body>${etiquetas}<script>window.addEventListener('load',()=>window.print());<\/script></body></html>`;
+        }
+
+        function abrirImpresionEtiquetas(productos) {
+            if(productos.length === 0) return alert("No hay productos con código para imprimir.");
+            const ventana = window.open('', '_blank', 'width=980,height=720');
+            if(!ventana) return alert("El navegador bloqueó la ventana de impresión. Habilita ventanas emergentes para este sitio e inténtalo de nuevo.");
+            ventana.document.open();
+            ventana.document.write(generarDocumentoEtiquetas(productos));
+            ventana.document.close();
+        }
+
+        function imprimirEtiquetaProducto(id) {
+            const producto = inventario.find(p => String(p.id) === String(id));
+            if(!producto || !esCodigoInventarioValido(producto.codigoInventario)) return alert("Este producto todavía no tiene código asignado.");
+            abrirImpresionEtiquetas([producto]);
+        }
+
+        function imprimirEtiquetasInventario() {
+            const productos = inventario
+                .filter(p => !p.isService && esCodigoInventarioValido(p.codigoInventario))
+                .sort((a, b) => Number(a.codigoInventario) - Number(b.codigoInventario));
+            const faltantes = inventario.filter(p => !p.isService && !esCodigoInventarioValido(p.codigoInventario)).length;
+            if(faltantes > 0 && !confirm(`${faltantes} producto(s) todavía no tienen código. ¿Imprimir solamente las etiquetas ya asignadas?`)) return;
+            abrirImpresionEtiquetas(productos);
+        }
+
         function renderItemInventario(p) {
             let minVal = p.min !== undefined ? p.min : 0;
             let stockBajo = !p.isService && (p.stock <= minVal);
@@ -2123,7 +2723,10 @@
             let alertaText = stockBajo ? ' ⚠️ (Bajo)' : '';
             let stockDisplay = p.isService ? '∞ (Servicio)' : p.stock;
             const idCodificado = codificarParametroHTML(p.id);
-            return `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding-bottom:10px; margin-bottom:10px;"><div class="item-info"><p class="item-title">${escaparHTML(p.nombre)}</p><p class="item-details">Stock: <b style="${stockStyle}">${escaparHTML(stockDisplay)}${alertaText}</b> | Costo: Q${numeroFinito(p.costo).toFixed(2)} | Cat: ${escaparHTML(p.categoria || 'OTROS')}</p></div><div class="item-actions"><button onclick="abrirModalEditar(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-delete">Borrar</button></div></div>`;
+            const tieneCodigo = !p.isService && esCodigoInventarioValido(p.codigoInventario);
+            const codigoHTML = p.isService ? '<span class="product-code">SERVICIO</span>' : (tieneCodigo ? `<span class="product-code">CÓD. ${escaparHTML(p.codigoInventario)}</span>` : '<span class="product-code pending">SIN CÓDIGO</span>');
+            const botonEtiqueta = tieneCodigo ? `<button onclick="imprimirEtiquetaProducto(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-label">Etiqueta</button>` : '';
+            return `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding-bottom:10px; margin-bottom:10px;"><div class="item-info"><p class="item-title">${codigoHTML}${escaparHTML(p.nombre)}</p><p class="item-details">Stock: <b style="${stockStyle}">${escaparHTML(stockDisplay)}${alertaText}</b> | Costo: Q${numeroFinito(p.costo).toFixed(2)} | Cat: ${escaparHTML(p.categoria || 'OTROS')}</p></div><div class="item-actions">${botonEtiqueta}<button onclick="abrirModalEditar(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-delete">Borrar</button></div></div>`;
         }
 
         function renderInventario() {
@@ -2144,7 +2747,7 @@
             }
             
             let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
+            let invFiltrado = invOrdenado.filter(p => coincideBusquedaProducto(p, textoBuscado));
             
             if(invFiltrado.length === 0) {
                 contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
@@ -2167,7 +2770,9 @@
                     let flecha = expandido ? '▼' : '▶';
                     
                     html += `<div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: var(--shadow);">`;
-                    html += `<div onclick="toggleCategoriaInv(decodeURIComponent('${codificarParametroHTML(c)}'))" style="background: rgba(59, 130, 246, 0.1); padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--primary-blue); font-size: 15px;"><span>📁 ${escaparHTML(c)} (${agrupado[c].length})</span><span>${flecha}</span></div>`;
+                    const bloqueCategoria = obtenerBloqueCategoriaVisible(c, agrupado[c]);
+                    const textoBloque = bloqueCategoria ? `<span class="category-code">BLOQUE ${bloqueCategoria}</span>` : '<span class="category-code">BLOQUE PENDIENTE</span>';
+                    html += `<div onclick="toggleCategoriaInv(decodeURIComponent('${codificarParametroHTML(c)}'))" style="background: rgba(59, 130, 246, 0.1); padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap:10px; font-weight: bold; color: var(--primary-blue); font-size: 15px;"><span>📁 ${escaparHTML(c)} (${agrupado[c].length}) ${textoBloque}</span><span>${flecha}</span></div>`;
                     
                     if(expandido) {
                         html += `<div style="padding: 15px; background: var(--bg-color);">`;
@@ -2191,7 +2796,7 @@
                 if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
                 let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-                let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
+                let invFiltrado = invOrdenado.filter(p => coincideBusquedaProducto(p, textoBuscado));
 
                 let hayResultados = false;
                 invFiltrado.forEach(p => { 
@@ -2200,7 +2805,8 @@
                         const div = document.createElement('div');
                         div.className = 'sugerencia-item';
                         let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
-                        div.innerHTML = `<span>${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${escaparHTML(stockText)}</span>`;
+                        const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
+                        div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${escaparHTML(stockText)}</span>`;
                         div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
                         box.appendChild(div);
                     }
@@ -2254,7 +2860,7 @@
                 if(stockLibre < qty) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
             }
             
-            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false });
+            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false });
             
             document.getElementById('venta-qty').value = '1'; document.getElementById('venta-precio').value = ''; document.getElementById('buscador-venta-producto').value = ''; document.getElementById('venta-producto').value = ''; document.getElementById('venta-rol').value = ''; cambiarRolVenta();
             renderCarritoVentas();
@@ -2265,14 +2871,12 @@
         
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
-            let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoVentas.length === 0) { 
+            if (carritoVentas.length === 0) {
                 contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
             } else {
                 let html = '';
                 carritoVentas.forEach(item => {
-                    const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
-                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const subtotalCosto = item.qty * item.costoBase;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
                     const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
@@ -2282,20 +2886,15 @@
             }
 
             const pideFactura = document.getElementById('venta-factura')?.checked || false;
-            const costoTinta = parseFloat(document.getElementById('venta-tinta')?.value) || 0;
-            const costoEnvio = parseFloat(document.getElementById('venta-envio')?.value) || 0;
-            
-            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
-            let gastosExtra = costoTinta + costoEnvio;
-            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
-            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
-
-            let warningHTML = '';
-            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
-                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            const costoTinta = document.getElementById('venta-tinta')?.value || 0;
+            const costoEnvio = document.getElementById('venta-envio')?.value || 0;
+            const vistaPrevia = document.getElementById('venta-total-preview');
+            try {
+                const desglose = calcularDesgloseFinanciero(carritoVentas, costoTinta, costoEnvio, pideFactura);
+                vistaPrevia.innerHTML = generarHTMLDesgloseFinanciero(desglose, 'TOTAL A COBRAR', 'var(--primary-green)');
+            } catch(error) {
+                vistaPrevia.innerHTML = `<div class="financial-warning">⚠️ ${escaparHTML(error.message)}</div>`;
             }
-
-            document.getElementById('venta-total-preview').innerHTML = `<div style="color: var(--primary-green);">Total a Cobrar: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarVentaMultiple() {
@@ -2370,10 +2969,8 @@
                         costoBase: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)],
                         costoUnitarioReal: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)]
                     }));
-                    const ingresoTotal = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
-                    const costosProductos = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal)), 0);
-                    const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                    const gananciaNeta = ingresoTotal - costosProductos - costoTinta - costoEnvio - impuestoSAT;
+                    const desglose = calcularDesgloseFinanciero(detalleFinal, costoTinta, costoEnvio, pideFactura);
+                    const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
                     const itemsResumen = detalleFinal.map(item => {
                         let suffix = ''; if(item.rol === 'material') suffix = ' (M)'; if(item.rol === 'combo') suffix = ' (Combo)';
                         return `${item.qty}x ${item.nombre}${suffix}`;
@@ -2579,7 +3176,7 @@
                 if (textoBuscado.length === 0 && !mostrarTodo) { box.style.display = 'none'; return; }
 
                 let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-                let invFiltrado = invOrdenado.filter(p => busquedaInteligente(p.nombre || '', textoBuscado));
+                let invFiltrado = invOrdenado.filter(p => coincideBusquedaProducto(p, textoBuscado));
 
                 let hayResultados = false;
                 invFiltrado.forEach(p => { 
@@ -2589,7 +3186,8 @@
                         let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${p.stock})`;
                         if (!p.isService && p.stock === 0) stockText = `<span style="color:var(--primary-red); font-weight:bold;">(Sin Stock)</span>`;
                         
-                        div.innerHTML = `<span>${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
+                        const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
+                        div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
                         div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; };
                         box.appendChild(div);
                     }
@@ -2640,7 +3238,7 @@
                 if(!Number.isFinite(costoVenta) || costoVenta < 0) { alert("⚠️ El costo interno debe ser un número válido y no negativo."); return; }
             }
 
-            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false });
+            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false });
             
             document.getElementById('cotiza-qty').value = '1'; document.getElementById('cotiza-precio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-rol').value = ''; cambiarRolCotizacion();
             renderCarritoCotizacion();
@@ -2651,20 +3249,26 @@
 
         function renderCarritoCotizacion() {
             const contenedor = document.getElementById('lista-carrito-cotizacion');
-            let totalCobrar = 0; let totalCostoInterno = 0;
-            if (carritoCotizacion.length === 0) { 
+            const cantidadesCotizadas = new Map();
+            carritoCotizacion.forEach(item => {
+                if(!item.isService) {
+                    const clave = String(item.idProd);
+                    cantidadesCotizadas.set(clave, numeroFinito(cantidadesCotizadas.get(clave)) + numeroFinito(item.qty));
+                }
+            });
+            if (carritoCotizacion.length === 0) {
                 contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Cotización vacía.</p>';
             } else {
                 let html = '';
                 carritoCotizacion.forEach(item => {
-                    const subtotalCobrado = item.qty * item.precioCobrado; const subtotalCosto = item.qty * item.costoBase;
-                    totalCobrar += subtotalCobrado; totalCostoInterno += subtotalCosto;
+                    const subtotalCosto = item.qty * item.costoBase;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
-                    
+
                     const prod = inventario.find(x => String(x.id) === String(item.idProd));
-                    const stockActual = prod ? prod.stock : 0;
-                    const alertaStock = (!item.isService && stockActual < item.qty) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${item.qty - stockActual} en stock)</span>` : '';
+                    const stockActual = prod ? numeroFinito(prod.stock) : 0;
+                    const cantidadCotizadaTotal = numeroFinito(cantidadesCotizadas.get(String(item.idProd)));
+                    const alertaStock = (!item.isService && stockActual < cantidadCotizadaTotal) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${cantidadCotizadaTotal - stockActual} en el total cotizado)</span>` : '';
                     const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
                     html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${numeroFinito(item.qty)}x ${escaparHTML(item.nombre)} ${alertaStock}</p><p class="item-details">${escaparHTML(detalleText)}</p></div><button onclick="borrarDelCarritoCotizacion(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
@@ -2673,20 +3277,15 @@
             }
 
             const pideFactura = document.getElementById('cotiza-factura')?.checked || false;
-            const costoTinta = parseFloat(document.getElementById('cotiza-tinta')?.value) || 0;
-            const costoEnvio = parseFloat(document.getElementById('cotiza-envio')?.value) || 0;
-            
-            let impuestoPreview = pideFactura ? (totalCobrar * 0.05) : 0;
-            let gastosExtra = costoTinta + costoEnvio;
-            let gananciaPreview = totalCobrar - totalCostoInterno - impuestoPreview - gastosExtra;
-            let margen = totalCobrar > 0 ? (gananciaPreview / totalCobrar) : 0;
-
-            let warningHTML = '';
-            if (margen < ALERTA_MARGEN_MINIMO && totalCobrar > 0) {
-                warningHTML = `<div style="color: var(--primary-red); font-size: 13px; font-weight: bold; margin-top: 5px; background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 5px; text-align: center;">⚠️ ALERTA: Tu ganancia libre calculada es muy baja (${(margen*100).toFixed(1)}%).</div>`;
+            const costoTinta = document.getElementById('cotiza-tinta')?.value || 0;
+            const costoEnvio = document.getElementById('cotiza-envio')?.value || 0;
+            const vistaPrevia = document.getElementById('cotiza-total-preview');
+            try {
+                const desglose = calcularDesgloseFinanciero(carritoCotizacion, costoTinta, costoEnvio, pideFactura);
+                vistaPrevia.innerHTML = generarHTMLDesgloseFinanciero(desglose, 'TOTAL COTIZADO', 'var(--primary-purple)');
+            } catch(error) {
+                vistaPrevia.innerHTML = `<div class="financial-warning">⚠️ ${escaparHTML(error.message)}</div>`;
             }
-
-            document.getElementById('cotiza-total-preview').innerHTML = `<div style="color: var(--primary-purple);">Total Cotizado: Q ${totalCobrar.toFixed(2)}</div><div style="color: var(--primary-red); font-size: 13px; font-weight: normal;">(Costo materiales/externo: Q ${totalCostoInterno.toFixed(2)})</div>${warningHTML}`;
         }
 
         async function procesarCotizacion() {
@@ -2714,17 +3313,15 @@
                     }
                 }
                 
-                let ingresoTotal = 0; let costosProductos = 0; let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
-                
+                let resumen = "📄 RESUMEN DE COTIZACIÓN - SUBLICOSTURAS\n\n";
+
                 carritoCotizacion.forEach(item => {
-                    ingresoTotal += (item.qty * item.precioCobrado); costosProductos += (item.qty * item.costoBase); 
                     let priceStr = ''; if (item.rol === 'material') priceStr = '(Gasto Interno)'; else if (item.rol === 'combo') priceStr = '(🎁 INCLUIDO)'; else priceStr = `(Q${item.precioCobrado.toFixed(2)} c/u)`;
                     resumen += `- ${item.qty}x ${item.nombre} ${priceStr}\n`;
                 });
-                
-                let impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const totalCostosOperativos = costosProductos + costoTinta + costoEnvio + impuestoSAT;
-                const gananciaNeta = ingresoTotal - totalCostosOperativos;
+
+                const desglose = calcularDesgloseFinanciero(carritoCotizacion, costoTinta, costoEnvio, pideFactura);
+                const { ingresoTotal, costosProductos, impuestoSAT, totalGastos, gananciaNeta } = desglose;
 
                 resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
                 resumen += `--------------------------------------\n`;
@@ -2732,6 +3329,7 @@
                 resumen += `💡 Luz y Tinta: Q ${costoTinta.toFixed(2)}\n`;
                 resumen += `🚚 Mensajero/Envío: Q ${costoEnvio.toFixed(2)}\n`;
                 if(pideFactura) resumen += `🏛️ Impuesto SAT (5%): Q ${impuestoSAT.toFixed(2)}\n`;
+                resumen += `📉 GASTOS TOTALES: Q ${totalGastos.toFixed(2)}\n`;
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
@@ -2952,11 +3550,9 @@
                     costoBase: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)],
                     costoUnitarioReal: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)]
                 }));
-                const ingresoTotal = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
-                const costosProductos = detalleFinal.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal)), 0);
                 const pideFactura = fuente.factura || false;
-                const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-                const gananciaNeta = ingresoTotal - costosProductos - costoTinta - costoEnvio - impuestoSAT;
+                const desglose = calcularDesgloseFinanciero(detalleFinal, costoTinta, costoEnvio, pideFactura);
+                const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
                 const resumenItems = detalleFinal.map(item => {
                     let suffix = ''; if(item.rol === 'material') suffix = ' (M)'; if(item.rol === 'combo') suffix = ' (Combo)';
                     return `${item.qty}x ${item.nombre}${suffix}`;
@@ -3110,7 +3706,7 @@
                 "Proveedor": p.proveedor || "NO ESPECIFICADO",
                 "Stock Actual": p.stock,
                 "Mínimo de Alerta": p.min || 0,
-                "Costo Unitario (Q)": p.costo.toFixed(2)
+                "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2)
             }));
 
             const libro = XLSX.utils.book_new();
@@ -3450,17 +4046,17 @@
             const inv = [...inventario].sort((a,b) => (a.nombre || '').localeCompare(b.nombre || ''));
             const vent = ventas.filter(v => !v.anulada); 
             const fnd = fondos; 
-            let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (p.stock * p.costo)), 0);
+            let valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (numeroFinito(p.stock) * numeroFinito(p.costo))), 0);
             const ret = historialRetiros;
             
             const libro = XLSX.utils.book_new();
             
-            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": fnd.costoProducto.toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": fnd.costoLuzTinta.toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": (fnd.fondoImpuestos||0).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": fnd.gananciaLibre.toFixed(2) }];
+            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": numeroFinito(fnd.costoProducto).toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": numeroFinito(fnd.costoLuzTinta).toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": numeroFinito(fnd.fondoImpuestos).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": numeroFinito(fnd.gananciaLibre).toFixed(2) }];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen); XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Nombre del Producto": p.nombre, "Ventas Históricas": p.ventasTotales || 0, "Categoría": (p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : p.stock, "Alerta Mínima": p.min !== undefined ? p.min : 0, "Costo Unitario (Q)": p.costo.toFixed(2), "Proveedor": (p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (p.stock * p.costo).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
-            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha, "Cliente": (v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": v.resumenItems.toUpperCase(), "Total Cobrado (Q)": v.ingresoTotal.toFixed(2), "Costo de Materiales (Q)": v.costosProductos.toFixed(2), "Gasto Tinta/Luz (Q)": v.costoTinta.toFixed(2), "Pago Mensajero (Q)": v.costoEnvio.toFixed(2), "Impuesto Retenido (Q)": (v.impuestoSAT || 0).toFixed(2), "Ganancia Neta (Q)": v.ganancia.toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
-            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha, "Concepto/Caja": r.tipo.toUpperCase(), "Monto Retirado (Q)": r.monto.toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
+            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Código de Inventario": p.isService ? "SERVICIO" : (esCodigoInventarioValido(p.codigoInventario) ? Number(p.codigoInventario) : "PENDIENTE"), "Bloque de Categoría": p.isService ? "" : (numeroFinito(p.bloqueCategoria) || obtenerBloqueCategoriaVisible(p.categoria, [p]) || "PENDIENTE"), "Nombre del Producto": p.nombre, "Ventas Históricas": numeroFinito(p.ventasTotales), "Categoría": String(p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : numeroFinito(p.stock), "Alerta Mínima": p.min !== undefined ? numeroFinito(p.min) : 0, "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2), "Proveedor": String(p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (numeroFinito(p.stock) * numeroFinito(p.costo)).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
+            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha || '', "Cliente": String(v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": String(v.resumenItems || '').toUpperCase(), "Total Cobrado (Q)": numeroFinito(v.ingresoTotal).toFixed(2), "Costo de Materiales (Q)": numeroFinito(v.costosProductos).toFixed(2), "Gasto Tinta/Luz (Q)": numeroFinito(v.costoTinta).toFixed(2), "Pago Mensajero (Q)": numeroFinito(v.costoEnvio).toFixed(2), "Impuesto Retenido (Q)": numeroFinito(v.impuestoSAT).toFixed(2), "Ganancia Neta (Q)": numeroFinito(v.ganancia).toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
+            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha || '', "Concepto/Caja": String(r.tipo || 'SIN CONCEPTO').toUpperCase(), "Monto Retirado (Q)": numeroFinito(r.monto).toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
             const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
@@ -3656,7 +4252,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.0.7";
+        const APP_VERSION = "1.0.8";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);

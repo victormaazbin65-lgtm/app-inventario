@@ -3,8 +3,8 @@
   "short_name": "SubliCosturas",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1e2124",
-  "theme_color": "#1e2124",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
   "icons": [
     {
       "src": "logo-192.png",
