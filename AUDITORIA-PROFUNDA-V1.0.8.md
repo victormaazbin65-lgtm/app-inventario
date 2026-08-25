@@ -1,4 +1,4 @@
-# Auditoría profunda y mejora de cálculo — SubliCosturas 1.0.8
+# Auditoría profunda, códigos de inventario y rediseño — SubliCosturas 1.0.8
 
 Fecha de revisión: 24 de agosto de 2026
 
@@ -6,11 +6,14 @@ Fecha de revisión: 24 de agosto de 2026
 
 - El análisis y las pruebas se hicieron en la rama aislada `mejoras/recalculo-instantaneo-v2`.
 - Ninguna prueba se conectó a Firebase ni escribió inventario, ventas, ingresos, cotizaciones, retiros o fondos reales.
-- No se ejecutó ninguna migración de datos.
+- No se ejecutó ninguna migración de datos ni se escribió en el Firebase real durante las pruebas.
+- La asignación de códigos al inventario existente no se ejecuta automáticamente: requiere el botón protegido, conexión, confirmación y una transacción completa.
 - La regla SAT quedó igual: 5% del ingreso únicamente cuando se marca factura.
 - Las ventas nuevas conservan `versionCalculo: 2`, por lo que siguen siendo compatibles con la anulación y edición existentes.
 
-## Mejora implementada
+## Mejoras implementadas
+
+### Cálculo instantáneo
 
 Ventas y cotizaciones muestran ahora, mientras se escribe:
 
@@ -26,6 +29,27 @@ Ventas y cotizaciones muestran ahora, mientras se escribe:
 Los campos de producción, envío y factura ya actualizan el panel con eventos `input`/`change`. La vista previa y el guardado final llaman a una sola función, `calcularDesgloseFinanciero()`, para impedir que dos fórmulas duplicadas den resultados diferentes.
 
 También se corrigió el aviso de existencias en cotizaciones: si el mismo producto aparece en varios renglones, ahora se suma la cantidad total antes de calcular cuánto falta.
+
+### Códigos permanentes y etiquetas físicas
+
+- Cada categoría recibe un bloque de 1000: 1000, 2000, 3000 y así sucesivamente.
+- El número base identifica el bloque; los productos usan desde base + 1 hasta base + 999. Ejemplo: categoría 1000 → productos 1001 a 1999.
+- El bloque y el siguiente código se guardan en `sistema/config.codigosInventario` para que dos dispositivos no reserven el mismo número.
+- Los productos nuevos reciben su código dentro de la misma transacción de ingreso.
+- Los productos actuales se codifican únicamente al presionar **Asignar códigos faltantes**, con PIN de dueño, confirmación y conexión.
+- La asignación conserva `stock`, `costo`, fondos, ventas y `lastModified`; por eso no invalida la reversión exacta de un ingreso anterior.
+- El código se puede buscar desde ingreso, inventario, ventas y cotizaciones.
+- El inventario permite imprimir una etiqueta individual o todas las etiquetas asignadas. El reporte Excel incluye código y bloque.
+- Un código asignado nunca se renumera. Si el producto cambia de categoría, conserva su etiqueta física.
+- Crear, renombrar o eliminar una categoría ahora usa una transacción. Al renombrar se conserva el bloque; al trasladar productos se conservan sus códigos.
+
+### Diseño oscuro moderno
+
+- Se mantuvo el modo oscuro y se renovaron superficies, tarjetas, botones, formularios, pestañas y paneles financieros.
+- Las pestañas quedan visibles al desplazarse, con efecto de desenfoque compatible y contraste reforzado.
+- La vista se adapta mejor a teléfono: formularios de dos columnas pasan a una, las pestañas tienen desplazamiento horizontal y las acciones ocupan el ancho disponible.
+- Se agregó foco visible y respeto por `prefers-reduced-motion` para accesibilidad.
+- El rediseño es CSS y presentación; no cambia cálculos, nombres de colecciones ni flujos contables.
 
 ## Fórmula conservada
 
@@ -54,9 +78,14 @@ No se cambió la forma en que los fondos reciben producto, luz/tinta, ganancia l
 - 5,000 ventas simuladas agregadas y luego revertidas sin dejar residuo contable.
 - 20,000 retiros inteligentes aleatorios, verificando prioridad por fondos, centavos exactos y protección SAT.
 - Verificación de que las operaciones críticas siguen usando transacciones y no escrituras parciales.
+- Prueba de bloques, renombrado y detección de códigos repetidos.
+- 9,990 asignaciones simuladas (10 categorías × 999 productos), verificando bloque, secuencia, unicidad y agotamiento seguro.
+- Prueba de búsqueda por código y escape seguro del contenido de etiquetas.
+- Verificación estática de que la asignación existente es explícita, transaccional y no modifica la huella contable.
+- Verificación del nuevo modo oscuro, adaptación móvil y reducción de movimiento.
 - Consistencia de versión PWA e iconos.
 
-Resultado actual: 13 pruebas aprobadas, 0 fallidas.
+Resultado actual: 18 pruebas aprobadas, 0 fallidas.
 
 ## Errores y riesgos encontrados
 
@@ -67,6 +96,8 @@ Resultado actual: 13 pruebas aprobadas, 0 fallidas.
 3. **Stock engañoso en una cotización repetida.** El aviso comparaba cada renglón por separado y no la suma del mismo producto.
 4. **Exportaciones frágiles con registros antiguos incompletos.** Algunas llamadas directas a `.toFixed()` podían detener el reporte si un valor legado era texto o faltaba. Ahora se normalizan esos números sin alterar los datos guardados.
 5. **Desbordamiento numérico.** Se agregó un rechazo explícito para montos tan grandes que JavaScript produciría `Infinity`.
+6. **Categorías con escrituras parciales.** Crear, renombrar y eliminar categorías ya no dispara escrituras independientes sin esperar. Ahora los documentos y la configuración se actualizan juntos o no se actualiza nada.
+7. **Identificación física inexistente.** Se añadieron códigos permanentes, búsqueda por código, exportación e impresión de etiquetas sin depender de servicios externos.
 
 ### Pendientes; no se modificaron para no ampliar el riesgo de esta entrega
 
@@ -77,35 +108,12 @@ Resultado actual: 13 pruebas aprobadas, 0 fallidas.
 5. **Sincronización de usuarios (prioridad media).** El guardado de usuarios conserva respaldo local, pero la escritura en Firebase silencia el error. Puede aparentar éxito en un dispositivo aunque el cambio no haya llegado a los demás.
 6. **Prueba concurrente real pendiente.** Las transacciones de venta, ingreso, anulación y retiro están protegidas en código, pero la concurrencia real entre varios dispositivos debe probarse contra un Firebase Emulator configurado con las mismas reglas, nunca contra los datos reales.
 
-## Ideas tomadas de sistemas similares
-
-Referencias revisadas: [Printavo](https://www.printavo.com/), [YoPrint](https://yoprint.com/), [Odoo Manufacturing](https://www.odoo.com/app/manufacturing-features), [Zoho Inventory](https://www.zoho.com/inventory/features/), [Square Inventory](https://squareup.com/us/en/point-of-sale/features/inventory-management) y [Sortly](https://www.sortly.com/features/).
-
-### Prioridad 1: gran beneficio con cambio controlado
-
-1. **Orden de trabajo después de aprobar la cotización.** Estados: cotizada, aprobada, diseño, producción, lista y entregada. Debe guardar fecha prometida, responsable, anticipo y saldo.
-2. **Receta de costos por producto.** Por ejemplo, una taza puede consumir taza blanca, papel, tinta, caja, energía y minutos de trabajo. Al vender, el sistema propondría automáticamente esos costos y materiales.
-3. **Reserva de inventario.** Una cotización aprobada apartaría material sin registrarlo todavía como vendido. Esto evita prometer el mismo producto a dos clientes.
-4. **Precio mínimo sugerido.** A partir de material, producción, envío, merma, mano de obra y margen deseado, mostraría un precio recomendado y advertiría si se vende por debajo del punto de equilibrio.
-
-### Prioridad 2: control operativo
-
-5. **Anticipos y pagos pendientes.** Separar total del pedido, anticipo recibido y saldo por cobrar, con cierre diario por efectivo, transferencia y tarjeta.
-6. **Merma y reimpresión.** Registrar piezas dañadas o repetidas contra la orden de trabajo para que la rentabilidad real incluya errores de producción.
-7. **Surtido inteligente.** Usar ventas promedio y tiempo del proveedor para sugerir punto de reorden, cantidad a comprar y productos de baja rotación.
-8. **Bitácora por usuario.** Registrar quién cambió precio, stock, cotización, venta o retiro, con valor anterior y nuevo.
-
-### Prioridad 3: velocidad y servicio al cliente
-
-9. **Código QR o barras.** Buscar, contar, ingresar y vender artículos con la cámara del teléfono.
-10. **Aprobación digital del diseño.** Enviar un enlace o imagen al cliente, guardar su aprobación y evitar producir con una versión equivocada.
-11. **Historial de cliente.** Mostrar pedidos, diseños, precios anteriores, saldo y productos frecuentes para repetir trabajos más rápido.
-12. **Panel de producción.** Vista por fecha y estado para detectar pedidos atrasados, carga de trabajo y cuellos de botella.
-
 ## Cómo regresar sin perder datos
 
 Antes de integrar esta rama, basta con cerrar el pull request: `main` y Firebase no cambian.
 
-Si ya se integró, se debe crear un `git revert` del commit de integración de la versión 1.0.8. Esta entrega no cambia colecciones ni migra documentos, por lo que volver al código 1.0.7 no requiere borrar ni restaurar inventario, ventas o fondos.
+Si ya se integró, se debe crear un `git revert` del commit de integración de la versión 1.0.8. Volver al código 1.0.7 no requiere borrar ni restaurar inventario, ventas o fondos.
 
-No se debe usar `git reset --hard`, borrar colecciones de Firebase ni restaurar una copia completa de la base para revertir esta mejora visual y matemática.
+Si ya se presionó **Asignar códigos faltantes**, los campos `codigoInventario`, `bloqueCategoria` y `codigosInventario` pueden permanecer en Firebase: la versión anterior simplemente los ignora. No se deben borrar para regresar; conservarlos permite recuperar las mismas etiquetas si se vuelve a activar esta versión.
+
+No se debe usar `git reset --hard`, borrar colecciones de Firebase ni restaurar una copia completa de la base para revertir estas mejoras.

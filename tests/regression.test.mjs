@@ -326,6 +326,137 @@ test('el retiro inteligente conserva los retiros manuales y escribe un registro 
   assert.match(funcionRetiro, /Los fondos cambiaron después de la confirmación/);
 });
 
+test('los códigos usan bloques de 1000, no se repiten y conservan el bloque al renombrar', () => {
+  const contexto = vm.createContext({ Math, Number, Error, String, Object, Array, Set, Map });
+  vm.runInContext(`
+    const TAMANO_BLOQUE_CATEGORIA = 1000;
+    const PRIMER_BLOQUE_CATEGORIA = 1000;
+    const MAX_PRODUCTOS_POR_BLOQUE = 999;
+    ${extraerFuncion('numeroFinito')}
+    ${extraerFuncion('normalizarCategoriaCodigo')}
+    ${extraerFuncion('normalizarEstadoCodigosInventario')}
+    ${extraerFuncion('asegurarBloqueCategoria')}
+    ${extraerFuncion('asignarSiguienteCodigoInventario')}
+    ${extraerFuncion('incorporarCodigosExistentes')}
+    ${extraerFuncion('renombrarCategoriaEnEstadoCodigos')}
+  `, contexto);
+
+  let estado = {};
+  const textil = contexto.asegurarBloqueCategoria(estado, 'textil');
+  estado = textil.estado;
+  const ceramica = contexto.asegurarBloqueCategoria(estado, 'cerámica');
+  estado = ceramica.estado;
+  assert.equal(textil.bloque, 1000);
+  assert.equal(ceramica.bloque, 2000);
+
+  let ocupados = new Set();
+  const primero = contexto.asignarSiguienteCodigoInventario(estado, 'TEXTIL', ocupados);
+  assert.equal(primero.codigo, 1001);
+  assert.equal(primero.bloque, 1000);
+  estado = primero.estado;
+  ocupados = primero.codigosOcupados;
+  const segundo = contexto.asignarSiguienteCodigoInventario(estado, 'TEXTIL', ocupados);
+  assert.equal(segundo.codigo, 1002);
+
+  const renombrado = contexto.renombrarCategoriaEnEstadoCodigos(segundo.estado, 'TEXTIL', 'TELAS');
+  assert.equal(renombrado.bloques.TELAS, 1000);
+  assert.equal(renombrado.bloques.TEXTIL, undefined);
+  assert.equal(renombrado.siguientes.TELAS, 1003);
+
+  assert.throws(() => contexto.incorporarCodigosExistentes({}, [
+    { id: 'a', categoria: 'A', codigoInventario: 1001 },
+    { id: 'b', categoria: 'A', codigoInventario: 1001 }
+  ]), /repetido/);
+});
+
+test('estrés de códigos: 9990 productos mantienen bloque, capacidad y unicidad', () => {
+  const contexto = vm.createContext({ Math, Number, Error, String, Object, Array, Set, Map });
+  vm.runInContext(`
+    const TAMANO_BLOQUE_CATEGORIA = 1000;
+    const PRIMER_BLOQUE_CATEGORIA = 1000;
+    const MAX_PRODUCTOS_POR_BLOQUE = 999;
+    ${extraerFuncion('numeroFinito')}
+    ${extraerFuncion('normalizarCategoriaCodigo')}
+    ${extraerFuncion('normalizarEstadoCodigosInventario')}
+    ${extraerFuncion('asegurarBloqueCategoria')}
+    ${extraerFuncion('asignarSiguienteCodigoInventario')}
+  `, contexto);
+
+  let estado = {};
+  let ocupados = new Set();
+  for(let categoria = 0; categoria < 10; categoria++) {
+    const nombre = `CAT-${String(categoria).padStart(2, '0')}`;
+    const esperada = (categoria + 1) * 1000;
+    for(let producto = 1; producto <= 999; producto++) {
+      const asignacion = contexto.asignarSiguienteCodigoInventario(estado, nombre, ocupados);
+      assert.equal(asignacion.bloque, esperada);
+      assert.equal(asignacion.codigo, esperada + producto);
+      estado = asignacion.estado;
+      ocupados = asignacion.codigosOcupados;
+    }
+  }
+  assert.equal(ocupados.size, 9990);
+  assert.throws(() => contexto.asignarSiguienteCodigoInventario(estado, 'CAT-00', ocupados), /agotó sus 999 códigos/);
+});
+
+test('la asignación existente es explícita, transaccional y no altera huellas contables', () => {
+  const asignacion = extraerFuncion('asignarCodigosInventarioFaltantes');
+  const ingreso = extraerFuncion('procesarIngresoMultiple');
+  const crearCategoria = extraerFuncion('crearCategoriaVacia');
+  const renombrarCategoria = extraerFuncion('confirmarRenombrarCat');
+  const eliminarCategoria = extraerFuncion('confirmarEliminarCat');
+  assert.match(html, /id="btn-asignar-codigos"/);
+  assert.match(html, /imprimirEtiquetaProducto/);
+  assert.match(html, /Buscar por código, producto o categoría/);
+  assert.match(asignacion, /window\.runTransaction/);
+  assert.match(asignacion, /codigosInventario:/);
+  assert.match(asignacion, /NO cambia existencias, costos, ventas, fondos/);
+  assert.doesNotMatch(asignacion, /lastModified\s*:/);
+  assert.match(ingreso, /asignarSiguienteCodigoInventario/);
+  assert.match(ingreso, /t\.update\(configRef, \{ codigosInventario:/);
+  [crearCategoria, renombrarCategoria, eliminarCategoria].forEach(funcion => {
+    assert.match(funcion, /window\.runTransaction/);
+    assert.doesNotMatch(funcion, /window\.(?:setDoc|updateDoc|deleteDoc)\(/);
+  });
+  assert.doesNotMatch(renombrarCategoria, /lastModified\s*:/);
+  assert.doesNotMatch(eliminarCategoria, /lastModified\s*:/);
+});
+
+test('la búsqueda incluye código y las etiquetas escapan los datos del producto', () => {
+  const contexto = vm.createContext({ Math, Number, Error, String, Object, Array, Set, Map });
+  vm.runInContext(`
+    const TAMANO_BLOQUE_CATEGORIA = 1000;
+    const PRIMER_BLOQUE_CATEGORIA = 1000;
+    ${extraerFuncion('normalizarTexto')}
+    ${extraerFuncion('busquedaInteligente')}
+    ${extraerFuncion('escaparHTML')}
+    ${extraerFuncion('normalizarCategoriaCodigo')}
+    ${extraerFuncion('esCodigoInventarioValido')}
+    ${extraerFuncion('coincideBusquedaProducto')}
+    ${extraerFuncion('generarDocumentoEtiquetas')}
+  `, contexto);
+  const producto = { id: 'p1', codigoInventario: 2007, nombre: '<TAZA & ROJA>', categoria: 'CERÁMICA' };
+  assert.equal(contexto.coincideBusquedaProducto(producto, '2007'), true);
+  assert.equal(contexto.coincideBusquedaProducto(producto, 'ceramica roja'), true);
+  assert.equal(contexto.coincideBusquedaProducto(producto, 'textil'), false);
+  assert.equal(contexto.esCodigoInventarioValido(1000), false);
+  assert.equal(contexto.esCodigoInventarioValido(0), false);
+  assert.equal(contexto.esCodigoInventarioValido(2007), true);
+  const etiqueta = contexto.generarDocumentoEtiquetas([producto]);
+  assert.match(etiqueta, /2007/);
+  assert.match(etiqueta, /&lt;TAZA &amp; ROJA&gt;/);
+  assert.doesNotMatch(etiqueta, /<TAZA & ROJA>/);
+});
+
+test('el rediseño conserva el modo oscuro e incluye accesibilidad y adaptación móvil', () => {
+  assert.match(html, /--bg-color:\s*#070b14/);
+  assert.match(html, /backdrop-filter:\s*blur/);
+  assert.match(html, /position:\s*sticky/);
+  assert.match(html, /@media \(max-width:\s*680px\)/);
+  assert.match(html, /prefers-reduced-motion/);
+  assert.deepEqual(JSON.parse(leer('manifest.json')).theme_color, '#070b14');
+});
+
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
   assert.match(scriptClasico, /const APP_VERSION = "1\.0\.8"/);
