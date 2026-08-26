@@ -1,7 +1,8 @@
-const CACHE_NAME = 'sublicosturas-v1.1.0';
+const CACHE_NAME = 'sublicosturas-v1.1.1';
 const APP_SHELL = [
   './',
   './index.html',
+  './buscador.js',
   './manifest.json',
   './logo.jpeg',
   './logo-192.png',
@@ -30,9 +31,6 @@ self.addEventListener('fetch', event => {
   if(request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Studio tiene su propio shell y service worker; el inventario no debe
-  // responder con index.html cuando se navega dentro de /studio/.
-  if(url.pathname.includes('/studio/')) return;
   if(url.pathname.endsWith('/version.json')) {
     event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
