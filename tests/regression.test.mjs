@@ -32,7 +32,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   assert.doesNotThrow(() => new Function(scriptClasico));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.0.9' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.1.0' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -79,7 +79,7 @@ test('SAT conserva el cálculo existente del cinco por ciento', () => {
   const items = [{ nombre: 'Taza', qty: 2, precioCobrado: 50, costoBase: 20 }];
   assert.equal(contexto.calcularDesgloseFinanciero(items, 0, 0, true).impuestoSAT, 5);
   assert.equal(contexto.calcularDesgloseFinanciero(items, 0, 0, false).impuestoSAT, 0);
-  assert.match(extraerFuncion('calcularDesgloseFinanciero'), /impuestoSAT\s*=\s*pideFactura\s*\?\s*\(ingresoTotal\s*\*\s*0\.05\)\s*:\s*0/);
+  assert.match(extraerFuncion('calcularDesgloseFinanciero'), /impuestoSAT\s*=\s*pideFactura\s*\?\s*moneda\(ingresoTotal\s*\*\s*0\.05\)\s*:\s*0/);
   assert.match(scriptClasico, /Impuesto SAT \(5%\)/);
 });
 
@@ -199,7 +199,7 @@ test('estrés matemático: 50000 escenarios conservan las identidades financiera
     assert.ok(Number.isFinite(desglose.gananciaNeta));
     assert.ok(Math.abs(desglose.totalGastos - (desglose.costosProductos + tinta + envio + desglose.impuestoSAT)) < 1e-7);
     assert.ok(Math.abs(desglose.gananciaNeta - (desglose.ingresoTotal - desglose.totalGastos)) < 1e-7);
-    assert.ok(Math.abs(desglose.impuestoSAT - (factura ? desglose.ingresoTotal * 0.05 : 0)) < 1e-7);
+    assert.equal(Math.round(desglose.impuestoSAT * 100), Math.round((factura ? desglose.ingresoTotal * 0.05 : 0) * 100));
 
     const stockActual = Math.floor(aleatorio() * 10000);
     const cantidadNueva = 1 + Math.floor(aleatorio() * 10000);
@@ -402,6 +402,7 @@ test('estrés de códigos: 9990 productos mantienen bloque, capacidad y unicidad
 test('la asignación existente es explícita, transaccional y no altera huellas contables', () => {
   const asignacion = extraerFuncion('asignarCodigosInventarioFaltantes');
   const ingreso = extraerFuncion('procesarIngresoMultiple');
+  const reserva = extraerFuncion('reservarCodigoInventarioEnTransaccion');
   const crearCategoria = extraerFuncion('crearCategoriaVacia');
   const renombrarCategoria = extraerFuncion('confirmarRenombrarCat');
   const eliminarCategoria = extraerFuncion('confirmarEliminarCat');
@@ -412,7 +413,9 @@ test('la asignación existente es explícita, transaccional y no altera huellas 
   assert.match(asignacion, /codigosInventario:/);
   assert.match(asignacion, /NO cambia existencias, costos, ventas, fondos/);
   assert.doesNotMatch(asignacion, /lastModified\s*:/);
-  assert.match(ingreso, /asignarSiguienteCodigoInventario/);
+  assert.match(ingreso, /reservarCodigoInventarioEnTransaccion/);
+  assert.match(reserva, /codigos_inventario/);
+  assert.match(asignacion, /registroCodigosVersion:\s*1/);
   assert.match(ingreso, /t\.update\(configRef, \{ codigosInventario:/);
   [crearCategoria, renombrarCategoria, eliminarCategoria].forEach(funcion => {
     assert.match(funcion, /window\.runTransaction/);
@@ -567,11 +570,83 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.0\.9"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.0\.9/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.1\.0"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.1\.0/);
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
     assert.ok(fs.existsSync(path.join(raiz, icono.src)), `Falta ${icono.src}`);
   }
   assert.ok(fs.existsSync(path.join(raiz, 'apple-touch-icon.png')));
+});
+
+test('los importes se contabilizan en centavos y no dejan residuos al revertir', () => {
+  const contexto = vm.createContext({ Math, Number, Error, Array, Boolean });
+  vm.runInContext(`
+    ${extraerFuncion('aCentavos')}
+    ${extraerFuncion('desdeCentavos')}
+    ${extraerFuncion('calcularDesgloseFinanciero')}
+  `, contexto);
+  const venta = contexto.calcularDesgloseFinanciero([{ nombre: 'Prueba', qty: 1, precioCobrado: 100.10, costoBase: 33.37 }], 0.10, 0.20, true);
+  const fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+  fondos.costoProducto = contexto.desdeCentavos(contexto.aCentavos(fondos.costoProducto) + contexto.aCentavos(venta.costosProductos));
+  fondos.costoProducto = contexto.desdeCentavos(contexto.aCentavos(fondos.costoProducto) - contexto.aCentavos(venta.costosProductos));
+  fondos.costoLuzTinta = contexto.desdeCentavos(contexto.aCentavos(venta.costoTinta) - contexto.aCentavos(venta.costoTinta));
+  fondos.gananciaLibre = contexto.desdeCentavos(contexto.aCentavos(venta.gananciaNeta) - contexto.aCentavos(venta.gananciaNeta));
+  fondos.fondoImpuestos = contexto.desdeCentavos(contexto.aCentavos(venta.impuestoSAT) - contexto.aCentavos(venta.impuestoSAT));
+  assert.deepEqual(JSON.parse(JSON.stringify(fondos)), { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 });
+});
+
+test('la rueda del mouse no modifica inputs numéricos y conserva el desplazamiento', () => {
+  const funcion = extraerFuncion('desactivarRuedaEnCamposNumericos');
+  let desenfocado = false;
+  const contexto = vm.createContext({});
+  vm.runInContext(funcion, contexto);
+  contexto.desactivarRuedaEnCamposNumericos({ target: { matches: selector => selector === 'input[type="number"]', blur: () => { desenfocado = true; } } });
+  assert.equal(desenfocado, true);
+  assert.doesNotMatch(funcion, /preventDefault/);
+  assert.match(scriptClasico, /addEventListener\('wheel',\s*desactivarRuedaEnCamposNumericos,\s*\{\s*capture:\s*true,\s*passive:\s*true\s*\}\)/);
+});
+
+test('el acceso inicial espera confirmación de Firebase y los usuarios usan revisión transaccional', () => {
+  const acceso = extraerFuncion('comprobarIngresoInicialLibre');
+  const guardado = extraerFuncion('guardarUsuarios');
+  assert.match(acceso, /!dueñosRegistrados\s*&&\s*!configuracionUsuariosConfirmada/);
+  assert.match(acceso, /app\.style\.display\s*=\s*'none'/);
+  assert.match(guardado, /window\.runTransaction/);
+  assert.match(guardado, /usuariosRevision/);
+  assert.doesNotMatch(guardado, /\.catch\(e=>\{\}\)/);
+});
+
+test('editar una venta crea un borrador y el reemplazo final es atómico', () => {
+  const editar = extraerFuncion('editarVenta');
+  const procesar = extraerFuncion('procesarVentaMultiple');
+  assert.doesNotMatch(editar, /revertirVentaAtomica/);
+  assert.match(editar, /ventaEnEdicion\s*=\s*String\(id\)/);
+  assert.match(procesar, /ventaEditadaId\s*=\s*ventaEnEdicion/);
+  assert.match(procesar, /resumenSinAnterior/);
+  assert.match(procesar, /t\.set\(ventaRef,\s*nuevaVenta\)/);
+  assert.match(html, /id="aviso-venta-edicion"/);
+});
+
+test('el registro permanente evita reutilizar códigos al borrar productos', () => {
+  const reserva = extraerFuncion('reservarCodigoInventarioEnTransaccion');
+  const borrar = extraerFuncion('borrarProducto');
+  assert.match(reserva, /codigos_inventario/);
+  assert.match(reserva, /registroSnap\.exists\(\)/);
+  assert.match(borrar, /'retirado'/);
+  assert.match(borrar, /t\.delete\(productoRef\)/);
+});
+
+test('el reporte completo descarga los cuatro historiales y conserva números en Excel', () => {
+  const reporte = extraerFuncion('generarReporteExcel');
+  ['ventas', 'ingresos', 'cotizaciones', 'retiros'].forEach(tipo => assert.match(reporte, new RegExp(`cargarHistorialCompleto\\('${tipo}'\\)`)));
+  assert.match(reporte, /"Ingresos"/);
+  assert.match(reporte, /"Cotizaciones"/);
+  assert.doesNotMatch(reporte, /\.toFixed\(/);
+});
+
+test('la copia heredada SUBLI redirige a la aplicación vigente', () => {
+  const legacy = leer('SUBLI.html');
+  assert.match(legacy, /http-equiv="refresh"[^>]+\.\/index\.html/);
+  assert.match(legacy, /window\.location\.replace\('\.\/index\.html'\)/);
 });
