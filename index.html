@@ -381,7 +381,7 @@
     <div id="login-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
         <div class="card" style="text-align: center; max-width: 350px; width: 90%; padding: 40px 20px;">
             <h2 style="color: var(--primary-blue); margin-top: 0; font-size: 26px;">SubliCosturas</h2>
-            <p style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su PIN para acceder al sistema</p>
+            <p id="login-mensaje" style="color: var(--text-light); margin-bottom: 25px; font-size: 14px;">Ingrese su PIN para acceder al sistema</p>
             <input type="password" id="login-pass" placeholder="••••" style="margin-bottom: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; font-weight: bold; width: 80%; margin-left: auto; margin-right: auto; display: block;" onkeydown="if(event.key === 'Enter') verificarLogin()">
             <button class="btn-main" onclick="verificarLogin()" style="width: 80%;">Entrar al Sistema</button>
         </div>
@@ -535,6 +535,12 @@
             </div>
 
             <div class="card">
+                <h3 class="section-title">🗂️ SubliCosturas Studio</h3>
+                <p class="settings-note">Aplicación independiente para guardar archivos de Corel, Photoshop, Illustrator, PDF e imágenes en carpetas normales de tu PC y encontrarlos por cliente, diseño o producto.</p>
+                <a class="btn-main" href="./studio/" target="_blank" rel="noopener" style="display:block; box-sizing:border-box; text-align:center; text-decoration:none;">Abrir Studio en otra pestaña</a>
+            </div>
+
+            <div class="card">
                 <h3 class="section-title">👥 Administración de Usuarios</h3>
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
                 <div class="grid-2">
@@ -675,7 +681,7 @@
                             <button onclick="eliminarCategoriaGlobalUI()" class="btn-sm btn-delete" style="padding: 10px 15px;">🗑️ Eliminar Cat.</button>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            <button id="btn-asignar-codigos" onclick="asignarCodigosInventarioFaltantes()" class="btn-sm btn-label" style="padding: 10px 15px;">🏷️ Asignar códigos faltantes</button>
+                            <button id="btn-asignar-codigos" onclick="asignarCodigosInventarioFaltantes()" class="btn-sm btn-label" style="padding: 10px 15px;">🛡️ Verificar códigos únicos</button>
                             <button onclick="imprimirEtiquetasInventario()" class="btn-sm" style="padding: 10px 15px; background:#334155; color:white;">🖨️ Imprimir etiquetas</button>
                         </div>
                     </div>
@@ -710,6 +716,10 @@
             </div>
 
             <div class="card cart-container">
+                <div id="aviso-venta-edicion" style="display:none; margin-bottom:12px; padding:10px; border:1px solid var(--primary-orange); border-radius:8px; color:var(--primary-orange); font-size:12px; font-weight:bold;">
+                    ✏️ Edición pendiente: la venta original sigue intacta hasta que confirmes el reemplazo.
+                    <button class="btn-sm" onclick="cancelarEdicionVenta()" style="margin-left:8px; background:#4b5563; color:white;">Cancelar edición</button>
+                </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">
                     <h3 class="cart-title" style="border: none; padding: 0; margin: 0;">🛍️ Carrito de la Venta Actual</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
@@ -981,7 +991,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, orderBy, limit, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, where, orderBy, limit, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBX_IY50FSYoP4Q9n0jOiMDL19O7Vwq464",
@@ -998,7 +1008,7 @@
           localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
         });
 
-        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.orderBy = orderBy; window.limit = limit;
+        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.where = where; window.orderBy = orderBy; window.limit = limit;
 
         console.log("🔥 Firebase SubliCosturas Conectado");
         window.dispatchEvent(new Event('firebaseListo'));
@@ -1149,6 +1159,62 @@
             return { codigo, bloque, estado: resultado, codigosOcupados: ocupados };
         }
 
+        function crearRegistroCodigoInventario(producto, codigo, timestamp, estado = 'activo') {
+            return {
+                codigo: Number(codigo),
+                productoId: String(producto.id),
+                productoNombre: String(producto.nombre || ''),
+                categoria: normalizarCategoriaCodigo(producto.categoria),
+                bloque: Math.floor(Number(codigo) / TAMANO_BLOQUE_CATEGORIA) * TAMANO_BLOQUE_CATEGORIA,
+                estado,
+                actualizadoEn: timestamp
+            };
+        }
+
+        async function reservarCodigoInventarioEnTransaccion(t, producto, estado, codigosOcupados, timestamp) {
+            if(producto?.isService) return { producto, estado, codigosOcupados, reserva: null };
+
+            let estadoTrabajo = estado;
+            let ocupados = new Set(Array.from(codigosOcupados || []).map(Number));
+            let codigo = Number(producto.codigoInventario);
+            let bloque = Number(producto.bloqueCategoria);
+            if(esCodigoInventarioValido(codigo) && (!Number.isInteger(bloque) || bloque < PRIMER_BLOQUE_CATEGORIA)) {
+                bloque = Math.floor(codigo / TAMANO_BLOQUE_CATEGORIA) * TAMANO_BLOQUE_CATEGORIA;
+            }
+
+            while(true) {
+                if(!esCodigoInventarioValido(codigo)) {
+                    const asignacion = asignarSiguienteCodigoInventario(estadoTrabajo, producto.categoria, ocupados);
+                    codigo = asignacion.codigo;
+                    bloque = asignacion.bloque;
+                    estadoTrabajo = asignacion.estado;
+                    ocupados = asignacion.codigosOcupados;
+                }
+
+                const registroRef = window.doc(window.db, "codigos_inventario", String(codigo));
+                const registroSnap = await t.get(registroRef);
+                const propietario = registroSnap.exists() ? String(registroSnap.data().productoId || '') : '';
+                if(!registroSnap.exists() || propietario === String(producto.id)) {
+                    const productoConCodigo = { ...producto, codigoInventario: codigo, bloqueCategoria: bloque };
+                    return {
+                        producto: productoConCodigo,
+                        estado: estadoTrabajo,
+                        codigosOcupados: ocupados,
+                        reserva: { ref: registroRef, datos: crearRegistroCodigoInventario(productoConCodigo, codigo, timestamp) }
+                    };
+                }
+
+                if(esCodigoInventarioValido(producto.codigoInventario)) {
+                    throw new Error(`El código ${codigo} ya pertenece a otro producto. Ejecuta “Verificar códigos únicos” antes de continuar.`);
+                }
+
+                // El registro permanente es la fuente de verdad. Si el contador antiguo
+                // propone un código ocupado, avanzamos dentro del mismo bloque sin reutilizarlo.
+                ocupados.add(codigo);
+                codigo = NaN;
+            }
+        }
+
         function renombrarCategoriaEnEstadoCodigos(estado, categoriaActual, categoriaNueva) {
             const resultado = normalizarEstadoCodigosInventario(estado);
             const actual = normalizarCategoriaCodigo(categoriaActual);
@@ -1203,8 +1269,11 @@
         let datosCargadosDeLaNube = false; 
         let cargaDatosIniciada = false;
         let historialCompletoCargado = { ventas: false, ingresos: false, cotizaciones: false, retiros: false };
+        let ventasAnalisis30 = [];
         
         let carritoIngresos = []; let carritoVentas = []; let carritoCotizacion = [];
+        let ventaEnEdicion = null;
+        let ventaEdicionVersion = null;
         let ingresoEnEdicion = null;
 
         function crearPreferenciasSistemaPorDefecto() {
@@ -1333,18 +1402,24 @@
         // ================= SISTEMA DE USUARIOS Y PERMISOS =================
         let usuarios = JSON.parse(localStorage.getItem('subli_usuarios')) || [];
         let currentUserData = null;
+        let configuracionUsuariosConfirmada = false;
+        let usuariosRevision = 0;
         let inactividadTimer;
         const TIEMPO_INACTIVIDAD = 15 * 60 * 1000;
 
         // Modificación lógica: Las funciones relacionadas con PINs ahora usan promesas para evaluar el hash
         async function esDueno(pinCrudo) {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
-            if (!dueñosRegistrados) return true;
+            if (!dueñosRegistrados) return configuracionUsuariosConfirmada;
             const hashed = await hashPIN(pinCrudo);
             return usuarios.some(u => u.pin === hashed && u.rol === 'dueno');
         }
 
         async function verificarLogin() {
+            if(!configuracionUsuariosConfirmada && !usuarios.some(u => u.rol === 'dueno')) {
+                alert('Espera a que Firebase confirme la configuración de usuarios. La aplicación permanece bloqueada para evitar un acceso libre por error.');
+                return;
+            }
             const pass = document.getElementById('login-pass').value.trim();
             const hashedPass = await hashPIN(pass);
             currentUserData = usuarios.find(u => u.pin === hashedPass);
@@ -1363,15 +1438,37 @@
         
         function comprobarIngresoInicialLibre() {
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
+            const login = document.getElementById('login-screen');
+            const app = document.getElementById('main-app');
+            const mensaje = document.getElementById('login-mensaje');
+            const entrada = document.getElementById('login-pass');
+            const boton = login?.querySelector('button');
+
+            if(!dueñosRegistrados && !configuracionUsuariosConfirmada) {
+                currentUserData = null;
+                app.style.display = 'none';
+                login.style.display = 'flex';
+                if(mensaje) mensaje.textContent = 'Verificando usuarios con Firebase… Conecta este equipo para continuar de forma segura.';
+                if(entrada) entrada.disabled = true;
+                if(boton) boton.disabled = true;
+                return;
+            }
+
+            if(mensaje) mensaje.textContent = dueñosRegistrados ? 'Ingrese su PIN para acceder al sistema' : 'Sistema nuevo confirmado. Crea el primer Dueño en Opciones.';
+            if(entrada) entrada.disabled = false;
+            if(boton) boton.disabled = false;
             if (!dueñosRegistrados) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
+                login.style.display = 'none';
+                app.style.display = 'block';
                 currentUserData = { id: 0, nombre: 'Dueño (Sin PIN)', rol: 'dueno', pin: '' };
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
             } else {
-                if(document.getElementById('main-app').style.display !== 'block'){
-                    document.getElementById('login-screen').style.display = 'flex';
+                const usuarioSigueVigente = currentUserData && usuarios.some(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
+                if(!usuarioSigueVigente) {
+                    currentUserData = null;
+                    app.style.display = 'none';
+                    login.style.display = 'flex';
                 }
             }
         }
@@ -1450,8 +1547,14 @@
                 permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
             }
 
+            const usuariosAnteriores = copiarDatos(usuarios);
             usuarios.push({ id: generarIDSeguro(), nombre, pin: hashedPin, rol, permisos });
-            guardarUsuarios();
+            try {
+                await guardarUsuarios();
+            } catch(error) {
+                usuarios = usuariosAnteriores;
+                return alert('❌ No se creó el usuario. ' + error.message);
+            }
             document.getElementById('nuevo-user-nombre').value = '';
             document.getElementById('nuevo-user-pin').value = '';
             renderUsuarios();
@@ -1500,6 +1603,7 @@
             }
             // ----------------------------------------
 
+            const usuariosAnteriores = copiarDatos(usuarios);
             if (nuevoPinCrudo !== '') {
                 const hashedNuevoPin = await hashPIN(nuevoPinCrudo);
                 if(usuarios.find(u => u.pin === hashedNuevoPin && String(u.id) !== String(id))) {
@@ -1521,13 +1625,18 @@
                 };
             }
 
-            guardarUsuarios();
+            try {
+                await guardarUsuarios();
+            } catch(error) {
+                usuarios = usuariosAnteriores;
+                return alert('❌ No se actualizó el usuario. ' + error.message);
+            }
             cerrarModalEditarUser();
             renderUsuarios();
             alert('✅ Usuario actualizado correctamente');
         }
 
-        function borrarUsuario(id) {
+        async function borrarUsuario(id) {
             if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
             const user = usuarios.find(u => u.id == id);
             if (user && user.rol === 'dueno') {
@@ -1536,15 +1645,32 @@
             }
 
             if(confirm('¿Eliminar definitivamente este usuario?')) {
+                const usuariosAnteriores = copiarDatos(usuarios);
                 usuarios = usuarios.filter(u => String(u.id) !== String(id));
-                guardarUsuarios();
+                try {
+                    await guardarUsuarios();
+                } catch(error) {
+                    usuarios = usuariosAnteriores;
+                    return alert('❌ No se eliminó el usuario. ' + error.message);
+                }
                 renderUsuarios();
             }
         }
 
-        function guardarUsuarios() {
-            localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
-            if (window.db) window.updateDoc(window.doc(window.db, "sistema", "config"), { usuarios: usuarios }).catch(e=>{});
+        async function guardarUsuarios() {
+            if(!window.db || !navigator.onLine) throw new Error('Necesitas conexión para cambiar usuarios de forma segura.');
+            const usuariosNuevos = copiarDatos(usuarios);
+            const revisionEsperada = usuariosRevision;
+            await window.runTransaction(window.db, async t => {
+                const configRef = window.doc(window.db, "sistema", "config");
+                const configSnap = await t.get(configRef);
+                if(!configSnap.exists()) throw new Error('No se encontró la configuración maestra.');
+                const revisionServidor = Number(configSnap.data().usuariosRevision || 0);
+                if(revisionServidor !== revisionEsperada) throw new Error('Otro dispositivo cambió los usuarios. Espera la sincronización y vuelve a intentarlo.');
+                t.update(configRef, { usuarios: usuariosNuevos, usuariosRevision: revisionServidor + 1, ultimaActualizacionUsuarios: Date.now() });
+            });
+            usuariosRevision = revisionEsperada + 1;
+            localStorage.setItem('subli_usuarios', JSON.stringify(usuariosNuevos));
         }
 
         function renderUsuarios() {
@@ -1559,7 +1685,7 @@
                 <div class="item-row" style="background: rgba(249, 115, 22, 0.1); border: 1px dashed var(--primary-orange); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
                     <div class="item-info">
                         <p class="item-title" style="color: var(--primary-orange);">⚠️ Sistema sin Dueño Registrado</p>
-                        <p class="item-details">El ingreso al sistema es libre. Por favor, crea un usuario con rol "Dueño" para activar la pantalla de bloqueo con PIN.</p>
+                        <p class="item-details">Firebase confirmó que aún no hay un Dueño. Crea el primer usuario Dueño para activar el acceso con PIN.</p>
                     </div>
                 </div>`;
             }
@@ -1596,7 +1722,8 @@
         }
 
         function redondear(num) {
-            return Math.round((num + Number.EPSILON) * 100) / 100;
+            const valor = Number(num);
+            return Number.isFinite(valor) ? Math.round((valor + Number.EPSILON) * 100) / 100 : 0;
         }
 
         function numeroFinito(valor, valorPorDefecto = 0) {
@@ -1607,6 +1734,7 @@
         function calcularDesgloseFinanciero(detalleItems = [], costoTinta = 0, costoEnvio = 0, pideFactura = false) {
             const tinta = Number(costoTinta);
             const envio = Number(costoEnvio);
+            const moneda = valor => Math.round((Number(valor) + Number.EPSILON) * 100) / 100;
             if(!Number.isFinite(tinta) || !Number.isFinite(envio) || tinta < 0 || envio < 0) {
                 throw new Error("Los gastos de producción y envío deben ser números válidos no negativos.");
             }
@@ -1630,10 +1758,15 @@
                 throw new Error("Los montos son demasiado grandes para calcularse de forma segura.");
             }
 
+            ingresoTotal = moneda(ingresoTotal);
+            costosProductos = moneda(costosProductos);
+            const tintaMoneda = moneda(tinta);
+            const envioMoneda = moneda(envio);
+
             // La regla SAT permanece exactamente igual: 5% del ingreso solo con factura.
-            const impuestoSAT = pideFactura ? (ingresoTotal * 0.05) : 0;
-            const totalGastos = costosProductos + tinta + envio + impuestoSAT;
-            const gananciaNeta = ingresoTotal - totalGastos;
+            const impuestoSAT = pideFactura ? moneda(ingresoTotal * 0.05) : 0;
+            const totalGastos = moneda(costosProductos + tintaMoneda + envioMoneda + impuestoSAT);
+            const gananciaNeta = moneda(ingresoTotal - totalGastos);
             const margen = ingresoTotal > 0 ? gananciaNeta / ingresoTotal : 0;
             if(!Number.isFinite(impuestoSAT) || !Number.isFinite(totalGastos) || !Number.isFinite(gananciaNeta) || !Number.isFinite(margen)) {
                 throw new Error("El resultado financiero excede el límite numérico seguro.");
@@ -1642,8 +1775,8 @@
             return {
                 ingresoTotal,
                 costosProductos,
-                costoTinta: tinta,
-                costoEnvio: envio,
+                costoTinta: tintaMoneda,
+                costoEnvio: envioMoneda,
                 impuestoSAT,
                 totalGastos,
                 gananciaNeta,
@@ -1822,7 +1955,7 @@
                 return;
             }
 
-            const analisis = analizarSistemaInteligente(inventario, ventas, fondos);
+            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
             let html = '';
             if(moduloInteligenteActivo('alertas')) {
                 const mensajes = [];
@@ -1874,7 +2007,7 @@
                 salida.textContent = 'Escribe una consulta para analizar los datos disponibles.';
                 return;
             }
-            const analisis = analizarSistemaInteligente(inventario, ventas, fondos);
+            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
             const permiteAccesos = modoModuloInteligente('busqueda') === 'ayudar';
             let respuesta = '';
             if(/surtir|stock bajo|agotad/.test(consulta)) {
@@ -2300,6 +2433,21 @@
             }
         }
 
+        async function cargarVentasAnalisisUltimos30Dias() {
+            if(!window.db || !window.getDocs || !window.where || !navigator.onLine) return;
+            try {
+                const desde = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                const consulta = window.query(window.collection(window.db, "ventas"), window.where("timestamp", ">=", desde));
+                const snap = await window.getDocs(consulta);
+                const recientes = [];
+                snap.forEach(docVenta => recientes.push(docVenta.data()));
+                ventasAnalisis30 = recientes;
+                actualizarUI();
+            } catch(error) {
+                console.warn('No se pudo ampliar el análisis de ventas a 30 días; se usarán los datos ya cargados.', error);
+            }
+        }
+
         async function cambiarLimiteHistorial(tipo) {
             const ids = {
                 ventas: 'limite-historial-ventas',
@@ -2361,20 +2509,31 @@
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
                         if (docSnap.exists()) {
                             datosCargadosDeLaNube = true;
+                            if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
                             const data = docSnap.data();
                             fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                             estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
                             let nubeCustomCats = data.customCats || [];
                             if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            if (data.usuarios) {
+                            if (Array.isArray(data.usuarios)) {
                                 usuarios = data.usuarios;
+                                usuariosRevision = Number(data.usuariosRevision || 0);
                                 localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
                                 if(document.getElementById('sec-ajustes') && document.getElementById('sec-ajustes').style.display === 'block') {
                                     renderUsuarios();
                                 }
+                            } else if(!docSnap.metadata.fromCache) {
+                                usuarios = [];
+                                usuariosRevision = Number(data.usuariosRevision || 0);
+                                localStorage.removeItem('subli_usuarios');
                             }
                             debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
                             actualizarUI();
+                            comprobarIngresoInicialLibre();
+                        } else if(!docSnap.metadata.fromCache) {
+                            configuracionUsuariosConfirmada = true;
+                            usuarios = [];
+                            usuariosRevision = 0;
                             comprobarIngresoInicialLibre();
                         }
                     }, error => console.warn("No se pudo sincronizar la configuración; se conserva el respaldo local.", error));
@@ -2431,6 +2590,7 @@
                     
                     mostrarLogo();
                     comprobarIngresoInicialLibre();
+                    cargarVentasAnalisisUltimos30Dias();
                     return; 
                 } catch (e) { console.error("Fallo crítico en Firebase.", e); }
             } 
@@ -2570,9 +2730,9 @@
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
             const stock = parseInt(document.getElementById('inv-stock').value) || 0;
-            const proveedor = escaparHTML(document.getElementById('inv-proveedor').value.trim().toUpperCase()) || 'NO ESPECIFICADO'; 
-            const nit = escaparHTML(document.getElementById('inv-nit').value.trim()) || '';
-            const factura = escaparHTML(document.getElementById('inv-factura').value.trim().toUpperCase()) || ''; 
+            const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO'; 
+            const nit = document.getElementById('inv-nit').value.trim() || '';
+            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; 
             const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = parseFloat(document.getElementById('inv-costo').value) || 0;
             
@@ -2582,11 +2742,11 @@
             let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null;
 
             if (modo === 'nuevo') {
-                nombreProd = escaparHTML(document.getElementById('inv-nombre').value.trim().toUpperCase()); 
+                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); 
                 
                 minStock = parseInt(document.getElementById('inv-min').value) || 0;
                 let catElegida = document.getElementById('inv-categoria').value;
-                categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('inv-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
+                categoria = catElegida === 'nueva' ? (document.getElementById('inv-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
                 
                 if(minStock < 0) minStock = 0;
                 if(!nombreProd) { alert("⚠️ Escribe un nombre para el nuevo producto."); return; }
@@ -2673,6 +2833,9 @@
                     const configRef = window.doc(window.db, "sistema", "config");
                     const configSnap = await t.get(configRef);
                     if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+                    if(Number(configSnap.data().registroCodigosVersion || 0) < 1) {
+                        throw new Error('Antes del próximo ingreso, abre Inventario y ejecuta “Verificar códigos únicos” una sola vez. Así ningún equipo podrá repetir un código.');
+                    }
 
                     let ingresoAnterior = null;
                     const ingresoRef = window.doc(window.db, "ingresos", String(registroId));
@@ -2746,6 +2909,7 @@
                         items: []
                     };
                     let valorTotalIngresado = 0;
+                    const reservasCodigos = [];
 
                     for (const item of carritoSnapshot) {
                         const costoFinal = numeroFinito(item.costoBase) + transportePorPieza;
@@ -2767,12 +2931,12 @@
                             if(item.proveedor !== "NO ESPECIFICADO") producto.proveedor = item.proveedor;
                         }
 
-                        if(!producto.isService && !esCodigoInventarioValido(producto.codigoInventario)) {
-                            const asignacionCodigo = asignarSiguienteCodigoInventario(estadoCodigosTrabajo, producto.categoria, codigosOcupados);
-                            producto.codigoInventario = asignacionCodigo.codigo;
-                            producto.bloqueCategoria = asignacionCodigo.bloque;
-                            estadoCodigosTrabajo = asignacionCodigo.estado;
-                            codigosOcupados = asignacionCodigo.codigosOcupados;
+                        if(!producto.isService) {
+                            const reservado = await reservarCodigoInventarioEnTransaccion(t, producto, estadoCodigosTrabajo, codigosOcupados, timestampActual);
+                            producto = reservado.producto;
+                            estadoCodigosTrabajo = reservado.estado;
+                            codigosOcupados = reservado.codigosOcupados;
+                            if(reservado.reserva) reservasCodigos.push(reservado.reserva);
                         }
 
                         productosTrabajo.set(String(producto.id), producto);
@@ -2783,6 +2947,7 @@
                     productosActualizados.forEach(producto => {
                         t.set(window.doc(window.db, "inventario", String(producto.id)), producto);
                     });
+                    reservasCodigos.forEach(reserva => t.set(reserva.ref, reserva.datos, { merge: true }));
                     t.set(ingresoRef, registroHistorial);
                     t.update(configRef, { codigosInventario: estadoCodigosTrabajo, ultimaActualizacion: timestampActual });
 
@@ -3013,29 +3178,50 @@
             isProcessingTransaction = true;
             try {
                 const id = document.getElementById('edit-id').value;
-                const nombre = escaparHTML(document.getElementById('edit-nombre').value.trim().toUpperCase()); 
+                const nombre = document.getElementById('edit-nombre').value.trim().toUpperCase(); 
                 const stock = Number(document.getElementById('edit-stock').value);
                 const min = Number(document.getElementById('edit-min').value);
                 const tipoCosto = document.getElementById('edit-tipo-costo').value;
                 const costoIngresado = Number(document.getElementById('edit-costo').value);
                 const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
-                const proveedor = escaparHTML(document.getElementById('edit-proveedor').value.trim().toUpperCase()); 
+                const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase(); 
                 
                 let catElegida = document.getElementById('edit-categoria').value;
-                let categoria = catElegida === 'nueva' ? (escaparHTML(document.getElementById('edit-categoria-nueva').value.trim().toUpperCase()) || "OTROS") : catElegida;
+                let categoria = catElegida === 'nueva' ? (document.getElementById('edit-categoria-nueva').value.trim().toUpperCase() || "OTROS") : catElegida;
                 
                 if(!nombre || !Number.isInteger(stock) || !Number.isInteger(min) || !Number.isFinite(costo) || stock < 0 || min < 0 || costo < 0) { alert("⚠️ Stock y mínimo deben ser enteros no negativos; el costo debe ser un número válido no negativo."); return; }
                 if(!window.db || !navigator.onLine) { alert("📡 Necesitas conexión para editar el producto sin desincronizar el inventario."); return; }
                 
                 const p = inventario.find(x => String(x.id) === String(id));
-                if(p) { 
-                    const productoActualizado = { ...p, nombre, costo, proveedor, categoria, lastModified: Date.now() };
-                    if(!p.isService) { productoActualizado.stock = stock; productoActualizado.min = min; }
-                    await window.setDoc(window.doc(window.db, "inventario", String(p.id)), productoActualizado);
-                    inventario = fusionarPorId(inventario, [productoActualizado]);
-                    
-                    guardarDatos(); actualizarUI(); cerrarModalEditar(); 
-                }
+                if(!p) throw new Error('El producto ya no está disponible en este dispositivo.');
+                const timestampActual = Date.now();
+                const resultado = await window.runTransaction(window.db, async t => {
+                    const productoRef = window.doc(window.db, "inventario", String(id));
+                    const productoSnap = await t.get(productoRef);
+                    if(!productoSnap.exists()) throw new Error('El producto fue eliminado desde otro dispositivo.');
+                    const productoServidor = productoSnap.data();
+                    if(numeroFinito(productoServidor.lastModified) !== numeroFinito(p.lastModified)) {
+                        throw new Error('El producto cambió en otro dispositivo. Se canceló la edición; vuelve a abrirlo para revisar los datos nuevos.');
+                    }
+
+                    const productoActualizado = { ...productoServidor, nombre, costo, proveedor, categoria, lastModified: timestampActual };
+                    if(!productoServidor.isService) { productoActualizado.stock = stock; productoActualizado.min = min; }
+                    const ajuste = {
+                        id: generarIDSeguro(),
+                        productoId: String(id),
+                        codigoInventario: productoServidor.codigoInventario || null,
+                        timestamp: timestampActual,
+                        usuarioId: currentUserData?.id || null,
+                        usuarioNombre: currentUserData?.nombre || 'Dueño',
+                        antes: { nombre: productoServidor.nombre, stock: productoServidor.stock, min: productoServidor.min, costo: productoServidor.costo, proveedor: productoServidor.proveedor, categoria: productoServidor.categoria },
+                        despues: { nombre: productoActualizado.nombre, stock: productoActualizado.stock, min: productoActualizado.min, costo: productoActualizado.costo, proveedor: productoActualizado.proveedor, categoria: productoActualizado.categoria }
+                    };
+                    t.set(productoRef, productoActualizado);
+                    t.set(window.doc(window.db, "ajustes_inventario", String(ajuste.id)), ajuste);
+                    return productoActualizado;
+                });
+                inventario = fusionarPorId(inventario, [resultado]);
+                guardarDatos(); actualizarUI(); cerrarModalEditar();
             } catch (error) {
                 alert("Hubo un error al guardar la edición: " + error.message);
             } finally {
@@ -3057,13 +3243,30 @@
                 return;
             }
             try {
-                await window.deleteDoc(window.doc(window.db, "inventario", String(id)));
+                await window.runTransaction(window.db, async t => {
+                    const productoRef = window.doc(window.db, "inventario", String(id));
+                    const productoSnap = await t.get(productoRef);
+                    if(!productoSnap.exists()) throw new Error('El producto ya fue eliminado desde otro dispositivo.');
+                    const productoServidor = productoSnap.data();
+                    let registroRef = null;
+                    if(esCodigoInventarioValido(productoServidor.codigoInventario)) {
+                        registroRef = window.doc(window.db, "codigos_inventario", String(productoServidor.codigoInventario));
+                        const registroSnap = await t.get(registroRef);
+                        if(registroSnap.exists() && String(registroSnap.data().productoId || '') !== String(productoServidor.id)) {
+                            throw new Error(`El código ${productoServidor.codigoInventario} pertenece a otro producto en el registro permanente. Ejecuta la verificación antes de borrar.`);
+                        }
+                    }
+                    if(registroRef) {
+                        t.set(registroRef, crearRegistroCodigoInventario(productoServidor, productoServidor.codigoInventario, Date.now(), 'retirado'), { merge: true });
+                    }
+                    t.delete(productoRef);
+                });
                 inventario = inventario.filter(p => String(p.id) !== String(id));
                 guardarDatos();
                 actualizarUI();
             } catch(error) {
                 console.error("No se pudo eliminar el producto:", error);
-                alert("❌ No se realizó ningún cambio.");
+                alert("❌ No se realizó ningún cambio. " + error.message);
             }
         }
 
@@ -3088,76 +3291,98 @@
         async function asignarCodigosInventarioFaltantes() {
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
             const faltantesLocales = inventario.filter(p => !p.isService && !esCodigoInventarioValido(p.codigoInventario));
-            if(faltantesLocales.length === 0) return alert("✅ Todos los productos ya tienen código.");
-            if(inventario.filter(p => !p.isService).length > 440) {
-                return alert("⚠️ Hay más de 440 productos. Para respetar el límite seguro de una transacción, la asignación debe dividirse antes de ejecutarse.");
-            }
 
-            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para asignar códigos al inventario:");
+            const pass = await solicitarPassword("Ingrese la contraseña de seguridad para verificar y reservar códigos únicos:");
             if(pass === null) return;
             if(!await esDueno(pass)) return alert("❌ Contraseña incorrecta.");
             if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para reservar códigos únicos entre todos los dispositivos.");
-            if(!confirm(`Se asignarán códigos permanentes a ${faltantesLocales.length} producto(s).\n\nEsta operación NO cambia existencias, costos, ventas, fondos ni fechas de movimientos. ¿Continuar?`)) return;
+            if(!confirm(`Se verificarán todos los códigos y se asignarán códigos permanentes a ${faltantesLocales.length} producto(s) sin código.\n\nEsta operación NO cambia existencias, costos, ventas, fondos ni fechas de movimientos. Los códigos retirados nunca se reutilizan. ¿Continuar?`)) return;
 
             isProcessingTransaction = true;
             const boton = document.getElementById('btn-asignar-codigos');
-            if(boton) { boton.disabled = true; boton.textContent = 'Asignando...'; }
+            if(boton) { boton.disabled = true; boton.textContent = 'Verificando...'; }
             try {
-                const idsInventario = [...new Set(inventario.filter(p => !p.isService).map(p => String(p.id)))];
+                const inventarioSnap = await window.getDocs(window.collection(window.db, "inventario"));
+                const documentosRemotos = [];
+                inventarioSnap.forEach(snap => {
+                    const datos = snap.data();
+                    if(!datos.isService) documentosRemotos.push(datos);
+                });
+                // Esta revisión completa detecta duplicados heredados antes de reservar nada.
+                const revisionInicial = incorporarCodigosExistentes(estadoCodigosInventario, documentosRemotos);
+                let ocupadosGlobales = revisionInicial.codigosOcupados;
+                let estadoFinal = revisionInicial.estado;
+                const documentosOrdenados = documentosRemotos.sort((a, b) => normalizarCategoriaCodigo(a.categoria).localeCompare(normalizarCategoriaCodigo(b.categoria)) || String(a.nombre || '').localeCompare(String(b.nombre || '')) || String(a.id).localeCompare(String(b.id)));
                 const categoriasLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
-                const resultado = await window.runTransaction(window.db, async t => {
+                const actualizadosTotales = [];
+                const TAMANO_LOTE_REGISTRO = 80;
+                for(let inicio = 0; inicio < documentosOrdenados.length; inicio += TAMANO_LOTE_REGISTRO) {
+                    const lote = documentosOrdenados.slice(inicio, inicio + TAMANO_LOTE_REGISTRO);
+                    if(boton) boton.textContent = `Verificando ${Math.min(inicio + lote.length, documentosOrdenados.length)}/${documentosOrdenados.length}...`;
+                    const ocupadosAntesDelLote = new Set(ocupadosGlobales);
+                    const resultadoLote = await window.runTransaction(window.db, async t => {
+                        const configRef = window.doc(window.db, "sistema", "config");
+                        const configSnap = await t.get(configRef);
+                        if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
+                        const documentos = [];
+                        for(const productoPrevio of lote) {
+                            const ref = window.doc(window.db, "inventario", String(productoPrevio.id));
+                            const snap = await t.get(ref);
+                            if(!snap.exists()) throw new Error(`El producto ${productoPrevio.id} cambió o fue eliminado. Sincroniza e inténtalo de nuevo.`);
+                            documentos.push({ ref, datos: snap.data() });
+                        }
+
+                        let estadoTrabajo = normalizarEstadoCodigosInventario(configSnap.data().codigosInventario || estadoFinal);
+                        let ocupadosTrabajo = new Set(ocupadosAntesDelLote);
+                        const categoriasConocidas = [...new Set([
+                            ...(configSnap.data().customCats || categoriasLocales),
+                            ...documentosRemotos.map(x => x.categoria)
+                        ].map(normalizarCategoriaCodigo))].sort();
+                        categoriasConocidas.forEach(categoria => {
+                            estadoTrabajo = asegurarBloqueCategoria(estadoTrabajo, categoria).estado;
+                        });
+
+                        const preparados = [];
+                        for(const entrada of documentos) {
+                            const reservado = await reservarCodigoInventarioEnTransaccion(t, entrada.datos, estadoTrabajo, ocupadosTrabajo, Date.now());
+                            estadoTrabajo = reservado.estado;
+                            ocupadosTrabajo = reservado.codigosOcupados;
+                            preparados.push({ entrada, producto: reservado.producto, reserva: reservado.reserva });
+                        }
+
+                        preparados.forEach(({ entrada, producto, reserva }) => {
+                            if(!esCodigoInventarioValido(entrada.datos.codigoInventario)) {
+                                // Se conserva lastModified para no invalidar reversiones contables.
+                                t.set(entrada.ref, producto);
+                            }
+                            t.set(reserva.ref, reserva.datos, { merge: true });
+                        });
+                        t.update(configRef, { codigosInventario: estadoTrabajo, ultimaActualizacionCodigos: Date.now() });
+                        return { productos: preparados.map(x => x.producto), estado: estadoTrabajo, ocupados: Array.from(ocupadosTrabajo) };
+                    });
+                    estadoFinal = resultadoLote.estado;
+                    ocupadosGlobales = new Set(resultadoLote.ocupados);
+                    actualizadosTotales.push(...resultadoLote.productos);
+                }
+
+                await window.runTransaction(window.db, async t => {
                     const configRef = window.doc(window.db, "sistema", "config");
                     const configSnap = await t.get(configRef);
                     if(!configSnap.exists()) throw new Error("No se encontró la configuración maestra del sistema.");
-
-                    const documentos = [];
-                    for(const id of idsInventario) {
-                        const ref = window.doc(window.db, "inventario", id);
-                        const snap = await t.get(ref);
-                        if(!snap.exists()) throw new Error(`El producto ${id} cambió o fue eliminado. Sincroniza e inténtalo de nuevo.`);
-                        documentos.push({ ref, datos: snap.data() });
-                    }
-
-                    const preparados = incorporarCodigosExistentes(configSnap.data().codigosInventario || {}, documentos.map(x => x.datos));
-                    let estadoTrabajo = preparados.estado;
-                    let ocupados = preparados.codigosOcupados;
-                    const categoriasConocidas = [...new Set([
-                        ...(configSnap.data().customCats || categoriasLocales),
-                        ...documentos.map(x => x.datos.categoria)
-                    ].map(normalizarCategoriaCodigo))].sort();
-                    categoriasConocidas.forEach(categoria => {
-                        estadoTrabajo = asegurarBloqueCategoria(estadoTrabajo, categoria).estado;
-                    });
-                    const actualizados = [];
-                    const ordenados = documentos
-                        .filter(x => !x.datos.isService && !esCodigoInventarioValido(x.datos.codigoInventario))
-                        .sort((a, b) => normalizarCategoriaCodigo(a.datos.categoria).localeCompare(normalizarCategoriaCodigo(b.datos.categoria)) || String(a.datos.nombre || '').localeCompare(String(b.datos.nombre || '')) || String(a.datos.id).localeCompare(String(b.datos.id)));
-
-                    ordenados.forEach(entrada => {
-                        const asignacion = asignarSiguienteCodigoInventario(estadoTrabajo, entrada.datos.categoria, ocupados);
-                        const productoActualizado = { ...entrada.datos, codigoInventario: asignacion.codigo, bloqueCategoria: asignacion.bloque };
-                        estadoTrabajo = asignacion.estado;
-                        ocupados = asignacion.codigosOcupados;
-                        actualizados.push(productoActualizado);
-                        // Se conserva la huella de última modificación para no invalidar reversiones de ingresos.
-                        t.set(entrada.ref, productoActualizado);
-                    });
-
-                    t.update(configRef, { codigosInventario: estadoTrabajo, ultimaActualizacionCodigos: Date.now() });
-                    return { productos: actualizados, estado: estadoTrabajo };
+                    t.update(configRef, { codigosInventario: estadoFinal, registroCodigosVersion: 1, registroCodigosVerificadoEn: Date.now() });
                 });
 
-                inventario = fusionarPorId(inventario, resultado.productos);
-                estadoCodigosInventario = resultado.estado;
+                inventario = fusionarPorId(inventario, actualizadosTotales);
+                estadoCodigosInventario = estadoFinal;
                 guardarDatos();
                 actualizarUI();
-                alert(`✅ Se asignaron ${resultado.productos.length} código(s) sin modificar cantidades ni valores.`);
+                alert(`✅ Registro verificado: ${documentosOrdenados.length} producto(s), ${faltantesLocales.length} código(s) nuevo(s). No se modificaron cantidades ni valores.`);
             } catch(error) {
                 console.error("No se pudieron asignar los códigos:", error);
-                alert("❌ No se asignó ningún código. " + error.message);
+                alert("❌ La verificación no terminó. Los lotes ya confirmados siguen seguros y se retomarán al ejecutar la opción otra vez. " + error.message);
             } finally {
                 isProcessingTransaction = false;
-                if(boton) { boton.disabled = false; boton.textContent = '🏷️ Asignar códigos faltantes'; }
+                if(boton) { boton.disabled = false; boton.textContent = '🛡️ Verificar códigos únicos'; }
             }
         }
 
@@ -3307,8 +3532,12 @@
             const prod = inventario.find(p => String(p.id) === String(idProd));
             if(!prod) return 0;
             if(prod.isService) return 9999;
+            const ventaOriginal = ventaEnEdicion ? ventas.find(v => String(v.id) === String(ventaEnEdicion)) : null;
+            const cantidadOriginal = (ventaOriginal?.detalleItems || [])
+                .filter(item => !item.isService && String(item.idProd) === String(idProd))
+                .reduce((total, item) => total + numeroFinito(item.qty), 0);
             let qtyEnCarrito = carritoVentas.filter(item => String(item.idProd) === String(idProd)).reduce((sum, item) => sum + item.qty, 0);
-            return Math.max(0, prod.stock - qtyEnCarrito);
+            return Math.max(0, numeroFinito(prod.stock) + cantidadOriginal - qtyEnCarrito);
         }
 
         function agregarAlCarritoVenta() {
@@ -3345,6 +3574,21 @@
 
         function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); renderCarritoVentas(); }
         function vaciarCarritoVentas() { if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) { carritoVentas = []; renderCarritoVentas(); } }
+
+        function cancelarEdicionVenta() {
+            if(!ventaEnEdicion) return;
+            if(!confirm('¿Cancelar la edición? La venta original seguirá exactamente igual.')) return;
+            ventaEnEdicion = null;
+            ventaEdicionVersion = null;
+            carritoVentas = [];
+            document.getElementById('aviso-venta-edicion').style.display = 'none';
+            document.getElementById('venta-tinta').value = '';
+            document.getElementById('venta-envio').value = '';
+            document.getElementById('venta-nombre').value = '';
+            document.getElementById('venta-nit').value = '';
+            document.getElementById('venta-factura').checked = false;
+            renderCarritoVentas();
+        }
         
         function renderCarritoVentas() {
             const contenedor = document.getElementById('lista-carrito-ventas');
@@ -3389,8 +3633,8 @@
                 const costoTinta = tintaTexto === '' ? 0 : Number(tintaTexto);
                 const costoEnvio = envioTexto === '' ? 0 : Number(envioTexto);
                 const pideFactura = document.getElementById('venta-factura').checked;
-                const clienteNombre = escaparHTML(document.getElementById('venta-nombre').value.trim().toUpperCase()) || 'C/F'; 
-                const clienteNit = escaparHTML(document.getElementById('venta-nit').value.trim()) || 'C/F';
+                const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F'; 
+                const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
                 if (!Number.isFinite(costoTinta) || !Number.isFinite(costoEnvio) || costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta deben ser números válidos y no negativos."); return; }
 
                 const carritoSnapshot = copiarDatos(carritoVentas);
@@ -3404,9 +3648,9 @@
                 const ingresoPrevisto = carritoSnapshot.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
                 if(ingresoPrevisto <= 0 && !confirm("⚠️ El total de esta venta es Q0.00. ¿Realmente deseas registrarla sin cobro?")) return;
 
-                const nuevaVentaId = generarIDSeguro();
+                const ventaEditadaId = ventaEnEdicion;
+                const nuevaVentaId = ventaEditadaId || generarIDSeguro();
                 const timestampActual = Date.now();
-                const mesAnio = getMesAnioFromDate('', timestampActual) || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
                 
                 let stockAExtraer = {};
                 for (let item of carritoSnapshot) {
@@ -3416,27 +3660,71 @@
                 }
 
                 const resultado = await window.runTransaction(window.db, async (t) => {
+                    const ventaRef = window.doc(window.db, "ventas", String(nuevaVentaId));
+                    let ventaAnterior = null;
+                    if(ventaEditadaId) {
+                        const ventaSnap = await t.get(ventaRef);
+                        if(!ventaSnap.exists()) throw new Error('La venta que editabas ya no existe.');
+                        ventaAnterior = ventaSnap.data();
+                        if(ventaAnterior.anulada) throw new Error('La venta fue anulada desde otro dispositivo.');
+                        if(ventaAnterior.versionCalculo !== 2) throw new Error('La venta no tiene una huella contable compatible con la edición segura.');
+                        const versionServidor = numeroFinito(ventaAnterior.editadoEn, numeroFinito(ventaAnterior.timestamp));
+                        if(versionServidor !== numeroFinito(ventaEdicionVersion)) throw new Error('La venta cambió en otro dispositivo después de abrir el borrador. Recarga y revisa la versión nueva.');
+                    }
+
+                    const cantidadesAnteriores = new Map();
+                    (ventaAnterior?.detalleItems || []).forEach(item => {
+                        if(item.isService) return;
+                        const clave = String(item.idProd);
+                        const actual = cantidadesAnteriores.get(clave) || { qty: 0, valor: 0, nombre: item.nombre, categoria: item.categoria, codigoInventario: item.codigoInventario };
+                        const costoReal = numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase));
+                        actual.qty += numeroFinito(item.qty);
+                        actual.valor += numeroFinito(item.qty) * costoReal;
+                        cantidadesAnteriores.set(clave, actual);
+                    });
+
                     const productosLeidos = [];
-                    for (let idProd in stockAExtraer) {
+                    const idsProductos = new Set([...Object.keys(stockAExtraer), ...cantidadesAnteriores.keys()]);
+                    for (const idProd of idsProductos) {
                         const ref = window.doc(window.db, "inventario", String(idProd));
                         const snap = await t.get(ref);
-                        if(!snap.exists()) throw new Error(`El producto con ID ${idProd} fue borrado.`);
-                        if(numeroFinito(snap.data().stock) < stockAExtraer[idProd]) throw new Error(`Stock insuficiente para "${snap.data().nombre || idProd}".`);
-                        productosLeidos.push({ idProd, ref, datos: snap.data(), qtyTotal: stockAExtraer[idProd] });
+                        const anterior = cantidadesAnteriores.get(String(idProd));
+                        if(!snap.exists() && !anterior) throw new Error(`El producto con ID ${idProd} fue borrado.`);
+                        productosLeidos.push({ idProd: String(idProd), ref, existe: snap.exists(), datos: snap.exists() ? snap.data() : null, anterior, qtyNueva: numeroFinito(stockAExtraer[idProd]) });
                     }
                     const configRef = window.doc(window.db, "sistema", "config");
                     const configSnap = await t.get(configRef);
                     if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
+                    const fechaContable = ventaAnterior?.timestamp || timestampActual;
+                    const mesAnio = getMesAnioFromDate(ventaAnterior?.fecha || '', fechaContable) || (new Date(fechaContable).getFullYear() + '-' + String(new Date(fechaContable).getMonth() + 1).padStart(2, '0'));
                     const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                     const resumenSnap = await t.get(resumenRef);
+                    if(ventaAnterior?.resumenMensualContabilizado === true && !resumenSnap.exists()) throw new Error('No se encontró el resumen mensual original; el reemplazo se canceló para evitar un descuadre.');
 
                     const productosActualizados = [];
                     const costosUnitarios = {};
                     productosLeidos.forEach(entrada => {
-                        const producto = copiarDatos(entrada.datos);
+                        let producto = entrada.existe ? copiarDatos(entrada.datos) : {
+                            id: entrada.idProd,
+                            nombre: `${entrada.anterior.nombre || 'PRODUCTO'} (RECUPERADO)`.toUpperCase(),
+                            stock: 0,
+                            costo: 0,
+                            ventasTotales: 0,
+                            min: 0,
+                            proveedor: 'RECUPERADO DE VENTA EDITADA',
+                            categoria: entrada.anterior.categoria || 'OTROS',
+                            codigoInventario: entrada.anterior.codigoInventario || null
+                        };
+                        if(entrada.anterior) {
+                            const costoDevuelto = entrada.anterior.qty > 0 ? entrada.anterior.valor / entrada.anterior.qty : 0;
+                            producto.costo = calcularCostoPromedioPonderado(producto.stock, producto.costo, entrada.anterior.qty, costoDevuelto);
+                            producto.stock = numeroFinito(producto.stock) + entrada.anterior.qty;
+                            producto.ventasTotales = Math.max(0, numeroFinito(producto.ventasTotales) - entrada.anterior.qty);
+                        }
+                        if(numeroFinito(producto.stock) < entrada.qtyNueva) throw new Error(`Stock insuficiente para "${producto.nombre || entrada.idProd}" después de restaurar la venta original.`);
                         costosUnitarios[String(entrada.idProd)] = numeroFinito(producto.costo);
-                        producto.stock = numeroFinito(producto.stock) - entrada.qtyTotal;
-                        producto.ventasTotales = numeroFinito(producto.ventasTotales) + entrada.qtyTotal;
+                        producto.stock = numeroFinito(producto.stock) - entrada.qtyNueva;
+                        producto.ventasTotales = numeroFinito(producto.ventasTotales) + entrada.qtyNueva;
                         producto.lastModified = timestampActual;
                         productosActualizados.push({ ref: entrada.ref, datos: producto });
                     });
@@ -3453,20 +3741,40 @@
                         return `${item.qty}x ${item.nombre}${suffix}`;
                     });
 
-                    const nuevaVenta = { id: nuevaVentaId, timestamp: timestampActual, fecha: new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), resumenItems: itemsResumen.join(' + '), ingresoTotal, costosProductos, costoTinta, costoEnvio, impuestoSAT, ganancia: gananciaNeta, detalleItems: detalleFinal, clienteNombre, clienteNit, factura: pideFactura, resumenMensualContabilizado: true, versionCalculo: 2 };
+                    const nuevaVenta = {
+                        id: nuevaVentaId,
+                        timestamp: ventaAnterior?.timestamp || timestampActual,
+                        fecha: ventaAnterior?.fecha || (new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'})),
+                        editadoEn: ventaAnterior ? timestampActual : null,
+                        resumenItems: itemsResumen.join(' + '),
+                        ingresoTotal,
+                        costosProductos,
+                        costoTinta: desglose.costoTinta,
+                        costoEnvio: desglose.costoEnvio,
+                        impuestoSAT,
+                        ganancia: gananciaNeta,
+                        detalleItems: detalleFinal,
+                        clienteNombre,
+                        clienteNit,
+                        factura: pideFactura,
+                        resumenMensualContabilizado: true,
+                        versionCalculo: 2
+                    };
 
                     const fondosBase = copiarDatos(configSnap.data().fondos);
-                    fondosBase.costoProducto = redondear(numeroFinito(fondosBase.costoProducto) + costosProductos);
-                    fondosBase.costoLuzTinta = redondear(numeroFinito(fondosBase.costoLuzTinta) + costoTinta);
-                    fondosBase.gananciaLibre = redondear(numeroFinito(fondosBase.gananciaLibre) + gananciaNeta);
-                    fondosBase.fondoImpuestos = redondear(numeroFinito(fondosBase.fondoImpuestos) + impuestoSAT);
+                    const ajustarFondo = (clave, anterior, nuevo) => desdeCentavos(aCentavos(fondosBase[clave]) - aCentavos(anterior) + aCentavos(nuevo));
+                    fondosBase.costoProducto = ajustarFondo('costoProducto', ventaAnterior?.costosProductos, costosProductos);
+                    fondosBase.costoLuzTinta = ajustarFondo('costoLuzTinta', ventaAnterior?.costoTinta, nuevaVenta.costoTinta);
+                    fondosBase.gananciaLibre = ajustarFondo('gananciaLibre', ventaAnterior?.ganancia, gananciaNeta);
+                    fondosBase.fondoImpuestos = ajustarFondo('fondoImpuestos', ventaAnterior?.impuestoSAT, impuestoSAT);
 
                     const resumenBase = resumenSnap.exists() ? resumenSnap.data() : { totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0, mesTexto: formatearMesAnio(mesAnio) };
-                    const resumenActualizado = aplicarVentaAResumen(resumenBase, nuevaVenta, 1);
+                    const resumenSinAnterior = ventaAnterior ? aplicarVentaAResumen(resumenBase, ventaAnterior, -1) : resumenBase;
+                    const resumenActualizado = aplicarVentaAResumen(resumenSinAnterior, nuevaVenta, 1);
                     resumenActualizado.mesTexto = resumenBase.mesTexto || formatearMesAnio(mesAnio);
 
                     productosActualizados.forEach(entrada => t.set(entrada.ref, entrada.datos));
-                    t.set(window.doc(window.db, "ventas", String(nuevaVentaId)), nuevaVenta);
+                    t.set(ventaRef, nuevaVenta);
                     t.update(configRef, { fondos: fondosBase, ultimaActualizacion: timestampActual });
                     t.set(resumenRef, resumenActualizado);
 
@@ -3478,6 +3786,9 @@
                 ventas = fusionarPorId(ventas, [resultado.nuevaVenta]);
 
                 carritoVentas = [];
+                ventaEnEdicion = null;
+                ventaEdicionVersion = null;
+                document.getElementById('aviso-venta-edicion').style.display = 'none';
                 document.getElementById('venta-tinta').value = '';
                 document.getElementById('venta-envio').value = '';
                 document.getElementById('buscador-venta-producto').value = '';
@@ -3486,7 +3797,7 @@
                 document.getElementById('venta-nit').value = '';
                 document.getElementById('venta-factura').checked = false;
                 renderCarritoVentas(); guardarDatos(); actualizarUI();
-                alert("💰 ¡Venta procesada y sincronizada con éxito!");
+                alert(ventaEditadaId ? "✅ Venta reemplazada de forma atómica. La versión original no se tocó hasta esta confirmación." : "💰 ¡Venta procesada y sincronizada con éxito!");
 
             } catch (error) {
                 alert("No se aplicó ningún cambio. Tu carrito sigue completo. Error: " + error.message);
@@ -3585,30 +3896,18 @@
                 return;
             }
             const fondosInsuficientes = numeroFinito(fondos.costoProducto) < numeroFinito(ventaLocal.costosProductos) || numeroFinito(fondos.costoLuzTinta) < numeroFinito(ventaLocal.costoTinta) || numeroFinito(fondos.gananciaLibre) < numeroFinito(ventaLocal.ganancia) || (numeroFinito(ventaLocal.impuestoSAT) > 0 && numeroFinito(fondos.fondoImpuestos) < numeroFinito(ventaLocal.impuestoSAT));
-            const mensaje = fondosInsuficientes ? "⚠️ Ya se retiró parte del dinero. Reabrir esta venta puede dejar fondos negativos. ¿Continuar?" : "¿Editar esta venta? Primero se revertirá completa y luego se cargará en tu carrito.";
+            const mensaje = fondosInsuficientes ? "⚠️ Ya se retiró parte del dinero. El reemplazo final podría dejar algún fondo negativo. La venta original seguirá intacta mientras preparas los cambios. ¿Continuar?" : "¿Cargar esta venta como borrador? La original seguirá intacta hasta que confirmes el reemplazo.";
             if(!confirm(mensaje)) return;
-
-            if(isProcessingTransaction) return;
-            isProcessingTransaction = true;
-            try {
-                const resultado = await revertirVentaAtomica(id);
-                const venta = resultado.venta;
-                fondos = resultado.fondosActualizados;
-                inventario = fusionarPorId(inventario, resultado.productosActualizados);
-                ventas = fusionarPorId(ventas, [venta]);
-
-                carritoVentas = (venta.detalleItems || []).map(i => ({ ...i, costoBase: numeroFinito(i.costoUnitarioReal, numeroFinito(i.costoBase)), tempId: Date.now() + Math.random() }));
-                document.getElementById('venta-tinta').value = numeroFinito(venta.costoTinta) > 0 ? venta.costoTinta : '';
-                document.getElementById('venta-envio').value = numeroFinito(venta.costoEnvio) > 0 ? venta.costoEnvio : '';
-                document.getElementById('venta-nombre').value = venta.clienteNombre || '';
-                document.getElementById('venta-nit').value = venta.clienteNit || '';
-                document.getElementById('venta-factura').checked = venta.factura || false;
-                guardarDatos(); actualizarUI(); renderCarritoVentas(); cambiarPestaña('ventas'); window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch(error) {
-                alert("No se aplicó ningún cambio. " + error.message);
-            } finally {
-                isProcessingTransaction = false;
-            }
+            ventaEnEdicion = String(id);
+            ventaEdicionVersion = numeroFinito(ventaLocal.editadoEn, numeroFinito(ventaLocal.timestamp));
+            carritoVentas = (ventaLocal.detalleItems || []).map(i => ({ ...i, costoBase: numeroFinito(i.costoUnitarioReal, numeroFinito(i.costoBase)), tempId: Date.now() + Math.random() }));
+            document.getElementById('venta-tinta').value = numeroFinito(ventaLocal.costoTinta) > 0 ? ventaLocal.costoTinta : '';
+            document.getElementById('venta-envio').value = numeroFinito(ventaLocal.costoEnvio) > 0 ? ventaLocal.costoEnvio : '';
+            document.getElementById('venta-nombre').value = ventaLocal.clienteNombre || '';
+            document.getElementById('venta-nit').value = ventaLocal.clienteNit || '';
+            document.getElementById('venta-factura').checked = ventaLocal.factura || false;
+            document.getElementById('aviso-venta-edicion').style.display = 'block';
+            renderCarritoVentas(); cambiarPestaña('ventas'); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function borrarVenta(id) {
@@ -3779,8 +4078,8 @@
                 const costoTinta = tintaTexto === '' ? 0 : Number(tintaTexto);
                 const costoEnvio = envioTexto === '' ? 0 : Number(envioTexto);
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = escaparHTML(document.getElementById('cotiza-nombre').value.trim().toUpperCase()) || 'C/F'; 
-                const clienteNit = escaparHTML(document.getElementById('cotiza-nit').value.trim()) || 'C/F';
+                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; 
+                const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
 
                 if (!Number.isFinite(costoTinta) || !Number.isFinite(costoEnvio) || costoTinta < 0 || costoEnvio < 0) { alert("⚠️ Los gastos de envío o tinta deben ser números válidos y no negativos."); return; }
                 for(const item of carritoCotizacion) {
@@ -4120,8 +4419,8 @@
                 costoTinta,
                 costoEnvio,
                 factura: document.getElementById('cotiza-factura').checked,
-                clienteNombre: escaparHTML(document.getElementById('cotiza-nombre').value.trim().toUpperCase()) || 'C/F',
-                clienteNit: escaparHTML(document.getElementById('cotiza-nit').value.trim()) || 'C/F'
+                clienteNombre: document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F',
+                clienteNit: document.getElementById('cotiza-nit').value.trim() || 'C/F'
             };
 
             isProcessingTransaction = true;
@@ -4225,9 +4524,10 @@
                     if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
 
                     const fondosServidor = copiarDatos(configSnap.data().fondos);
-                    const disponible = numeroFinito(fondosServidor[fondoKey]);
-                    if(nuevoRetiro.monto > redondear(disponible) + 0.01) throw new Error("El monto supera el fondo disponible actualmente.");
-                    fondosServidor[fondoKey] = redondear(disponible - nuevoRetiro.monto);
+                    const disponibleCentavos = Math.max(0, aCentavos(fondosServidor[fondoKey]));
+                    const retiroCentavos = aCentavos(nuevoRetiro.monto);
+                    if(retiroCentavos > disponibleCentavos) throw new Error("El monto supera el fondo disponible actualmente.");
+                    fondosServidor[fondoKey] = desdeCentavos(disponibleCentavos - retiroCentavos);
 
                     t.update(configRef, { fondos: fondosServidor, ultimaActualizacion: timestampActual });
                     t.set(window.doc(window.db, "retiros", String(nuevoRetiro.id)), nuevoRetiro);
@@ -4253,8 +4553,8 @@
             const campo = document.getElementById(campoId);
             const val = Number(campo.value);
             if(!Number.isFinite(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
-            const disponibleLocal = redondear(numeroFinito(fondos[fondoKey]));
-            if(val > disponibleLocal + 0.01) return alert(`El monto a retirar supera el fondo disponible${nombreFondo ? ' en ' + nombreFondo : ''}`);
+            const disponibleLocal = Math.max(0, aCentavos(fondos[fondoKey]));
+            if(aCentavos(val) > disponibleLocal) return alert(`El monto a retirar supera el fondo disponible${nombreFondo ? ' en ' + nombreFondo : ''}`);
             if(!confirm(pregunta.replace('{monto}', val.toFixed(2)))) return;
             if(await procesarRetiro(tipo, val, fondoKey)) campo.value = '';
         }
@@ -4522,6 +4822,8 @@
             if(window.db && navigator.onLine) {
                 const cargas = [];
                 if(!historialCompletoCargado.ventas) cargas.push(cargarHistorialCompleto('ventas'));
+                if(!historialCompletoCargado.ingresos) cargas.push(cargarHistorialCompleto('ingresos'));
+                if(!historialCompletoCargado.cotizaciones) cargas.push(cargarHistorialCompleto('cotizaciones'));
                 if(!historialCompletoCargado.retiros) cargas.push(cargarHistorialCompleto('retiros'));
                 const resultados = await Promise.all(cargas);
                 if(resultados.some(resultado => !resultado) && !confirm("⚠️ No fue posible descargar todo el historial. ¿Exportar solamente los datos disponibles en este dispositivo?")) return;
@@ -4537,12 +4839,14 @@
             
             const libro = XLSX.utils.book_new();
             
-            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": valorInv.toFixed(2) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": numeroFinito(fnd.costoProducto).toFixed(2) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": numeroFinito(fnd.costoLuzTinta).toFixed(2) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": numeroFinito(fnd.fondoImpuestos).toFixed(2) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": numeroFinito(fnd.gananciaLibre).toFixed(2) }];
+            const dataResumen = [{ "Concepto": "Valor Total del Inventario Actual", "Monto (Q)": redondear(valorInv) }, { "Concepto": "Fondo Acumulado: Productos (Surtir)", "Monto (Q)": redondear(fnd.costoProducto) }, { "Concepto": "Fondo Acumulado: Luz y Tinta", "Monto (Q)": redondear(fnd.costoLuzTinta) }, { "Concepto": "Fondo Acumulado: Impuestos (SAT)", "Monto (Q)": redondear(fnd.fondoImpuestos) }, { "Concepto": "Ganancia Libre Acumulada", "Monto (Q)": redondear(fnd.gananciaLibre) }];
             const hojaResumen = XLSX.utils.json_to_sheet(dataResumen); XLSX.utils.book_append_sheet(libro, hojaResumen, "Resumen Financiero");
 
-            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Código de Inventario": p.isService ? "SERVICIO" : (esCodigoInventarioValido(p.codigoInventario) ? Number(p.codigoInventario) : "PENDIENTE"), "Bloque de Categoría": p.isService ? "" : (numeroFinito(p.bloqueCategoria) || obtenerBloqueCategoriaVisible(p.categoria, [p]) || "PENDIENTE"), "Nombre del Producto": p.nombre, "Ventas Históricas": numeroFinito(p.ventasTotales), "Categoría": String(p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : numeroFinito(p.stock), "Alerta Mínima": p.min !== undefined ? numeroFinito(p.min) : 0, "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2), "Proveedor": String(p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? "0.00" : (numeroFinito(p.stock) * numeroFinito(p.costo)).toFixed(2) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
-            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha || '', "Cliente": String(v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": String(v.resumenItems || '').toUpperCase(), "Total Cobrado (Q)": numeroFinito(v.ingresoTotal).toFixed(2), "Costo de Materiales (Q)": numeroFinito(v.costosProductos).toFixed(2), "Gasto Tinta/Luz (Q)": numeroFinito(v.costoTinta).toFixed(2), "Pago Mensajero (Q)": numeroFinito(v.costoEnvio).toFixed(2), "Impuesto Retenido (Q)": numeroFinito(v.impuestoSAT).toFixed(2), "Ganancia Neta (Q)": numeroFinito(v.ganancia).toFixed(2) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
-            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha || '', "Concepto/Caja": String(r.tipo || 'SIN CONCEPTO').toUpperCase(), "Monto Retirado (Q)": numeroFinito(r.monto).toFixed(2) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
+            if (inv.length > 0) { const dataInv = inv.map(p => ({ "Código de Inventario": p.isService ? "SERVICIO" : (esCodigoInventarioValido(p.codigoInventario) ? Number(p.codigoInventario) : "PENDIENTE"), "Bloque de Categoría": p.isService ? "" : (numeroFinito(p.bloqueCategoria) || obtenerBloqueCategoriaVisible(p.categoria, [p]) || "PENDIENTE"), "Nombre del Producto": p.nombre, "Ventas Históricas": numeroFinito(p.ventasTotales), "Categoría": String(p.categoria || "OTROS").toUpperCase(), "Existencias (Stock)": p.isService ? "INFINITO" : numeroFinito(p.stock), "Alerta Mínima": p.min !== undefined ? numeroFinito(p.min) : 0, "Costo Unitario (Q)": redondear(p.costo), "Proveedor": String(p.proveedor || "NO ESPECIFICADO").toUpperCase(), "Valor en Bodega (Q)": p.isService ? 0 : redondear(numeroFinito(p.stock) * numeroFinito(p.costo)) })); const hojaInv = XLSX.utils.json_to_sheet(dataInv); XLSX.utils.book_append_sheet(libro, hojaInv, "Inventario"); }
+            if (vent.length > 0) { const dataVent = vent.map(v => ({ "Fecha y Hora": v.fecha || '', "Cliente": String(v.clienteNombre || "C/F").toUpperCase(), "NIT": v.clienteNit || "C/F", "Factura": v.factura ? "SÍ" : "NO", "Detalle de Artículos": String(v.resumenItems || '').toUpperCase(), "Total Cobrado (Q)": redondear(v.ingresoTotal), "Costo de Materiales (Q)": redondear(v.costosProductos), "Gasto Tinta/Luz (Q)": redondear(v.costoTinta), "Pago Mensajero (Q)": redondear(v.costoEnvio), "Impuesto Retenido (Q)": redondear(v.impuestoSAT), "Ganancia Neta (Q)": redondear(v.ganancia) })); const hojaVent = XLSX.utils.json_to_sheet(dataVent); XLSX.utils.book_append_sheet(libro, hojaVent, "Ventas"); }
+            if (historialIngresos.length > 0) { const dataIngresos = historialIngresos.filter(i => !i.anulada).flatMap(i => (i.items || []).map(item => ({ "Fecha y Hora": i.fecha || '', "Código": item.codigoInventario || '', "Producto": item.nombre || '', "Cantidad": numeroFinito(item.stock), "Costo Unitario (Q)": redondear(item.costoIngresado), "Proveedor": item.proveedor || '', "Factura": item.factura || '' }))); const hojaIngresos = XLSX.utils.json_to_sheet(dataIngresos); XLSX.utils.book_append_sheet(libro, hojaIngresos, "Ingresos"); }
+            if (historialCotizaciones.length > 0) { const dataCotizaciones = historialCotizaciones.filter(c => !c.anulada).map(c => ({ "Fecha y Hora": c.fecha || '', "Cliente": c.clienteNombre || 'C/F', "NIT": c.clienteNit || 'C/F', "Detalle": c.resumenItems || '', "Total Cotizado (Q)": redondear(c.ingresoTotal), "Costo Total (Q)": redondear(c.totalGastos), "Ganancia Estimada (Q)": redondear(c.ganancia) })); const hojaCotizaciones = XLSX.utils.json_to_sheet(dataCotizaciones); XLSX.utils.book_append_sheet(libro, hojaCotizaciones, "Cotizaciones"); }
+            if (ret.length > 0) { const dataRetiros = ret.map(r => ({ "Fecha y Hora": r.fecha || '', "Concepto/Caja": String(r.tipo || 'SIN CONCEPTO').toUpperCase(), "Monto Retirado (Q)": redondear(r.monto) })); const hojaRet = XLSX.utils.json_to_sheet(dataRetiros); XLSX.utils.book_append_sheet(libro, hojaRet, "Bitácora Retiros"); }
 
             const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-'); XLSX.writeFile(libro, `SubliCosturas_Reporte_Completo_${fecha}.xlsx`);
         }
@@ -4739,7 +5043,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.0.9";
+        const APP_VERSION = "1.1.0";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -4769,12 +5073,21 @@
             url.searchParams.set('v', versionObjetivo);
             window.location.replace(url.toString());
         }
+
+        function desactivarRuedaEnCamposNumericos(event) {
+            const campo = event?.target;
+            if(campo && typeof campo.matches === 'function' && campo.matches('input[type="number"]')) {
+                campo.blur();
+            }
+        }
         
         window.addEventListener('firebaseListo', () => {
             cargarDatos();
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
+            // Evita cambios accidentales de cantidades: la rueda vuelve a desplazar la página.
+            document.addEventListener('wheel', desactivarRuedaEnCamposNumericos, { capture: true, passive: true });
             const currentVersion = localStorage.getItem("app_version");
 
             if (currentVersion !== APP_VERSION) {

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="description" content="Organiza archivos de diseño por cliente, diseño y producto en carpetas normales de tu PC.">
+  <title>SubliCosturas Studio</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="../logo-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Inicio de Studio">
+      <img src="../logo-192.png" alt="" width="44" height="44">
+      <span><strong>SubliCosturas</strong><small>Studio · archivos de clientes</small></span>
+    </a>
+    <a class="back-link" href="../index.html">Volver a Inventario</a>
+  </header>
+
+  <main class="shell">
+    <section class="hero panel">
+      <div>
+        <span class="eyebrow">ARCHIVOS LOCALES, ORDEN REAL</span>
+        <h1>Encuentra cada trabajo sin recordar en qué carpeta quedó.</h1>
+        <p>Studio copia archivos de Corel, Photoshop, Illustrator, PDF, imágenes y cualquier otro formato a carpetas normales de tu computadora. El contenido no se sube a Internet.</p>
+      </div>
+      <div class="folder-card">
+        <span class="status-dot" id="folder-dot"></span>
+        <div><small>Carpeta principal</small><strong id="folder-status">No seleccionada</strong></div>
+        <button class="button primary" id="choose-folder" type="button">Elegir carpeta</button>
+      </div>
+      <p class="support-note" id="support-note" role="status"></p>
+    </section>
+
+    <div class="layout">
+      <section class="panel create-panel">
+        <div class="section-heading">
+          <div><span class="step">01</span><h2>Nuevo proyecto</h2></div>
+          <p>Se creará: <code>SubliCosturas_Proyectos / Cliente / Producto / Proyecto</code></p>
+        </div>
+
+        <form id="project-form">
+          <div class="field-grid">
+            <label>Cliente <span>*</span><input id="client" name="client" required autocomplete="off" list="clients-list" placeholder="Ej. Clínica San José"></label>
+            <label>Nombre del diseño <span>*</span><input id="design" name="design" required autocomplete="off" placeholder="Ej. Logo aniversario dorado"></label>
+            <label>Producto usado <span>*</span><input id="product" name="product" required autocomplete="off" list="products-list" placeholder="Ej. Pachón"></label>
+            <label>Etiquetas<input id="tags" name="tags" autocomplete="off" placeholder="Ej. azul, urgente, promoción"></label>
+          </div>
+          <label>Notas<textarea id="notes" name="notes" rows="3" placeholder="Medidas, colores, tipo de impresión o acuerdos importantes…"></textarea></label>
+          <label class="file-drop" id="file-drop">
+            <input id="files" name="files" type="file" multiple>
+            <strong>Arrastra archivos aquí o haz clic para elegirlos</strong>
+            <span>Admite .cdr, .psd, .ai, .svg, .pdf, imágenes y cualquier otro archivo.</span>
+            <output id="file-summary">Ningún archivo seleccionado</output>
+          </label>
+          <button class="button primary full" id="save-project" type="submit">Guardar proyecto y archivos</button>
+        </form>
+      </section>
+
+      <section class="panel catalog-panel">
+        <div class="section-heading catalog-heading">
+          <div><span class="step">02</span><h2>Buscar proyectos</h2></div>
+          <div class="catalog-actions">
+            <button class="button subtle" id="rebuild" type="button">Reconstruir catálogo</button>
+            <button class="button subtle" id="export" type="button">Exportar índice</button>
+          </div>
+        </div>
+
+        <label class="search-main"><span class="sr-only">Búsqueda inteligente</span><input id="search" type="search" placeholder="Buscar cliente, diseño, producto, etiqueta o archivo…"><kbd>⌕</kbd></label>
+        <div class="search-filters">
+          <label>Cliente<input id="filter-client" list="clients-list" placeholder="Todos"></label>
+          <label>Diseño<input id="filter-design" placeholder="Todos"></label>
+          <label>Producto<input id="filter-product" list="products-list" placeholder="Todos"></label>
+        </div>
+        <datalist id="clients-list"></datalist>
+        <datalist id="products-list">
+          <option value="Pachón"></option><option value="Playera"></option><option value="Mouse pad"></option>
+          <option value="Taza"></option><option value="Llavero de mascota"></option><option value="Gorra"></option>
+          <option value="Rompecabezas"></option><option value="Almohada"></option><option value="Placa"></option>
+        </datalist>
+
+        <div class="results-meta"><strong id="result-count">0 proyectos</strong><span id="storage-note">Índice local</span></div>
+        <div id="empty-state" class="empty-state">
+          <span>🗂️</span><h3>Tu catálogo está listo</h3><p>El primer proyecto que guardes aparecerá aquí.</p>
+        </div>
+        <div id="results" class="results" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="files-dialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-title"><div><small id="dialog-code"></small><h2 id="dialog-title">Archivos</h2></div><button class="icon-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <p id="dialog-path" class="path"></p>
+      <div id="dialog-files" class="file-list"></div>
+      <div class="dialog-actions"><button class="button subtle" id="add-files" type="button">Añadir archivos</button><button class="button primary" value="cancel">Cerrar</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
