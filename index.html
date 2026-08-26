@@ -311,6 +311,29 @@
         .master-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; margin-bottom: 12px; border: 1px solid rgba(167,139,250,.32); border-radius: 13px; background: rgba(124,58,237,.09); }
         .master-switch label { margin: 0; color: var(--text-dark); font-size: 14px; }
         .master-switch input { width: 22px; min-height: 22px; height: 22px; }
+        .buscador-hero { border-color: rgba(45,212,191,.32); background: linear-gradient(145deg, rgba(8,47,73,.42), rgba(15,23,42,.92)); }
+        .buscador-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+        .buscador-hero h3 { margin-bottom: 7px; border: 0; padding: 0; color: #ccfbf1; }
+        .buscador-hero p { margin: 0; color: var(--text-light); font-size: 12px; line-height: 1.6; }
+        .buscador-controles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .buscador-controles button { width: auto; margin: 0; padding: 10px 13px; }
+        .buscador-estado { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(2,6,23,.45); color: var(--text-light); font-size: 12px; }
+        .buscador-estado[data-tipo="ok"] { border-color: rgba(52,211,153,.32); color: #a7f3d0; }
+        .buscador-estado[data-tipo="error"] { border-color: rgba(251,113,133,.38); color: #fecdd3; }
+        .buscador-estado[data-tipo="cargando"] { border-color: rgba(96,165,250,.38); color: #bfdbfe; }
+        .buscador-barra { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 220px); gap: 10px; }
+        .buscador-barra input, .buscador-barra select { margin: 0; }
+        .buscador-resumen { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 13px 0 9px; color: var(--text-light); font-size: 12px; }
+        .buscador-lista { display: grid; gap: 9px; }
+        .buscador-resultado { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border-color); border-radius: 13px; background: rgba(5,11,22,.48); }
+        .buscador-tipo { display: grid; place-items: center; min-height: 44px; padding: 5px; border: 1px solid rgba(45,212,191,.28); border-radius: 10px; background: rgba(20,184,166,.10); color: #99f6e4; font-size: 10px; font-weight: 900; letter-spacing: .04em; overflow: hidden; }
+        .buscador-resultado-info { min-width: 0; }
+        .buscador-resultado-info h4 { margin: 0 0 5px; color: var(--text-dark); font-size: 14px; overflow-wrap: anywhere; }
+        .buscador-ruta { margin: 0 0 5px; color: #93c5fd; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+        .buscador-resultado-info small { color: var(--text-light); }
+        .buscador-acciones { display: flex; gap: 6px; }
+        .buscador-acciones button { white-space: nowrap; }
+        .buscador-vacio { padding: 35px 18px; border: 1px dashed var(--border-color); border-radius: 13px; color: var(--text-light); text-align: center; font-size: 13px; }
 
         @media (min-width: 900px) {
             body.layout-lateral { align-items: stretch; }
@@ -364,9 +387,14 @@
             .item-actions .btn-sm { flex: 1; }
             .inventory-toolbar > *, .inventory-toolbar > div { width: 100%; max-width: none !important; }
             .inventory-toolbar > div { display: grid !important; grid-template-columns: 1fr 1fr; }
-            .smart-grid, .settings-choice { grid-template-columns: 1fr; }
+            .smart-grid, .settings-choice, .buscador-barra, .buscador-hero-grid { grid-template-columns: 1fr; }
             .smart-query { flex-direction: column; }
             .smart-setting-row { grid-template-columns: 1fr; }
+            .buscador-controles { justify-content: stretch; }
+            .buscador-controles button { flex: 1 1 140px; }
+            .buscador-resultado { grid-template-columns: 44px minmax(0, 1fr); }
+            .buscador-acciones { grid-column: 1 / -1; }
+            .buscador-acciones button { width: 100%; }
         }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
@@ -421,6 +449,7 @@
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')" title="Ventas"><span class="nav-icon">🛒</span><span class="nav-label">Ventas</span></button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')" title="Cotización"><span class="nav-icon">📄</span><span class="nav-label">Cotización</span></button>
             <button id="tab-alertas" class="tab-btn" onclick="cambiarPestaña('alertas')" title="Por surtir"><span class="nav-icon">⚠️</span><span class="nav-label">Por Surtir</span></button>
+            <button id="tab-buscador" class="tab-btn" onclick="cambiarPestaña('buscador')" title="Buscador de diseños"><span class="nav-icon">🔎</span><span class="nav-label">Diseños</span></button>
             <button id="tab-ajustes" class="tab-btn" onclick="accederAjustesProtegidos()" title="Opciones"><span class="nav-icon">⚙️</span><span class="nav-label">Opciones</span></button>
         </div>
 
@@ -532,12 +561,6 @@
                     <div class="smart-setting-row" data-modulo="etiquetas"><div class="smart-setting-main"><input type="checkbox" id="smart-etiquetas"><span>Etiquetas y códigos</span></div><select id="smart-etiquetas-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar con opciones</option></select></div>
                 </div>
                 <button class="btn-main btn-green" onclick="guardarPreferenciasSistemaDesdeUI()">Guardar preferencias de este dispositivo</button>
-            </div>
-
-            <div class="card">
-                <h3 class="section-title">🗂️ SubliCosturas Studio</h3>
-                <p class="settings-note">Aplicación independiente para guardar archivos de Corel, Photoshop, Illustrator, PDF e imágenes en carpetas normales de tu PC y encontrarlos por cliente, diseño o producto.</p>
-                <a class="btn-main" href="./studio/" target="_blank" rel="noopener" style="display:block; box-sizing:border-box; text-align:center; text-decoration:none;">Abrir Studio en otra pestaña</a>
             </div>
 
             <div class="card">
@@ -840,6 +863,37 @@
                         </select>
                     </div>
                     <div id="lista-historial-cotizaciones"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-buscador" style="display: none;">
+            <div class="card buscador-hero">
+                <div class="buscador-hero-grid">
+                    <div>
+                        <h3 class="section-title">🔎 Buscador inteligente de diseños</h3>
+                        <p>Elige la carpeta donde guardas tus trabajos. El buscador crea únicamente un índice local de nombres y ubicaciones; nunca copia, mueve, renombra ni sube tus archivos.</p>
+                    </div>
+                    <div class="buscador-controles">
+                        <button id="btn-buscador-carpeta" type="button" class="btn-main">📁 Elegir carpeta</button>
+                        <button id="btn-buscador-actualizar" type="button" class="btn-main btn-green">↻ Actualizar catálogo</button>
+                        <button id="btn-buscador-olvidar" type="button" class="btn-sm btn-delete">Olvidar carpeta</button>
+                    </div>
+                </div>
+                <div id="buscador-estado" class="buscador-estado" aria-live="polite">Preparando buscador local…</div>
+            </div>
+
+            <div class="card">
+                <div class="buscador-barra">
+                    <input id="buscador-consulta" type="search" autocomplete="off" placeholder="Ejemplo: pachón perro Carlos, playera logo o archivo CDR">
+                    <select id="buscador-extension" aria-label="Filtrar por formato"><option value="">Todos los formatos</option></select>
+                </div>
+                <div class="buscador-resumen">
+                    <strong id="buscador-contador">0 archivos encontrados</strong>
+                    <span id="buscador-compatibilidad">Búsqueda local, sin subir archivos.</span>
+                </div>
+                <div id="buscador-resultados" class="buscador-lista" aria-live="polite">
+                    <div class="buscador-vacio">Elige una carpeta para crear el catálogo local.</div>
                 </div>
             </div>
         </div>
@@ -1492,7 +1546,7 @@
         }
 
         function aplicarPermisos(user) {
-            const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'];
+            const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'buscador', 'ajustes'];
             todasPestañas.forEach(id => {
                 let btn = document.getElementById('tab-' + id);
                 if (btn) btn.style.display = 'none';
@@ -2602,7 +2656,7 @@
                 logoCont.style.display = (pestaña === 'inicio') ? 'block' : 'none';
             }
 
-            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'ajustes'].forEach(p => {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'buscador', 'ajustes'].forEach(p => {
                 const sec = document.getElementById('sec-' + p);
                 if(sec) sec.style.display = 'none';
                 const tabBtn = document.getElementById('tab-' + p);
@@ -2619,6 +2673,7 @@
             if(pestaña === 'inventario') renderInventario();
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
             if(pestaña === 'alertas') renderAlertas();
+            if(pestaña === 'buscador' && window.renderBuscadorDisenos) window.renderBuscadorDisenos();
             if(pestaña === 'ajustes') { renderUsuarios(); sincronizarControlesPreferencias(); }
         }
 
@@ -5043,7 +5098,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.1.0";
+        const APP_VERSION = "1.1.1";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -5144,5 +5199,6 @@
             }
         });
     </script>
+    <script type="module" src="./buscador.js"></script>
 </body>
 </html>
