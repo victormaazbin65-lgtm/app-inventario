@@ -32,7 +32,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   assert.doesNotThrow(() => new Function(scriptClasico));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.1.0' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.1.1' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -570,8 +570,9 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.1\.0"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.1\.0/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.1\.1"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.1\.1/);
+  assert.match(leer('sw.js'), /\.\/buscador\.js/);
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
     assert.ok(fs.existsSync(path.join(raiz, icono.src)), `Falta ${icono.src}`);
