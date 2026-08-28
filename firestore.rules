@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function configPath() {
+      return /databases/$(database)/documents/sistema/config;
+    }
+
+    function authPropietario() {
+      return get(configPath()).data
+        .get('negocio', {})
+        .get('authPropietario', {});
+    }
+
+    function proteccionActivada() {
+      return exists(configPath())
+        && authPropietario().get('habilitado', false) == true
+        && authPropietario().get('uid', '') != '';
+    }
+
+    function esPropietarioAutenticado() {
+      return request.auth != null
+        && proteccionActivada()
+        && request.auth.uid == authPropietario().get('uid', '');
+    }
+
+    function accesoPermitido() {
+      // Transición compatible: la base permanece como antes hasta que el Dueño
+      // active su cuenta real. Desde ese instante solo acepta ese UID de Firebase.
+      return !proteccionActivada() || esPropietarioAutenticado();
+    }
+
+    function proteccionSolicitadaEnEscritura() {
+      return request.resource != null
+        && request.resource.data
+          .get('negocio', {})
+          .get('authPropietario', {})
+          .get('habilitado', false) == true;
+    }
+
+    function activacionPropiaValida() {
+      return request.auth != null
+        && request.resource != null
+        && request.resource.data
+          .get('negocio', {})
+          .get('authPropietario', {})
+          .get('uid', '') == request.auth.uid;
+    }
+
+    function escrituraPermitida() {
+      // La primera activación no puede adjudicar un UID anónimo o distinto.
+      // Una vez protegida, accesoPermitido ya exige al propietario actual.
+      return request.path != configPath()
+        || (request.resource != null
+          && (proteccionActivada()
+            || !proteccionSolicitadaEnEscritura()
+            || activacionPropiaValida()));
+    }
+
+    match /{document=**} {
+      allow read: if accesoPermitido();
+      allow write: if accesoPermitido() && escrituraPermitida();
+    }
+  }
+}

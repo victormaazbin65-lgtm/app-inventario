@@ -1,7 +1,11 @@
-const CACHE_NAME = 'sublicosturas-v1.1.1';
+const CACHE_NAME = 'sublicosturas-v1.2.0';
 const APP_SHELL = [
   './',
   './index.html',
+  './negocio-core.js',
+  './gestion-negocio.js',
+  './finanzas-negocio.js',
+  './respaldo-negocio.js',
   './buscador.js',
   './manifest.json',
   './logo.jpeg',
