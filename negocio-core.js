@@ -1,0 +1,412 @@
+(function (global) {
+    'use strict';
+
+    const CLAVES_FONDOS = Object.freeze(['costoProducto', 'costoLuzTinta', 'gananciaLibre', 'fondoImpuestos']);
+    const METODOS_PAGO = Object.freeze({
+        efectivo: { id: 'efectivo', nombre: 'Efectivo', ubicacion: 'efectivo' },
+        transferencia: { id: 'transferencia', nombre: 'Transferencia', ubicacion: 'banco' },
+        deposito: { id: 'deposito', nombre: 'Depósito', ubicacion: 'banco' }
+    });
+
+    const UNIDADES_BASE = Object.freeze([
+        { id: 'pieza', nombre: 'Pieza', abreviatura: 'pza', paso: 1, divisible: false },
+        { id: 'unidad', nombre: 'Unidad', abreviatura: 'unid', paso: 1, divisible: false },
+        { id: 'par', nombre: 'Par', abreviatura: 'par', paso: 1, divisible: false },
+        { id: 'juego', nombre: 'Juego', abreviatura: 'jgo', paso: 1, divisible: false },
+        { id: 'docena', nombre: 'Docena', abreviatura: 'doc', paso: 0.01, divisible: true },
+        { id: 'metro', nombre: 'Metro', abreviatura: 'm', paso: 0.01, divisible: true },
+        { id: 'centimetro', nombre: 'Centímetro', abreviatura: 'cm', paso: 0.01, divisible: true },
+        { id: 'milimetro', nombre: 'Milímetro', abreviatura: 'mm', paso: 0.01, divisible: true },
+        { id: 'yarda', nombre: 'Yarda', abreviatura: 'yd', paso: 0.01, divisible: true },
+        { id: 'pie', nombre: 'Pie', abreviatura: 'ft', paso: 0.01, divisible: true },
+        { id: 'pulgada', nombre: 'Pulgada', abreviatura: 'in', paso: 0.01, divisible: true },
+        { id: 'metro_cuadrado', nombre: 'Metro cuadrado', abreviatura: 'm²', paso: 0.01, divisible: true },
+        { id: 'centimetro_cuadrado', nombre: 'Centímetro cuadrado', abreviatura: 'cm²', paso: 0.01, divisible: true },
+        { id: 'kilogramo', nombre: 'Kilogramo', abreviatura: 'kg', paso: 0.001, divisible: true },
+        { id: 'gramo', nombre: 'Gramo', abreviatura: 'g', paso: 0.01, divisible: true },
+        { id: 'libra', nombre: 'Libra', abreviatura: 'lb', paso: 0.01, divisible: true },
+        { id: 'onza', nombre: 'Onza', abreviatura: 'oz', paso: 0.01, divisible: true },
+        { id: 'litro', nombre: 'Litro', abreviatura: 'L', paso: 0.01, divisible: true },
+        { id: 'mililitro', nombre: 'Mililitro', abreviatura: 'ml', paso: 0.01, divisible: true },
+        { id: 'galon', nombre: 'Galón', abreviatura: 'gal', paso: 0.01, divisible: true },
+        { id: 'hora', nombre: 'Hora', abreviatura: 'h', paso: 0.01, divisible: true },
+        { id: 'minuto', nombre: 'Minuto', abreviatura: 'min', paso: 1, divisible: false }
+    ]);
+
+    const CONFIGURACION_PREDETERMINADA = Object.freeze({
+        version: 1,
+        nombreNegocio: 'SubliCosturas',
+        moneda: 'Q',
+        porcentajeSAT: 5,
+        nombreFondoProduccion: 'Luz y Tinta',
+        margenObjetivo: 30,
+        nombreManoObra: 'Mano de obra / creación',
+        unidadesPersonalizadas: [],
+        authPropietario: { habilitado: false, email: '', uid: '' }
+    });
+
+    function numeroFinito(valor, predeterminado = 0) {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero : predeterminado;
+    }
+
+    function redondearMoneda(valor) {
+        return Math.round((numeroFinito(valor) + Number.EPSILON) * 100) / 100;
+    }
+
+    function aCentavos(valor) {
+        return Math.round(numeroFinito(valor) * 100);
+    }
+
+    function desdeCentavos(valor) {
+        return numeroFinito(valor) / 100;
+    }
+
+    function aMilesimas(valor) {
+        return Math.round(numeroFinito(valor) * 1000);
+    }
+
+    function desdeMilesimas(valor) {
+        return numeroFinito(valor) / 1000;
+    }
+
+    function textoSeguro(valor, predeterminado, maximo = 80) {
+        const texto = String(valor === undefined || valor === null ? '' : valor).trim();
+        return (texto || predeterminado).slice(0, maximo);
+    }
+
+    function limitarPorcentaje(valor, predeterminado, maximo = 100) {
+        const numero = Number(valor);
+        if (!Number.isFinite(numero) || numero < 0 || numero > maximo) return predeterminado;
+        return Math.round(numero * 100) / 100;
+    }
+
+    function normalizarConfiguracionNegocio(entrada) {
+        const fuente = entrada && typeof entrada === 'object' ? entrada : {};
+        const authFuente = fuente.authPropietario && typeof fuente.authPropietario === 'object'
+            ? fuente.authPropietario
+            : {};
+        const personalizadas = Array.isArray(fuente.unidadesPersonalizadas)
+            ? fuente.unidadesPersonalizadas.map(normalizarUnidadPersonalizada).filter(Boolean)
+            : [];
+        return {
+            version: 1,
+            nombreNegocio: textoSeguro(fuente.nombreNegocio, CONFIGURACION_PREDETERMINADA.nombreNegocio, 60),
+            moneda: textoSeguro(fuente.moneda, CONFIGURACION_PREDETERMINADA.moneda, 8),
+            porcentajeSAT: limitarPorcentaje(fuente.porcentajeSAT, CONFIGURACION_PREDETERMINADA.porcentajeSAT, 100),
+            nombreFondoProduccion: textoSeguro(fuente.nombreFondoProduccion, CONFIGURACION_PREDETERMINADA.nombreFondoProduccion, 50),
+            margenObjetivo: limitarPorcentaje(fuente.margenObjetivo, CONFIGURACION_PREDETERMINADA.margenObjetivo, 95),
+            nombreManoObra: textoSeguro(fuente.nombreManoObra, CONFIGURACION_PREDETERMINADA.nombreManoObra, 50),
+            unidadesPersonalizadas: personalizadas,
+            authPropietario: {
+                habilitado: Boolean(authFuente.habilitado && authFuente.uid && authFuente.email),
+                email: String(authFuente.email || '').trim().toLowerCase().slice(0, 160),
+                uid: String(authFuente.uid || '').trim().slice(0, 160)
+            }
+        };
+    }
+
+    function obtenerTasaSAT(configuracion) {
+        return normalizarConfiguracionNegocio(configuracion).porcentajeSAT / 100;
+    }
+
+    function normalizarUnidadPersonalizada(unidad) {
+        if (!unidad || typeof unidad !== 'object') return null;
+        const nombre = textoSeguro(unidad.nombre, '', 40);
+        if (!nombre) return null;
+        const idBase = String(unidad.id || nombre)
+            .replace(/^(personalizada_)+/i, '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (!idBase) return null;
+        const divisible = Boolean(unidad.divisible);
+        let paso = divisible ? numeroFinito(unidad.paso, 0.01) : 1;
+        if (paso <= 0 || paso > 1) paso = divisible ? 0.01 : 1;
+        return {
+            id: `personalizada_${idBase}`,
+            nombre,
+            abreviatura: textoSeguro(unidad.abreviatura, nombre.slice(0, 6), 10),
+            paso,
+            divisible
+        };
+    }
+
+    function listarUnidades(configuracion) {
+        const config = normalizarConfiguracionNegocio(configuracion);
+        const mapa = new Map();
+        [...UNIDADES_BASE, ...config.unidadesPersonalizadas].forEach(unidad => mapa.set(unidad.id, { ...unidad }));
+        return Array.from(mapa.values());
+    }
+
+    function obtenerUnidad(id, configuracion) {
+        const unidades = listarUnidades(configuracion);
+        return unidades.find(unidad => unidad.id === id) || unidades.find(unidad => unidad.id === 'pieza');
+    }
+
+    function normalizarCantidad(valor, unidad) {
+        const cantidad = Number(valor);
+        if (!Number.isFinite(cantidad) || cantidad < 0) throw new Error('La cantidad debe ser un número válido no negativo.');
+        const definicion = unidad || UNIDADES_BASE[0];
+        if (!definicion.divisible && !Number.isInteger(cantidad)) {
+            throw new Error(`La unidad “${definicion.nombre}” solo admite cantidades enteras.`);
+        }
+        const decimales = definicion.paso >= 1 ? 0 : (definicion.paso >= 0.01 ? 2 : 3);
+        return Number(cantidad.toFixed(decimales));
+    }
+
+    function calcularIngresoConvertido(cantidadCompra, contenidoPorCompra, costoIngresado, tipoCosto, unidad) {
+        const compras = Number(cantidadCompra);
+        const contenido = Number(contenidoPorCompra);
+        const costo = Number(costoIngresado);
+        if (!Number.isFinite(compras) || compras <= 0) throw new Error('La cantidad comprada debe ser mayor que cero.');
+        if (!Number.isFinite(contenido) || contenido <= 0) throw new Error('El contenido por empaque debe ser mayor que cero.');
+        if (!Number.isFinite(costo) || costo < 0) throw new Error('El costo no puede ser negativo.');
+        const cantidadBase = normalizarCantidad(compras * contenido, unidad);
+        if (cantidadBase <= 0) throw new Error('La conversión no produjo existencias válidas.');
+        const costoBase = tipoCosto === 'total' ? costo / cantidadBase : costo;
+        if (!Number.isFinite(costoBase) || costoBase < 0) throw new Error('El costo convertido no es válido.');
+        return { cantidadBase, costoBase: Math.round(costoBase * 1000000) / 1000000 };
+    }
+
+    function calcularDesgloseFinanciero(detalleItems, costoProduccion, costoEnvio, pideFactura, configuracion, costoManoObra = 0) {
+        const items = Array.isArray(detalleItems) ? detalleItems : [];
+        const produccion = Number(costoProduccion);
+        const envio = Number(costoEnvio);
+        const manoObra = Number(costoManoObra);
+        if (![produccion, envio, manoObra].every(Number.isFinite) || produccion < 0 || envio < 0 || manoObra < 0) {
+            throw new Error('Los gastos de producción, mano de obra y envío deben ser números válidos no negativos.');
+        }
+        let ingresoTotal = 0;
+        let costosProductos = 0;
+        for (const item of items) {
+            const cantidad = Number(item.qty);
+            const precio = Number(item.precioCobrado);
+            const costo = Number(item.costoUnitarioReal === undefined || item.costoUnitarioReal === null ? item.costoBase : item.costoUnitarioReal);
+            if (![cantidad, precio, costo].every(Number.isFinite) || cantidad <= 0 || precio < 0 || costo < 0) {
+                throw new Error(`Hay cantidades, precios o costos inválidos en “${item.nombre || 'un artículo'}”.`);
+            }
+            ingresoTotal += cantidad * precio;
+            costosProductos += cantidad * costo;
+        }
+        if (!Number.isFinite(ingresoTotal) || !Number.isFinite(costosProductos)) {
+            throw new Error('Los montos son demasiado grandes para calcularse de forma segura.');
+        }
+        ingresoTotal = redondearMoneda(ingresoTotal);
+        costosProductos = redondearMoneda(costosProductos);
+        const costoTinta = redondearMoneda(produccion);
+        const costoEnvioNormalizado = redondearMoneda(envio);
+        const costoManoObraNormalizado = redondearMoneda(manoObra);
+        const config = normalizarConfiguracionNegocio(configuracion);
+        const tasaSAT = pideFactura ? config.porcentajeSAT / 100 : 0;
+        const impuestoSAT = pideFactura ? redondearMoneda(ingresoTotal * tasaSAT) : 0;
+        const totalGastos = redondearMoneda(costosProductos + costoTinta + costoEnvioNormalizado + costoManoObraNormalizado + impuestoSAT);
+        const gananciaNeta = redondearMoneda(ingresoTotal - totalGastos);
+        const margen = ingresoTotal > 0 ? gananciaNeta / ingresoTotal : 0;
+        if (![impuestoSAT, totalGastos, gananciaNeta, margen].every(Number.isFinite)) {
+            throw new Error('El resultado financiero excede el límite numérico seguro.');
+        }
+        return {
+            ingresoTotal,
+            costosProductos,
+            costoTinta,
+            costoEnvio: costoEnvioNormalizado,
+            costoManoObra: costoManoObraNormalizado,
+            impuestoSAT,
+            porcentajeSAT: config.porcentajeSAT,
+            tasaSAT,
+            nombreProduccion: config.nombreFondoProduccion,
+            nombreManoObra: config.nombreManoObra,
+            totalGastos,
+            gananciaNeta,
+            margen,
+            pideFactura: Boolean(pideFactura)
+        };
+    }
+
+    function normalizarFondos(fondos) {
+        const fuente = fondos && typeof fondos === 'object' ? fondos : {};
+        return CLAVES_FONDOS.reduce((salida, clave) => {
+            salida[clave] = redondearMoneda(fuente[clave]);
+            return salida;
+        }, {});
+    }
+
+    function totalFondos(fondos) {
+        return redondearMoneda(CLAVES_FONDOS.reduce((total, clave) => total + numeroFinito(fondos && fondos[clave]), 0));
+    }
+
+    function normalizarSaldosDinero(saldos, totalEsperado) {
+        const esperado = redondearMoneda(totalEsperado);
+        if (!saldos || typeof saldos !== 'object' || !saldos.inicializado) {
+            return { efectivo: esperado, banco: 0, inicializado: true, migradoAutomaticamente: true };
+        }
+        const efectivo = redondearMoneda(Math.max(0, numeroFinito(saldos.efectivo)));
+        const banco = redondearMoneda(Math.max(0, numeroFinito(saldos.banco)));
+        return {
+            efectivo,
+            banco,
+            inicializado: true,
+            migradoAutomaticamente: Boolean(saldos.migradoAutomaticamente)
+        };
+    }
+
+    function ubicacionMetodoPago(metodo) {
+        return (METODOS_PAGO[metodo] || METODOS_PAGO.efectivo).ubicacion;
+    }
+
+    function distribuirCentavos(totalCentavos, pesos) {
+        const entradas = Object.entries(pesos || {});
+        const salida = Object.fromEntries(entradas.map(([clave]) => [clave, 0]));
+        const objetivo = Math.trunc(numeroFinito(totalCentavos));
+        if (!entradas.length || objetivo === 0) return salida;
+        const signo = objetivo < 0 ? -1 : 1;
+        const magnitud = Math.abs(objetivo);
+        let pesosValidos = entradas.map(([, valor]) => Math.abs(numeroFinito(valor)));
+        let sumaPesos = pesosValidos.reduce((total, valor) => total + valor, 0);
+        if (sumaPesos === 0) {
+            pesosValidos = entradas.map(() => 1);
+            sumaPesos = entradas.length;
+        }
+        const cuotas = entradas.map(([clave], indice) => {
+            const exacta = magnitud * (pesosValidos[indice] / sumaPesos);
+            const entera = Math.floor(exacta);
+            salida[clave] = signo * entera;
+            return { clave, fraccion: exacta - entera, indice };
+        });
+        let pendiente = magnitud - cuotas.reduce((total, cuota) => total + Math.abs(salida[cuota.clave]), 0);
+        cuotas.sort((a, b) => (b.fraccion - a.fraccion) || (a.indice - b.indice));
+        for (let indice = 0; indice < pendiente; indice += 1) {
+            salida[cuotas[indice % cuotas.length].clave] += signo;
+        }
+        return salida;
+    }
+
+    function objetivoProporcionalExacto(componentes, acumuladoCentavos, totalCentavos) {
+        const objetivo = Math.trunc(numeroFinito(acumuladoCentavos));
+        const total = Math.trunc(numeroFinito(totalCentavos));
+        const salida = Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, 0]));
+        if (total <= 0 || objetivo <= 0) return salida;
+        CLAVES_FONDOS.forEach(clave => {
+            salida[clave] = Math.round(numeroFinito(componentes && componentes[clave]) * (objetivo / total));
+        });
+        const asignado = CLAVES_FONDOS.reduce((suma, clave) => suma + salida[clave], 0);
+        const diferencia = objetivo - asignado;
+        if (diferencia !== 0) {
+            const claveMayor = [...CLAVES_FONDOS].sort((a, b) =>
+                Math.abs(numeroFinito(componentes && componentes[b])) - Math.abs(numeroFinito(componentes && componentes[a]))
+            )[0];
+            salida[claveMayor] += diferencia;
+        }
+        return salida;
+    }
+
+    function calcularAsignacionFondos(desglose, montoPagado) {
+        const ingresoCentavos = Math.max(0, aCentavos(desglose && desglose.ingresoTotal));
+        const pagadoCentavos = Math.min(ingresoCentavos, Math.max(0, aCentavos(montoPagado)));
+        const componentesFinales = {
+            costoProducto: aCentavos(desglose && desglose.costosProductos),
+            costoLuzTinta: aCentavos(
+                numeroFinito(desglose && desglose.costoTinta)
+                + numeroFinito(desglose && desglose.costoManoObra)
+                + numeroFinito(desglose && desglose.costoEnvio)
+            ),
+            fondoImpuestos: aCentavos(desglose && desglose.impuestoSAT),
+            gananciaLibre: aCentavos(desglose && desglose.gananciaNeta)
+        };
+        if (ingresoCentavos === 0 || pagadoCentavos === 0) {
+            return Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, 0]));
+        }
+        if (pagadoCentavos === ingresoCentavos) {
+            return Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, desdeCentavos(componentesFinales[clave])]));
+        }
+        const objetivo = objetivoProporcionalExacto(componentesFinales, pagadoCentavos, ingresoCentavos);
+        return Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, desdeCentavos(objetivo[clave])]));
+    }
+
+    function restarAsignaciones(nueva, anterior) {
+        return Object.fromEntries(CLAVES_FONDOS.map(clave => [
+            clave,
+            desdeCentavos(aCentavos(nueva && nueva[clave]) - aCentavos(anterior && anterior[clave]))
+        ]));
+    }
+
+    function sumarAsignacion(fondos, asignacion, signo = 1) {
+        const salida = normalizarFondos(fondos);
+        CLAVES_FONDOS.forEach(clave => {
+            salida[clave] = desdeCentavos(aCentavos(salida[clave]) + (signo * aCentavos(asignacion && asignacion[clave])));
+        });
+        return salida;
+    }
+
+    function totalAsignacion(asignacion) {
+        return desdeCentavos(CLAVES_FONDOS.reduce((total, clave) => total + aCentavos(asignacion && asignacion[clave]), 0));
+    }
+
+    function calcularRestitucionPrestamo(desgloseOriginal, montoPrestamo, devueltoAntes, nuevoAbono) {
+        const total = aCentavos(montoPrestamo);
+        const anterior = Math.max(0, aCentavos(devueltoAntes));
+        const acumulado = Math.min(total, anterior + Math.max(0, aCentavos(nuevoAbono)));
+        if (total <= 0 || acumulado <= anterior) throw new Error('El abono del préstamo debe ser mayor que cero.');
+        const componentes = Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, aCentavos(desgloseOriginal && desgloseOriginal[clave])]));
+        const objetivoCentavos = objetivoProporcionalExacto(componentes, acumulado, total);
+        const objetivoAnteriorCentavos = objetivoProporcionalExacto(componentes, anterior, total);
+        const objetivo = Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, desdeCentavos(objetivoCentavos[clave])]));
+        const objetivoAnterior = Object.fromEntries(CLAVES_FONDOS.map(clave => [clave, desdeCentavos(objetivoAnteriorCentavos[clave])]));
+        return {
+            montoAplicado: desdeCentavos(acumulado - anterior),
+            devueltoAcumulado: desdeCentavos(acumulado),
+            restauracion: restarAsignaciones(objetivo, objetivoAnterior),
+            pagado: acumulado === total
+        };
+    }
+
+    function validarCliente(cliente) {
+        const fuente = cliente && typeof cliente === 'object' ? cliente : {};
+        const nombres = textoSeguro(fuente.nombres, '', 80);
+        const apellidos = textoSeguro(fuente.apellidos, '', 80);
+        if (!nombres && !apellidos) throw new Error('Escribe al menos un nombre o apellido del cliente.');
+        return {
+            id: String(fuente.id || '').trim(),
+            nombres,
+            apellidos,
+            nombreCompleto: `${nombres} ${apellidos}`.trim().toUpperCase(),
+            telefono: textoSeguro(fuente.telefono, '', 30),
+            direccion: textoSeguro(fuente.direccion, '', 220),
+            nit: textoSeguro(fuente.nit, 'C/F', 30),
+            notas: textoSeguro(fuente.notas, '', 500),
+            limiteCredito: redondearMoneda(Math.max(0, numeroFinito(fuente.limiteCredito)))
+        };
+    }
+
+    const api = Object.freeze({
+        CLAVES_FONDOS,
+        CONFIGURACION_PREDETERMINADA,
+        METODOS_PAGO,
+        UNIDADES_BASE,
+        aCentavos,
+        desdeCentavos,
+        aMilesimas,
+        desdeMilesimas,
+        redondearMoneda,
+        normalizarConfiguracionNegocio,
+        obtenerTasaSAT,
+        listarUnidades,
+        obtenerUnidad,
+        normalizarCantidad,
+        calcularIngresoConvertido,
+        calcularDesgloseFinanciero,
+        normalizarFondos,
+        totalFondos,
+        normalizarSaldosDinero,
+        ubicacionMetodoPago,
+        distribuirCentavos,
+        calcularAsignacionFondos,
+        restarAsignaciones,
+        sumarAsignacion,
+        totalAsignacion,
+        calcularRestitucionPrestamo,
+        validarCliente
+    });
+
+    global.SubliNegocioCore = api;
+})(typeof window !== 'undefined' ? window : globalThis);

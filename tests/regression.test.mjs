@@ -11,6 +11,10 @@ const html = leer('index.html');
 const scriptsInternos = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)].filter(coincidencia => !coincidencia[1].includes('src'));
 const scriptClasico = scriptsInternos.find(coincidencia => !coincidencia[1].includes('type="module"'))[2];
 const scriptModulo = scriptsInternos.find(coincidencia => coincidencia[1].includes('type="module"'))[2];
+const archivosNegocio = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'];
+const scriptsNegocio = archivosNegocio.map(leer);
+const coreSource = scriptsNegocio[0];
+const codigoClasicoCompleto = [scriptClasico, ...scriptsNegocio].join('\n');
 
 function extraerFuncion(nombre) {
   const inicio = scriptClasico.indexOf(`function ${nombre}(`);
@@ -30,9 +34,10 @@ function extraerFuncion(nombre) {
 test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => {
   assert.equal(scriptsInternos.length, 2);
   assert.doesNotThrow(() => new Function(scriptClasico));
+  scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.1.1' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.0' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -74,17 +79,20 @@ test('sumar y revertir una venta devuelve el resumen mensual al punto inicial', 
 
 test('SAT conserva el cálculo existente del cinco por ciento', () => {
   const contexto = vm.createContext({ Math, Number, Error, Array, Boolean });
+  vm.runInContext(coreSource, contexto);
   vm.runInContext(extraerFuncion('calcularDesgloseFinanciero'), contexto);
 
   const items = [{ nombre: 'Taza', qty: 2, precioCobrado: 50, costoBase: 20 }];
   assert.equal(contexto.calcularDesgloseFinanciero(items, 0, 0, true).impuestoSAT, 5);
   assert.equal(contexto.calcularDesgloseFinanciero(items, 0, 0, false).impuestoSAT, 0);
-  assert.match(extraerFuncion('calcularDesgloseFinanciero'), /impuestoSAT\s*=\s*pideFactura\s*\?\s*moneda\(ingresoTotal\s*\*\s*0\.05\)\s*:\s*0/);
-  assert.match(scriptClasico, /Impuesto SAT \(5%\)/);
+  assert.equal(contexto.calcularDesgloseFinanciero(items, 0, 0, true, 0, { porcentajeSAT: 12 }).impuestoSAT, 12);
+  assert.match(extraerFuncion('calcularDesgloseFinanciero'), /SubliNegocioCore\.calcularDesgloseFinanciero/);
+  assert.match(html, /data-porcentaje-sat/);
 });
 
 test('ventas y cotizaciones comparten un único desglose de gastos y ganancia', () => {
   const contexto = vm.createContext({ Math, Number, Error, Array, Boolean });
+  vm.runInContext(coreSource, contexto);
   vm.runInContext(extraerFuncion('calcularDesgloseFinanciero'), contexto);
 
   const items = [
@@ -128,6 +136,7 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
     Math, Number, Error, Array, Boolean, JSON, Map,
     document: { getElementById: id => elementos[id] }
   });
+  vm.runInContext(coreSource, contexto);
   vm.runInContext(`
     const ALERTA_MARGEN_MINIMO = 0.10;
     let carritoVentas = [{ tempId: 1, idProd: 'p1', nombre: 'Taza', rol: 'principal', qty: 2, precioCobrado: 50, costoBase: 20, isService: false }];
@@ -137,6 +146,7 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
     ];
     let inventario = [{ id: 'p1', nombre: 'Taza', stock: 4, costo: 20 }];
     ${extraerFuncion('escaparHTML')}
+    ${extraerFuncion('redondear')}
     ${extraerFuncion('numeroFinito')}
     ${extraerFuncion('calcularDesgloseFinanciero')}
     ${extraerFuncion('generarHTMLDesgloseFinanciero')}
@@ -168,6 +178,7 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
 
 test('estrés matemático: 50000 escenarios conservan las identidades financieras', () => {
   const contexto = vm.createContext({ Math, Number, Error, Array, Boolean });
+  vm.runInContext(coreSource, contexto);
   vm.runInContext([
     extraerFuncion('numeroFinito'),
     extraerFuncion('calcularCostoPromedioPonderado'),
@@ -303,8 +314,8 @@ test('el retiro inteligente distribuye centavos con prioridad y protege SAT', ()
 
 test('las operaciones críticas no conservan el fallback que escribía parcialmente', () => {
   assert.doesNotMatch(scriptClasico, /Fallback local activado|promesasOffline|usando Fallback/i);
-  assert.match(scriptClasico, /venta\.versionCalculo !== 2/);
-  assert.match(scriptClasico, /registro\.versionCalculo !== 2/);
+  assert.match(scriptClasico, /ventaAnterior\.versionCalculo !== 2/);
+  assert.match(scriptClasico, /Number\(registro\.versionCalculo\) < 2/);
   assert.match(scriptClasico, /resumenMensualContabilizado:\s*true/);
   assert.doesNotMatch(scriptClasico, /deleteDoc\(window\.doc\(window\.db,\s*["'](?:ventas|ingresos|cotizaciones|retiros)["']/);
 });
@@ -317,8 +328,8 @@ test('el retiro inteligente conserva los retiros manuales y escribe un registro 
   assert.match(scriptClasico, /async function retirarGanancia\(/);
   assert.match(scriptClasico, /async function retirarImpuesto\(/);
   assert.match(funcionRetiro, /window\.runTransaction/);
-  assert.equal((funcionRetiro.match(/t\.update\(/g) || []).length, 1);
-  assert.equal((funcionRetiro.match(/t\.set\(/g) || []).length, 1);
+  assert.equal((funcionRetiro.match(/t\.update\(/g) || []).length, 0);
+  assert.equal((funcionRetiro.match(/t\.set\(/g) || []).length, 3);
   assert.doesNotMatch(funcionRetiro, /window\.(?:setDoc|updateDoc|deleteDoc)\(/);
   assert.match(funcionRetiro, /modoRetiro:\s*solicitud\.modo/);
   assert.match(funcionRetiro, /desglose:\s*\{/);
@@ -570,9 +581,10 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.1\.1"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.1\.1/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.0"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.0/);
   assert.match(leer('sw.js'), /\.\/buscador\.js/);
+  archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(`\\.\\/${archivo.replace('.', '\\.')}`)));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
     assert.ok(fs.existsSync(path.join(raiz, icono.src)), `Falta ${icono.src}`);
@@ -582,6 +594,7 @@ test('PWA usa la misma versión y sus iconos existen', () => {
 
 test('los importes se contabilizan en centavos y no dejan residuos al revertir', () => {
   const contexto = vm.createContext({ Math, Number, Error, Array, Boolean });
+  vm.runInContext(coreSource, contexto);
   vm.runInContext(`
     ${extraerFuncion('aCentavos')}
     ${extraerFuncion('desdeCentavos')}
@@ -641,8 +654,7 @@ test('el registro permanente evita reutilizar códigos al borrar productos', () 
 test('el reporte completo descarga los cuatro historiales y conserva números en Excel', () => {
   const reporte = extraerFuncion('generarReporteExcel');
   ['ventas', 'ingresos', 'cotizaciones', 'retiros'].forEach(tipo => assert.match(reporte, new RegExp(`cargarHistorialCompleto\\('${tipo}'\\)`)));
-  assert.match(reporte, /"Ingresos"/);
-  assert.match(reporte, /"Cotizaciones"/);
+  ['Ingresos', 'Cotizaciones', 'Clientes', 'Anticipos', 'Préstamos', 'Devoluciones', 'Pérdidas'].forEach(hoja => assert.match(reporte, new RegExp(`['"]${hoja}['"]`)));
   assert.doesNotMatch(reporte, /\.toFixed\(/);
 });
 
