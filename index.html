@@ -1337,13 +1337,16 @@
         window.firebaseSendPasswordReset = sendPasswordResetEmail;
         window.firebaseSignOut = signOut;
         window.firebaseAuthUser = null;
+        let firebaseListoEmitido = false;
         onAuthStateChanged(auth, usuario => {
             window.firebaseAuthUser = usuario || null;
             window.dispatchEvent(new CustomEvent('firebaseAuthCambio', { detail: { usuario: usuario || null } }));
+            if (!firebaseListoEmitido) {
+                firebaseListoEmitido = true;
+                console.log("🔥 Firebase SubliCosturas Conectado");
+                window.dispatchEvent(new Event('firebaseListo'));
+            }
         });
-
-        console.log("🔥 Firebase SubliCosturas Conectado");
-        window.dispatchEvent(new Event('firebaseListo'));
     </script>
 
     <script>
@@ -2848,7 +2851,6 @@
 
                 try {
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
-                        confirmarAccesoFirebaseDisponible();
                         if (docSnap.exists()) {
                             datosCargadosDeLaNube = true;
                             if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
@@ -2873,11 +2875,13 @@
                             debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
                             actualizarUI();
                             comprobarIngresoInicialLibre();
+                            if(!docSnap.metadata.fromCache) confirmarAccesoFirebaseDisponible();
                         } else if(!docSnap.metadata.fromCache) {
                             configuracionUsuariosConfirmada = true;
                             usuarios = [];
                             usuariosRevision = 0;
                             comprobarIngresoInicialLibre();
+                            confirmarAccesoFirebaseDisponible();
                         }
                     }, error => {
                         console.warn("No se pudo sincronizar la configuración; se conserva el respaldo local.", error);

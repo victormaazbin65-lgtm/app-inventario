@@ -140,8 +140,12 @@ test('la cuenta real y los controles del Dueño están conectados a Firebase Aut
   assert.match(html, /signInWithEmailAndPassword/);
   assert.match(html, /sendPasswordResetEmail/);
   assert.match(html, /createUserWithEmailAndPassword/);
+  assert.match(html, /let firebaseListoEmitido = false/);
+  assert.match(html, /if \(!firebaseListoEmitido\)/);
   assert.match(gestionSource, /authPropietario/);
   assert.match(gestionSource, /credencial\.user\.uid !== authConfig\.uid/);
+  assert.match(gestionSource, /function marcarAccesoFirebaseProtegido/);
+  assert.match(gestionSource, /global\.location\.reload\(\)/);
   assert.match(gestionSource, /function exigirDueno/);
   assert.match(leer('SEGURIDAD_FIREBASE.md'), /firebase deploy --only firestore:rules/);
 });

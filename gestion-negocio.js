@@ -4,6 +4,11 @@
     const core = global.SubliNegocioCore;
     if (!core) throw new Error('SubliNegocioCore debe cargarse antes de gestion-negocio.js.');
 
+    // Cuando las reglas ya están protegidas, un equipo nuevo no puede leer
+    // sistema/config antes de iniciar sesión. Este estado permite mostrar el
+    // acceso por correo sin exponer públicamente la configuración del negocio.
+    let accesoFirebaseProtegido = false;
+
     function esDuenoActual() {
         return Boolean(currentUserData && currentUserData.rol === 'dueno');
     }
@@ -130,8 +135,31 @@
     }
 
     function cuentaPropietarioAutorizada() {
+        if (accesoFirebaseProtegido) return false;
         const auth = core.normalizarConfiguracionNegocio(configuracionNegocio).authPropietario;
         return !auth.habilitado || Boolean(global.firebaseAuthUser && global.firebaseAuthUser.uid === auth.uid);
+    }
+
+    function confirmarAccesoFirebaseDisponible() {
+        accesoFirebaseProtegido = false;
+        actualizarPanelAccesoReal();
+    }
+
+    function marcarAccesoFirebaseProtegido() {
+        accesoFirebaseProtegido = true;
+        currentUserData = null;
+        const usuarioFirebase = global.firebaseAuthUser;
+        actualizarPanelAccesoReal();
+        if (usuarioFirebase) {
+            mensajeAuth('La cuenta abierta no tiene acceso a este negocio. Inicia con la cuenta del Dueño.', true);
+            if (global.firebaseAuth && global.firebaseSignOut) {
+                global.firebaseSignOut(global.firebaseAuth).catch(error => {
+                    console.warn('No se pudo cerrar la cuenta sin acceso.', error);
+                });
+            }
+        } else {
+            mensajeAuth('Esta información está protegida. Inicia con el correo y la contraseña del Dueño.');
+        }
     }
 
     function actualizarPanelAccesoReal() {
@@ -143,10 +171,11 @@
         if (!login || !app || !authPanel || !pinPanel) return;
         const configAuth = core.normalizarConfiguracionNegocio(configuracionNegocio).authPropietario;
         const autorizado = cuentaPropietarioAutorizada();
-        authPanel.style.display = configAuth.habilitado && !autorizado ? 'block' : 'none';
-        pinPanel.style.display = configAuth.habilitado && !autorizado ? 'none' : 'block';
-        if (cambiarCuenta) cambiarCuenta.style.display = configAuth.habilitado && autorizado ? 'inline-block' : 'none';
-        if (configAuth.habilitado && !autorizado) {
+        const requiereCuenta = accesoFirebaseProtegido || (configAuth.habilitado && !autorizado);
+        authPanel.style.display = requiereCuenta ? 'block' : 'none';
+        pinPanel.style.display = requiereCuenta ? 'none' : 'block';
+        if (cambiarCuenta) cambiarCuenta.style.display = !accesoFirebaseProtegido && configAuth.habilitado && autorizado ? 'inline-block' : 'none';
+        if (requiereCuenta) {
             currentUserData = null;
             app.style.display = 'none';
             login.style.display = 'flex';
@@ -170,7 +199,32 @@
         mensajeAuth('Verificando cuenta…');
         try {
             const credencial = await global.firebaseSignIn(global.firebaseAuth, email, password);
-            const authConfig = core.normalizarConfiguracionNegocio(configuracionNegocio).authPropietario;
+            let authConfig = core.normalizarConfiguracionNegocio(configuracionNegocio).authPropietario;
+            if (accesoFirebaseProtegido) {
+                let dataServidor;
+                try {
+                    const snap = await global.getDoc(global.doc(global.db, 'sistema', 'config'));
+                    if (!snap.exists()) throw new Error('No existe la configuración del negocio.');
+                    dataServidor = snap.data() || {};
+                } catch (errorServidor) {
+                    await global.firebaseSignOut(global.firebaseAuth);
+                    if (errorServidor?.code === 'permission-denied') {
+                        throw new Error('Este correo no corresponde a la cuenta propietaria de este negocio.');
+                    }
+                    throw new Error('No se pudo confirmar la cuenta con el servidor. Revisa Internet e inténtalo otra vez.');
+                }
+                authConfig = obtenerConfiguracionDocumento(dataServidor).authPropietario;
+                if (!authConfig.habilitado || !authConfig.uid || credencial.user.uid !== authConfig.uid) {
+                    await global.firebaseSignOut(global.firebaseAuth);
+                    throw new Error('Este correo no corresponde a la cuenta propietaria de este negocio.');
+                }
+                sincronizarEstadoNegocio(dataServidor);
+                confirmarAccesoFirebaseDisponible();
+                document.getElementById('auth-login-password').value = '';
+                mensajeAuth('Cuenta verificada. Cargando la información protegida…');
+                global.location.reload();
+                return;
+            }
             if (authConfig.habilitado && credencial.user.uid !== authConfig.uid) {
                 await global.firebaseSignOut(global.firebaseAuth);
                 throw new Error('Este correo no corresponde a la cuenta propietaria de este negocio.');
@@ -600,6 +654,8 @@
     global.aplicarConfiguracionNegocio = aplicarConfiguracionNegocio;
     global.guardarConfiguracionNegocio = guardarConfiguracionNegocio;
     global.cuentaPropietarioAutorizada = cuentaPropietarioAutorizada;
+    global.confirmarAccesoFirebaseDisponible = confirmarAccesoFirebaseDisponible;
+    global.marcarAccesoFirebaseProtegido = marcarAccesoFirebaseProtegido;
     global.actualizarPanelAccesoReal = actualizarPanelAccesoReal;
     global.iniciarSesionPropietario = iniciarSesionPropietario;
     global.recuperarContrasenaPropietario = recuperarContrasenaPropietario;

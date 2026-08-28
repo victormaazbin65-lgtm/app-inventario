@@ -69,7 +69,9 @@ El fondo configurable de producción/operación reserva producción, mano de obr
 
 ## Verificación realizada
 
-- 51 pruebas automáticas aprobadas.
+- 54 pruebas automáticas aprobadas.
+- Prueba específica del primer acceso desde un celular o computadora nuevos con Firestore protegido.
+- Prueba de rechazo de una cuenta ajena y reanudación de la sincronización con la cuenta propietaria.
 - 50,000 escenarios de cálculo financiero.
 - 20,000 escenarios de pagos a crédito, incluidos casos con pérdida.
 - 20,000 escenarios de retiros en centavos.

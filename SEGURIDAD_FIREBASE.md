@@ -13,6 +13,8 @@ La pantalla de correo y recuperación usa Firebase Authentication. La protecció
 
 5. Prueba en una ventana privada: primero debe pedir correo y contraseña, y después el PIN del Dueño o empleado.
 
+En un celular o computadora nuevos, las reglas no exponen `sistema/config` antes de autenticar. La aplicación reconoce el rechazo de Firestore, muestra el formulario de correo sin depender de esa lectura y vuelve a abrir la sincronización únicamente después de comprobar el UID propietario. Una cuenta distinta permanece sin acceso al PIN y a los datos.
+
 Antes de activar una cuenta, las reglas conservan el comportamiento anterior para permitir la migración. Después de activarla, todas las colecciones quedan limitadas al UID del Dueño. Los empleados pueden usar sus PIN mientras el dispositivo mantiene iniciada la cuenta Firebase del Dueño; sus permisos de pantalla siguen controlados por la aplicación.
 
 La primera activación del UID tampoco se acepta de forma anónima: la escritura debe venir de la misma cuenta Firebase que se está vinculando.
