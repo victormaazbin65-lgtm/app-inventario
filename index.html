@@ -70,9 +70,10 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 13px; font-weight: bold; color: var(--text-light); margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background-color: #374151; color: var(--text-dark); }
-        input:focus, select:focus { outline: none; border-color: var(--primary-blue); background-color: #4b5563;}
-        input::placeholder { color: #9ca3af; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font: inherit; font-size: 14px; box-sizing: border-box; background-color: #374151; color: var(--text-dark); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-blue); background-color: #4b5563;}
+        input::placeholder, textarea::placeholder { color: #9ca3af; }
+        textarea { resize: vertical; min-height: 82px; }
 
         button.btn-main { width: 100%; padding: 15px; background-color: var(--primary-blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s;}
         button.btn-main:hover { background-color: #2563eb; }
@@ -241,7 +242,7 @@
         .bg-dark { background: linear-gradient(135deg, #020617, #111827); }
         .dash-value { font-variant-numeric: tabular-nums; letter-spacing: -0.035em; }
         .dash-btn { border: 1px solid rgba(255,255,255,.12); border-radius: 9px; }
-        input, select, .autocomplete-input {
+        input, select, textarea, .autocomplete-input {
             min-height: 43px;
             padding: 11px 12px;
             border-radius: 11px;
@@ -249,7 +250,7 @@
             background: rgba(15, 23, 42, .86);
             transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
         }
-        input:focus, select:focus, .autocomplete-input:focus {
+        input:focus, select:focus, textarea:focus, .autocomplete-input:focus {
             border-color: var(--primary-blue);
             background: #111a2d;
             box-shadow: var(--focus-ring);
@@ -411,11 +412,17 @@
         .settings-actions button { flex: 1 1 180px; }
         .compact-note { color: var(--text-light); font-size: 11px; line-height: 1.45; margin-top: 5px; }
         .list-scroll { max-height: 420px; overflow-y: auto; padding-right: 4px; }
+        .client-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+        .client-option-btn { min-height: 58px; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(5,11,22,.48); color: var(--text-light); cursor: pointer; font-weight: 800; }
+        .client-option-btn:hover, .client-option-btn.active { border-color: rgba(96,165,250,.45); background: rgba(37,99,235,.20); color: var(--text-dark); }
+        .client-panel[hidden] { display: none !important; }
+        .quick-finance-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .danger-zone { border-color: rgba(251, 113, 133, .35); background: rgba(127, 29, 29, .12); }
         .auth-panel input { margin-bottom: 10px; }
         .auth-panel .btn-link { background: none; border: none; color: var(--primary-blue); cursor: pointer; padding: 8px; }
         @media (max-width: 680px) {
             .management-grid { grid-template-columns: 1fr; }
+            .client-options { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -509,7 +516,7 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 class="section-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">Panel de Finanzas</h3>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><label style="font-size:11px;color:var(--text-light);">Origen rápido</label><select id="retiro-origen-rapido" style="padding:7px;width:auto;"><option value="efectivo">Efectivo</option><option value="banco">Banco</option></select><button id="btn-retiro-inteligente" class="btn-sm" style="background: var(--primary-green); color: white; padding: 9px 12px;" onclick="abrirRetiroInteligente()">💵 Retiro inteligente</button></div>
+                    <div class="quick-finance-actions"><label style="font-size:11px;color:var(--text-light);">Origen rápido</label><select id="retiro-origen-rapido" style="padding:7px;width:auto;"><option value="efectivo">Efectivo</option><option value="banco">Banco</option></select><button class="btn-sm" style="background: var(--primary-blue); color: white; padding: 9px 12px;" onclick="cambiarPestaña('caja')">🏦 Caja</button><button id="btn-retiro-inteligente" class="btn-sm" style="background: var(--primary-green); color: white; padding: 9px 12px;" onclick="abrirRetiroInteligente()">💵 Retiro inteligente</button></div>
                 </div>
                 
                 <div class="dash-grid">
@@ -517,8 +524,8 @@
                     <div class="dash-card bg-dark"><p class="dash-title">Dinero disponible</p><p class="dash-value" id="dash-total-caja">Q 0.00</p><p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Efectivo + banco, sin contar crédito pendiente</p></div>
                     <div class="dash-card bg-green"><p class="dash-title">Efectivo</p><p class="dash-value" id="dash-efectivo">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('caja')">Ver movimientos / retirar</button></div>
                     <div class="dash-card bg-blue"><p class="dash-title">Banco</p><p class="dash-value" id="dash-banco">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('caja')">Ver transferencias / retirar</button></div>
-                    <div class="dash-card bg-orange"><p class="dash-title">Crédito por cobrar</p><p class="dash-value" id="dash-credito-pendiente">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes')">Ver cuentas</button></div>
-                    <div class="dash-card bg-purple"><p class="dash-title">Anticipos pendientes</p><p class="dash-value" id="dash-anticipos-pendientes">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes')">Ver anticipos</button></div>
+                    <div class="dash-card bg-orange"><p class="dash-title">Crédito por cobrar</p><p class="dash-value" id="dash-credito-pendiente">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes'); setTimeout(() => mostrarOpcionClientes('creditos'), 0)">Ver cuentas</button></div>
+                    <div class="dash-card bg-purple"><p class="dash-title">Anticipos pendientes</p><p class="dash-value" id="dash-anticipos-pendientes">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes'); setTimeout(() => mostrarOpcionClientes('anticipos'), 0)">Ver anticipos</button></div>
                     
                     <div class="dash-card bg-purple">
                         <p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p>
@@ -712,7 +719,13 @@
 
                 <div class="form-group" id="grupo-nombre-producto" style="display: none;">
                     <label>Nombre del Nuevo Producto</label>
-                    <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca 11oz">
+                    <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca" oninput="actualizarVistaMedidaIngreso()">
+                </div>
+
+                <div class="form-group" id="grupo-medida-producto" style="display: none;">
+                    <label>Medida o presentación (Opcional)</label>
+                    <input type="text" id="inv-medida-descripcion" maxlength="60" placeholder="Ej: 11 oz, 20 cm o talla M" oninput="actualizarVistaMedidaIngreso()">
+                    <p id="vista-medida-producto" class="compact-note">Solo se añadirá al nombre del producto; no cambiará la cantidad ni el costo.</p>
                 </div>
 
                 <div class="form-group" id="grupo-categoria-producto" style="display: none;">
@@ -727,28 +740,17 @@
                     <p class="item-details" style="font-size:11px; margin-top:3px;">Te avisará en color rojo cuando el inventario llegue a esta cantidad.</p>
                 </div>
                 
+                <select id="inv-unidad" style="display:none;" aria-hidden="true" tabindex="-1"></select>
                 <div class="grid-2">
                     <div class="form-group">
-                        <label>Cantidad comprada</label>
+                        <label>Cantidad que ingresará al inventario</label>
                         <input type="number" id="inv-stock" min="0" step="any" placeholder="0">
-                        <p class="compact-note">Ejemplo: 2 rollos, 3 cajas o 10 piezas.</p>
-                    </div>
-                    <div class="form-group" id="grupo-unidad-producto" style="display:none;">
-                        <label>Unidad en que controlarás el stock</label>
-                        <select id="inv-unidad" onchange="actualizarUnidadIngreso()"></select>
-                    </div>
-                    <div class="form-group" id="grupo-contenido-compra">
-                        <label>Contenido por compra</label>
-                        <input type="number" id="inv-contenido-compra" min="0.001" step="any" value="1" placeholder="1">
-                        <p id="ayuda-contenido-compra" class="compact-note">Si compras una caja con 12 piezas, escribe 12. El stock recibirá cantidad × contenido.</p>
+                        <p class="compact-note">Escribe la cantidad real que deseas sumar. No se harán multiplicaciones ni conversiones ocultas.</p>
                     </div>
                     <div class="form-group">
-                        <label>¿Cómo ingresarás el costo?</label>
-                        <select id="inv-tipo-costo" onchange="cambiarLabelCosto()" style="margin-bottom: 5px; padding: 6px; font-size: 12px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px;">
-                            <option value="unitario">Por unidad de stock (c/u)</option>
-                            <option value="total">Total del Grupo</option>
-                        </select>
-                        <input type="number" id="inv-costo" step="0.000001" min="0" placeholder="Q por pieza">
+                        <label>Costo por cada unidad ingresada</label>
+                        <input type="number" id="inv-costo" step="0.000001" min="0" placeholder="Q 0.00">
+                        <p class="compact-note">El transporte del lote se suma después de forma proporcional al costo real.</p>
                     </div>
                 </div>
 
@@ -822,7 +824,15 @@
 
         <div id="sec-ventas" style="display: none;">
             <div class="card">
-                <h3 class="section-title">1. Agregar al Carrito</h3>
+                <h3 class="section-title">1. Datos del Cliente</h3>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="venta-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('venta')"><input type="hidden" id="venta-cliente-id"></div>
+                    <div class="form-group"><label>NIT</label><input type="text" id="venta-nit" placeholder="C/F"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">2. Agregar al Carrito</h3>
                 <div class="form-group" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
                     <input type="text" id="buscador-venta-producto" autocomplete="off" placeholder="Ej. nombre o código 1001..." oninput="renderSelectVentas()" onclick="renderSelectVentas(true)" class="autocomplete-input">
@@ -855,14 +865,25 @@
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoVentas()">🗑️ Vaciar Todo</button>
                 </div>
                 <div id="lista-carrito-ventas"><p class="item-details" style="text-align:center;">Carrito vacío.</p></div>
-                
-                <h4 class="sub-title">2. Datos del Cliente</h4>
+
+                <h4 class="sub-title">3. Gastos y Facturación</h4>
                 <div class="grid-2">
-                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="venta-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('venta')"><input type="hidden" id="venta-cliente-id"></div>
-                    <div class="form-group"><label>NIT</label><input type="text" id="venta-nit" placeholder="C/F"></div>
+                    <div class="form-group"><label>Fondo de <span data-label-produccion>Luz y Tinta</span> (<span data-moneda>Q</span>)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()"></div>
+                    <div class="form-group"><label><span data-label-mano-obra>Mano de obra / creación</span> (<span data-moneda>Q</span>)</label><input type="number" id="venta-mano-obra" step="0.01" min="0" placeholder="Opcional" oninput="renderCarritoVentas()"></div>
+                    <div class="form-group">
+                        <label>Pago a Mensajero/Envío (<span data-moneda>Q</span>)</label>
+                        <input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()">
+                        <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
+                        <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;" onchange="renderCarritoVentas()">
+                        El cliente pide Factura (Separar <span data-porcentaje-sat>5</span>% para SAT del total)
+                    </label>
                 </div>
 
-                <h4 class="sub-title">3. Forma de cobro</h4>
+                <h4 class="sub-title">4. Forma de cobro</h4>
                 <div class="grid-2">
                     <div class="form-group">
                         <label>Tipo de venta</label>
@@ -889,23 +910,6 @@
                         <p id="venta-anticipo-disponible" class="compact-note">Selecciona un cliente guardado para usar anticipos.</p>
                     </div>
                 </div>
-
-                <h4 class="sub-title">4. Gastos y Facturación</h4>
-                <div class="grid-2">
-                    <div class="form-group"><label>Fondo de <span data-label-produccion>Luz y Tinta</span> (<span data-moneda>Q</span>)</label><input type="number" id="venta-tinta" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()"></div>
-                    <div class="form-group"><label><span data-label-mano-obra>Mano de obra / creación</span> (<span data-moneda>Q</span>)</label><input type="number" id="venta-mano-obra" step="0.01" min="0" placeholder="Opcional" oninput="renderCarritoVentas()"></div>
-                    <div class="form-group">
-                        <label>Pago a Mensajero/Envío (<span data-moneda>Q</span>)</label>
-                        <input type="number" id="venta-envio" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoVentas()">
-                        <p class="item-details" style="font-size:11px; margin-top:3px; color: var(--primary-orange);">*⚠️ Déjalo en 0 si el cliente lo pagó aparte. Solo llénalo si el gasto salió de tu bolsillo.</p>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-top: 10px; background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary-blue); margin: 0; font-weight: bold;">
-                        <input type="checkbox" id="venta-factura" style="width: 20px; height: 20px;" onchange="renderCarritoVentas()">
-                        El cliente pide Factura (Separar <span data-porcentaje-sat>5</span>% para SAT del total)
-                    </label>
-                </div>
                 <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div>
@@ -927,7 +931,15 @@
 
         <div id="sec-cotizacion" style="display: none;">
             <div class="card">
-                <h3 class="section-title">1. Armar Cotización</h3>
+                <h3 class="section-title">1. Datos del Cliente (Opcional)</h3>
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('cotiza')"><input type="hidden" id="cotiza-cliente-id"></div>
+                    <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">2. Agregar al Carrito</h3>
                 <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es para cálculos. No descuenta tu inventario a menos que confirmes la venta.</p>
                 
                 <div class="form-group" style="position: relative; z-index: 10;">
@@ -958,13 +970,6 @@
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
                 </div>
                 <div id="lista-carrito-cotizacion"><p class="item-details" style="text-align:center;">Cotización vacía.</p></div>
-                
-                <h4 class="sub-title">2. Datos del Cliente (Opcional)</h4>
-                <div class="grid-2">
-                    <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('cotiza')"><input type="hidden" id="cotiza-cliente-id"></div>
-                    <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
-                </div>
-
                 <h4 class="sub-title">3. Gastos de Producción / Envío</h4>
                 <div class="grid-2">
                     <div class="form-group"><label>Fondo de <span data-label-produccion>Luz y Tinta</span> (<span data-moneda>Q</span>)</label><input type="number" id="cotiza-tinta" step="0.01" min="0" placeholder="0.00" oninput="renderCarritoCotizacion()"></div>
@@ -980,10 +985,26 @@
                         Incluir Factura (Aplica <span data-porcentaje-sat>5</span>% de retención para la SAT)
                     </label>
                 </div>
+
+                <h4 class="sub-title">4. Forma de cobro / anticipo acordado</h4>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Anticipo acordado (Opcional)</label>
+                        <input type="number" id="cotiza-anticipo" min="0" step="0.01" value="0">
+                        <p class="compact-note">Solo quedará anotado en la cotización. No sumará dinero, no creará un anticipo real y no cambiará la caja.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Forma acordada para el anticipo</label>
+                        <select id="cotiza-metodo-anticipo">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="cart-total" id="cotiza-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
-                
+
                 <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap;">
-                    <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Resumen Info.</button>
+                    <button class="btn-main" style="background-color: var(--primary-purple); flex: 1; margin-top: 0; font-size: 13px;" onclick="procesarCotizacion()">🖩 Generar cotización</button>
                     <button class="btn-main" style="background-color: var(--primary-blue); flex: 1; margin-top: 0; font-size: 13px;" onclick="generarImagenCotizacionActual()">🖼️ Generar Imagen</button>
                     <button class="btn-main btn-green" style="flex: 1; margin-top: 0; font-size: 13px;" onclick="convertirCotizacionAVenta()">✅ Confirmar como Venta</button>
                 </div>
@@ -1007,6 +1028,17 @@
         <div id="sec-clientes" style="display: none;">
             <div class="card">
                 <h3 class="section-title">👥 Clientes</h3>
+                <p class="settings-note">Elige una opción. Los formularios y listados permanecen cerrados hasta que los necesites.</p>
+                <div class="client-options" role="navigation" aria-label="Opciones de clientes">
+                    <button id="cliente-opcion-formulario" class="client-option-btn" onclick="mostrarOpcionClientes('formulario')">➕ Guardar cliente</button>
+                    <button id="cliente-opcion-directorio" class="client-option-btn" onclick="mostrarOpcionClientes('directorio')">📒 Directorio</button>
+                    <button id="cliente-opcion-creditos" class="client-option-btn" onclick="mostrarOpcionClientes('creditos')">💳 Cuentas por cobrar</button>
+                    <button id="cliente-opcion-anticipos" class="client-option-btn" onclick="mostrarOpcionClientes('anticipos')">🧾 Anticipos de clientes</button>
+                </div>
+            </div>
+
+            <div id="cliente-panel-formulario" class="card client-panel" hidden>
+                <h3 class="section-title">➕ Guardar cliente</h3>
                 <p class="settings-note">Guarda una sola ficha por cliente para ventas, cotizaciones, crédito y anticipos.</p>
                 <input type="hidden" id="cliente-id">
                 <div class="grid-2">
@@ -1024,22 +1056,22 @@
                 </div>
             </div>
 
-            <div class="management-grid">
-                <div class="card">
-                    <h3 class="section-title">Directorio</h3>
-                    <div class="form-group"><input id="buscar-cliente" type="search" placeholder="Buscar nombre, teléfono o NIT" oninput="renderGestionClientes()"></div>
-                    <div id="lista-clientes-gestion" class="list-scroll"><p class="item-details">No hay clientes guardados.</p></div>
-                </div>
-                <div class="card">
-                    <h3 class="section-title">💳 Cuentas por cobrar</h3>
-                    <p class="compact-note">El inventario ya salió; los fondos y la ubicación del dinero aumentan únicamente al registrar cada abono.</p>
-                    <div id="lista-creditos" class="list-scroll"><p class="item-details">No hay créditos pendientes.</p></div>
-                </div>
+            <div id="cliente-panel-directorio" class="card client-panel" hidden>
+                <h3 class="section-title">📒 Directorio alfabético</h3>
+                <p class="compact-note">Los clientes aparecen ordenados de la A a la Z.</p>
+                <div class="form-group"><input id="buscar-cliente" type="search" placeholder="Buscar nombre, teléfono, NIT o dirección" oninput="renderGestionClientes()"></div>
+                <div id="lista-clientes-gestion" class="list-scroll"><p class="item-details">No hay clientes guardados.</p></div>
             </div>
 
-            <div class="card">
+            <div id="cliente-panel-creditos" class="card client-panel" hidden>
+                <h3 class="section-title">💳 Cuentas por cobrar</h3>
+                <p class="compact-note">El inventario ya salió; los fondos y la ubicación del dinero aumentan únicamente al registrar cada abono.</p>
+                <div id="lista-creditos" class="list-scroll"><p class="item-details">No hay créditos pendientes.</p></div>
+            </div>
+
+            <div id="cliente-panel-anticipos" class="card client-panel" hidden>
                 <h3 class="section-title">🧾 Anticipos de clientes</h3>
-                <p class="settings-note">El anticipo aumenta efectivo o banco, pero queda separado como dinero pendiente de aplicar a una venta o de devolver.</p>
+                <p class="settings-note">El anticipo real aumenta efectivo o banco y queda separado como dinero pendiente de aplicar o devolver. El historial se muestra en orden alfabético por cliente.</p>
                 <div class="grid-2">
                     <div class="form-group"><label>Cliente</label><select id="anticipo-cliente"></select></div>
                     <div class="form-group"><label>Monto</label><input id="anticipo-monto" type="number" min="0.01" step="0.01"></div>
@@ -3053,20 +3085,21 @@
             const esNuevo = val === 'nuevo';
             document.getElementById('grupo-buscador-ingreso').style.display = esNuevo ? 'none' : 'block';
             document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
+            document.getElementById('grupo-medida-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-categoria-producto').style.display = esNuevo ? 'block' : 'none';
-            document.getElementById('grupo-unidad-producto').style.display = esNuevo ? 'block' : 'none';
             
             document.getElementById('buscador-ingreso-producto').value = '';
             document.getElementById('ingreso-producto-id').value = '';
             document.getElementById('inv-nombre').value = '';
+            document.getElementById('inv-medida-descripcion').value = '';
             
             if(document.getElementById('inv-categoria')) document.getElementById('inv-categoria').value = 'OTROS';
             if(document.getElementById('inv-categoria-nueva')) {
                 document.getElementById('inv-categoria-nueva').style.display = 'none';
                 document.getElementById('inv-categoria-nueva').value = '';
             }
-            document.getElementById('inv-contenido-compra').value = '1';
+            actualizarVistaMedidaIngreso();
             actualizarUnidadIngreso();
         }
 
@@ -3104,28 +3137,40 @@
             else debouncedEjecucion('ingreso', execute, 250);
         }
 
+        function descripcionProductoConMedida(nombre, medida) {
+            const descripcion = String(nombre || '').trim().replace(/\s+/g, ' ').toUpperCase();
+            const medidaLimpia = String(medida || '').trim().replace(/\s+/g, ' ').toUpperCase();
+            if(!descripcion || !medidaLimpia) return descripcion;
+            if(descripcion === medidaLimpia || descripcion.endsWith(` ${medidaLimpia}`)) return descripcion;
+            return `${descripcion} ${medidaLimpia}`;
+        }
+
+        function actualizarVistaMedidaIngreso() {
+            const vista = document.getElementById('vista-medida-producto');
+            if(!vista) return;
+            const nombreFinal = descripcionProductoConMedida(document.getElementById('inv-nombre')?.value, document.getElementById('inv-medida-descripcion')?.value);
+            vista.textContent = nombreFinal ? `Descripción final: ${nombreFinal}. La medida no cambia cantidades ni costos.` : 'Solo se añadirá al nombre del producto; no cambiará la cantidad ni el costo.';
+        }
+
         function cambiarLabelCosto() {
-            const tipo = document.getElementById('inv-tipo-costo').value;
             const inputCosto = document.getElementById('inv-costo');
             const modo = document.getElementById('inv-modo')?.value || 'existente';
             const prod = inventario.find(p => String(p.id) === String(document.getElementById('ingreso-producto-id')?.value || ''));
-            const unidad = SubliNegocioCore.obtenerUnidad(modo === 'nuevo' ? document.getElementById('inv-unidad')?.value : (prod?.unidadId || 'pieza'), configuracionNegocio);
-            inputCosto.placeholder = tipo === 'unitario' ? `Q por ${unidad.abreviatura}` : "Q costo total del lote";
+            const unidad = SubliNegocioCore.obtenerUnidad(modo === 'nuevo' ? 'pieza' : (prod?.unidadId || 'pieza'), configuracionNegocio);
+            inputCosto.placeholder = `Q por ${unidad.abreviatura}`;
         }
 
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
-            const cantidadComprada = Number(document.getElementById('inv-stock').value);
-            const contenidoPorCompra = Number(document.getElementById('inv-contenido-compra').value);
+            const cantidadIngresada = Number(document.getElementById('inv-stock').value);
             const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO';
             const nit = document.getElementById('inv-nit').value.trim() || '';
             const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; 
-            const tipoCosto = document.getElementById('inv-tipo-costo').value;
             const costoIngresado = Number(document.getElementById('inv-costo').value || 0);
             let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null; let productoExistente = null;
 
             if (modo === 'nuevo') {
-                nombreProd = document.getElementById('inv-nombre').value.trim().toUpperCase(); 
+                nombreProd = descripcionProductoConMedida(document.getElementById('inv-nombre').value, document.getElementById('inv-medida-descripcion').value);
                 
                 minStock = Number(document.getElementById('inv-min').value || 0);
                 let catElegida = document.getElementById('inv-categoria').value;
@@ -3144,11 +3189,11 @@
                 selectId = idExistente;
             }
 
-            const unidadId = modo === 'nuevo' ? (document.getElementById('inv-unidad').value || 'pieza') : (productoExistente?.unidadId || 'pieza');
+            const unidadId = modo === 'nuevo' ? 'pieza' : (productoExistente?.unidadId || 'pieza');
             const unidad = SubliNegocioCore.obtenerUnidad(unidadId, configuracionNegocio);
             let conversion;
             try {
-                conversion = SubliNegocioCore.calcularIngresoConvertido(cantidadComprada, contenidoPorCompra, costoIngresado, tipoCosto, unidad);
+                conversion = SubliNegocioCore.calcularIngresoSimple(cantidadIngresada, costoIngresado, unidad);
                 minStock = SubliNegocioCore.normalizarCantidad(minStock, unidad);
             } catch(error) {
                 alert('⚠️ ' + error.message);
@@ -3171,12 +3216,12 @@
                 return;
             }
             
-            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, stock, cantidadComprada, contenidoPorCompra, min: minStock, costoBase, costoIngresado, tipoCosto, proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
+            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, stock, cantidadComprada: stock, contenidoPorCompra: 1, min: minStock, costoBase, costoIngresado, tipoCosto: 'unitario', proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
             
-            document.getElementById('inv-stock').value = ''; document.getElementById('inv-costo').value = ''; document.getElementById('inv-nombre').value = ''; document.getElementById('buscador-ingreso-producto').value = ''; document.getElementById('ingreso-producto-id').value = '';
+            document.getElementById('inv-stock').value = ''; document.getElementById('inv-costo').value = ''; document.getElementById('inv-nombre').value = ''; document.getElementById('inv-medida-descripcion').value = ''; document.getElementById('buscador-ingreso-producto').value = ''; document.getElementById('ingreso-producto-id').value = '';
             if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
-            document.getElementById('inv-contenido-compra').value = '1';
             document.getElementById('inv-categoria').value = 'OTROS'; document.getElementById('inv-categoria-nueva').style.display = 'none'; document.getElementById('inv-categoria-nueva').value = '';
+            actualizarVistaMedidaIngreso();
             
             renderCarritoIngresos();
         }
@@ -3195,7 +3240,7 @@
                 costoTotalPreview += (item.stock * item.costoBase);
                 let provText = item.proveedor !== 'NO ESPECIFICADO' ? ` | Prov: ${item.proveedor}` : '';
                 let facText = item.factura ? ` | Fac: ${item.factura}` : '';
-                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">+${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} (${numeroFinito(item.cantidadComprada)} × ${numeroFinito(item.contenidoPorCompra)}) | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(provText)}${escaparHTML(facText)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
+                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">Cantidad a ingresar: ${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(provText)}${escaparHTML(facText)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
             });
             html += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">Líneas a ingresar: <b>${carritoIngresos.length}</b><br>Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b></div>`;
             contenedor.innerHTML = html;
@@ -4789,10 +4834,14 @@
                 const manoObraTexto = document.getElementById('cotiza-mano-obra').value.trim();
                 const costoManoObra = manoObraTexto === '' ? 0 : Number(manoObraTexto);
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F'; 
+                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F';
                 const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
+                const anticipoTexto = document.getElementById('cotiza-anticipo').value.trim();
+                const anticipoCotizado = anticipoTexto === '' ? 0 : redondear(Number(anticipoTexto));
+                const metodoAnticipoCotizado = document.getElementById('cotiza-metodo-anticipo').value === 'transferencia' ? 'transferencia' : 'efectivo';
 
                 if (!Number.isFinite(costoTinta) || !Number.isFinite(costoEnvio) || !Number.isFinite(costoManoObra) || costoTinta < 0 || costoEnvio < 0 || costoManoObra < 0) { alert("⚠️ Los gastos de producción, trabajo y envío deben ser números válidos y no negativos."); return; }
+                if (!Number.isFinite(anticipoCotizado) || anticipoCotizado < 0) { alert("⚠️ El anticipo acordado debe ser un número válido no negativo."); return; }
                 for(const item of carritoCotizacion) {
                     if(!Number.isFinite(Number(item.qty)) || numeroFinito(item.qty) <= 0 || !Number.isFinite(Number(item.precioCobrado)) || numeroFinito(item.precioCobrado) < 0 || !Number.isFinite(Number(item.costoBase)) || numeroFinito(item.costoBase) < 0) {
                         alert(`⚠️ Revisa cantidad, precio y costo de "${item.nombre}".`);
@@ -4809,6 +4858,7 @@
 
                 const desglose = calcularDesgloseFinanciero(carritoCotizacion, costoTinta, costoEnvio, pideFactura, costoManoObra, configuracionNegocio);
                 const { ingresoTotal, costosProductos, impuestoSAT, totalGastos, gananciaNeta } = desglose;
+                if(aCentavos(anticipoCotizado) > aCentavos(ingresoTotal)) { alert("⚠️ El anticipo acordado no puede ser mayor que el total cotizado."); return; }
 
                 resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
                 resumen += `--------------------------------------\n`;
@@ -4819,13 +4869,14 @@
                 if(pideFactura) resumen += `🏛️ Impuesto SAT (${desglose.porcentajeSAT}%): Q ${impuestoSAT.toFixed(2)}\n`;
                 resumen += `📉 GASTOS TOTALES: Q ${totalGastos.toFixed(2)}\n`;
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
+                if(anticipoCotizado > 0) resumen += `🤝 ANTICIPO ACORDADO: Q ${anticipoCotizado.toFixed(2)} EN ${metodoAnticipoCotizado.toUpperCase()}\n(No se ha sumado a caja ni registrado como recibido.)\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-                const nuevaCotiz = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), detalleItems: copiarDatos(carritoCotizacion), costoTinta: costoTinta, costoEnvio: costoEnvio, costoManoObra: costoManoObra, impuestoSAT: impuestoSAT, porcentajeSAT: desglose.porcentajeSAT, tasaSAT: desglose.tasaSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, totalGastos: totalGastos, gananciaNeta: gananciaNeta, clienteId: document.getElementById('cotiza-cliente-id').value || null, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false, versionCalculo: 3 };
+                const nuevaCotiz = { id: generarIDSeguro(), timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), detalleItems: copiarDatos(carritoCotizacion), costoTinta: costoTinta, costoEnvio: costoEnvio, costoManoObra: costoManoObra, impuestoSAT: impuestoSAT, porcentajeSAT: desglose.porcentajeSAT, tasaSAT: desglose.tasaSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, totalGastos: totalGastos, gananciaNeta: gananciaNeta, anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false, clienteId: document.getElementById('cotiza-cliente-id').value || null, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false, versionCalculo: 4 };
                 await window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
                 historialCotizaciones = fusionarPorId(historialCotizaciones, [nuevaCotiz]);
 
-                carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-mano-obra').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-cliente-id').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false;
+                carritoCotizacion = []; document.getElementById('cotiza-tinta').value = ''; document.getElementById('cotiza-mano-obra').value = ''; document.getElementById('cotiza-envio').value = ''; document.getElementById('cotiza-nombre').value = ''; document.getElementById('cotiza-cliente-id').value = ''; document.getElementById('cotiza-nit').value = ''; document.getElementById('cotiza-factura').checked = false; document.getElementById('cotiza-anticipo').value = '0'; document.getElementById('cotiza-metodo-anticipo').value = 'efectivo';
                 renderCarritoCotizacion(); guardarDatos(); renderHistorialCotizaciones(); actualizarUI();
                 alert(resumen);
             } catch (error) {
@@ -4851,6 +4902,8 @@
 
             let clienteNombre = document.getElementById('cotiza-nombre').value.trim(); let clienteNit = document.getElementById('cotiza-nit').value.trim();
             if(clienteNit === '') clienteNit = 'C/F';
+            const anticipoCotizado = Math.max(0, numeroFinito(document.getElementById('cotiza-anticipo').value));
+            const metodoAnticipoCotizado = document.getElementById('cotiza-metodo-anticipo').value === 'transferencia' ? 'TRANSFERENCIA' : 'EFECTIVO';
 
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
             ctx.font = '18px Arial'; let alturaExtra = 0;
@@ -4861,7 +4914,7 @@
                 alturaExtra += (lineas * 22) + 20; 
             });
 
-            const widthBase = 600; const heightBase = 350 + alturaExtra; const scale = 2;
+            const widthBase = 600; const heightBase = 350 + alturaExtra + (anticipoCotizado > 0 ? 45 : 0); const scale = 2;
             canvas.width = widthBase * scale; canvas.height = heightBase * scale;
             ctx.scale(scale, scale); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, widthBase, heightBase);
 
@@ -4869,13 +4922,13 @@
             img.onload = function() {
                 let maxWidth = 100; let maxHeight = 100; let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
                 let newWidth = img.width * ratio; let newHeight = img.height * ratio; let offsetY = 20 + (maxHeight - newHeight) / 2;
-                ctx.drawImage(img, 30, offsetY, newWidth, newHeight); dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit);
+                ctx.drawImage(img, 30, offsetY, newWidth, newHeight); dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit, anticipoCotizado, metodoAnticipoCotizado);
             };
-            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); };
-            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit); }
+            img.onerror = function() { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit, anticipoCotizado, metodoAnticipoCotizado); };
+            if(logoSrc) { img.src = logoSrc; } else { dibujarContenidoImagen(ctx, principales, canvas, clienteNombre, clienteNit, anticipoCotizado, metodoAnticipoCotizado); }
         }
 
-        function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit) {
+        function dibujarContenidoImagen(ctx, principales, canvas, nombre, nit, anticipoCotizado = 0, metodoAnticipoCotizado = 'EFECTIVO') {
             ctx.fillStyle = '#1f2937'; ctx.font = 'bold 26px Arial'; ctx.fillText(`COTIZACIÓN - ${configuracionNegocio.nombreNegocio.toUpperCase()}`, 150, 50);
             ctx.font = '16px Arial'; ctx.fillStyle = '#6b7280'; ctx.fillText('Fecha: ' + new Date().toLocaleDateString('es-GT'), 150, 75);
             ctx.fillStyle = '#374151'; let offsetX = 150; let offsetY = 100;
@@ -4901,6 +4954,10 @@
 
             ctx.beginPath(); ctx.moveTo(30, y - 10); ctx.lineTo(570, y - 10); ctx.stroke();
             y += 30; ctx.font = 'bold 22px Arial'; ctx.fillStyle = '#2563eb'; ctx.fillText('TOTAL:', 380, y); ctx.fillText('Q ' + total.toFixed(2), 480, y);
+            if(anticipoCotizado > 0) {
+                y += 32; ctx.font = 'bold 14px Arial'; ctx.fillStyle = '#059669';
+                ctx.fillText(`ANTICIPO ACORDADO: Q ${anticipoCotizado.toFixed(2)} · ${metodoAnticipoCotizado}`, 120, y);
+            }
 
             const nombreArchivo = configuracionNegocio.nombreNegocio.replace(/[^a-z0-9]+/gi, '_');
             const link = document.createElement('a'); link.download = `Cotizacion_${nombreArchivo}_${Date.now()}.png`; link.href = canvas.toDataURL('image/png'); link.click();
@@ -4924,6 +4981,8 @@
             data.forEach(cot => {
                 if(cot.eliminada) return; hayVisibles = true;
                 const resumen = cot.detalleItems.map(i => `${i.qty}x ${i.nombre}`).join(', '); const textFactura = cot.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(Con Factura)</span>` : '';
+                const anticipoCotizado = Math.max(0, numeroFinito(cot.anticipoCotizado));
+                const textoAnticipo = anticipoCotizado > 0 ? `<span style="display:block; font-size:11px; margin-top:3px; color:var(--primary-green);">🤝 Anticipo acordado: Q${anticipoCotizado.toFixed(2)} · ${escaparHTML(cot.metodoAnticipoCotizado === 'transferencia' ? 'Transferencia' : 'Efectivo')} · pendiente de registrar</span>` : '';
                 const cotizacionIdCodificado = codificarParametroHTML(cot.id);
                 html += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
@@ -4931,7 +4990,7 @@
                         <button onclick="borrarHistorialCotizacion(decodeURIComponent('${cotizacionIdCodificado}'))" class="btn-sm btn-delete">Eliminar</button>
                     </div>
                     <div class="item-details" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-                        <div><span style="display: block; margin-bottom: 4px;">📅 ${escaparHTML(cot.fecha)}</span><span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${numeroFinito(cot.ingresoTotal).toFixed(2)}</span>${cot.clienteNombre ? `<span style="display:block; font-size:11px; margin-top:3px;">👤 ${escaparHTML(cot.clienteNombre)}</span>` : ''}</div>
+                        <div><span style="display: block; margin-bottom: 4px;">📅 ${escaparHTML(cot.fecha)}</span><span style="color: var(--text-dark); font-weight: bold;">💰 Total Cobro: Q${numeroFinito(cot.ingresoTotal).toFixed(2)}</span>${cot.clienteNombre ? `<span style="display:block; font-size:11px; margin-top:3px;">👤 ${escaparHTML(cot.clienteNombre)}</span>` : ''}${textoAnticipo}</div>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;"><button onclick="editarCotizacionPasada(decodeURIComponent('${cotizacionIdCodificado}'))" class="btn-sm btn-edit" style="padding: 10px 15px; font-size: 13px;">✏️ Editar</button><button onclick="venderCotizacionPasada(decodeURIComponent('${cotizacionIdCodificado}'))" class="btn-sm btn-sell" style="padding: 10px 15px; font-size: 13px;">🛒 Vender Directo</button></div>
                     </div></div>`;
             });
@@ -4953,8 +5012,10 @@
             document.getElementById('cotiza-envio').value = cot.costoEnvio > 0 ? cot.costoEnvio : '';
             document.getElementById('cotiza-nombre').value = cot.clienteNombre || '';
             document.getElementById('cotiza-cliente-id').value = cot.clienteId || '';
-            document.getElementById('cotiza-nit').value = cot.clienteNit || ''; 
+            document.getElementById('cotiza-nit').value = cot.clienteNit || '';
             document.getElementById('cotiza-factura').checked = cot.factura || false;
+            document.getElementById('cotiza-anticipo').value = numeroFinito(cot.anticipoCotizado) > 0 ? numeroFinito(cot.anticipoCotizado) : '0';
+            document.getElementById('cotiza-metodo-anticipo').value = cot.metodoAnticipoCotizado === 'transferencia' ? 'transferencia' : 'efectivo';
             
             renderCarritoCotizacion(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -4992,8 +5053,12 @@
             document.getElementById('venta-cliente-id').value = cotizacion.clienteId || '';
             document.getElementById('venta-nit').value = cotizacion.clienteNit || 'C/F';
             document.getElementById('venta-factura').checked = Boolean(cotizacion.factura);
-            document.getElementById('venta-tipo-cobro').value = 'contado';
-            document.getElementById('venta-pago-inicial').value = '0';
+            const anticipoCotizado = Math.max(0, numeroFinito(cotizacion.anticipoCotizado));
+            const totalCotizado = Math.max(0, numeroFinito(cotizacion.ingresoTotal, carritoVentas.reduce((total, item) => total + numeroFinito(item.qty) * numeroFinito(item.precioCobrado), 0)));
+            const esPagoParcialAcordado = anticipoCotizado > 0 && aCentavos(anticipoCotizado) < aCentavos(totalCotizado);
+            document.getElementById('venta-tipo-cobro').value = esPagoParcialAcordado ? 'credito' : 'contado';
+            document.getElementById('venta-metodo-pago').value = cotizacion.metodoAnticipoCotizado === 'transferencia' ? 'transferencia' : 'efectivo';
+            document.getElementById('venta-pago-inicial').value = esPagoParcialAcordado ? String(anticipoCotizado) : '0';
             document.getElementById('venta-aplicar-anticipo').value = '0';
             actualizarCamposCobroVenta(); renderCarritoVentas(); cambiarPestaña('ventas');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5017,11 +5082,15 @@
                 costoManoObra: leerMonto('cotiza-mano-obra'),
                 costoEnvio: leerMonto('cotiza-envio'),
                 factura: document.getElementById('cotiza-factura').checked,
+                anticipoCotizado: leerMonto('cotiza-anticipo'),
+                metodoAnticipoCotizado: document.getElementById('cotiza-metodo-anticipo').value,
                 clienteId: document.getElementById('cotiza-cliente-id').value || null,
                 clienteNombre: document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F',
                 clienteNit: document.getElementById('cotiza-nit').value.trim() || 'C/F'
             };
-            if([datosVenta.costoTinta, datosVenta.costoManoObra, datosVenta.costoEnvio].some(valor => !Number.isFinite(valor) || valor < 0)) return alert('⚠️ Revisa los gastos de la cotización.');
+            if([datosVenta.costoTinta, datosVenta.costoManoObra, datosVenta.costoEnvio, datosVenta.anticipoCotizado].some(valor => !Number.isFinite(valor) || valor < 0)) return alert('⚠️ Revisa los gastos y el anticipo acordado de la cotización.');
+            const totalCotizado = carritoCotizacion.reduce((total, item) => total + numeroFinito(item.qty) * numeroFinito(item.precioCobrado), 0);
+            if(aCentavos(datosVenta.anticipoCotizado) > aCentavos(totalCotizado)) return alert('⚠️ El anticipo acordado no puede ser mayor que el total cotizado.');
             if(!confirm('La cotización se cargará en Ventas. Podrás elegir forma de pago, crédito o anticipo antes de confirmarla.')) return;
             cargarCotizacionEnFormularioVenta(datosVenta, null);
         }
@@ -5536,7 +5605,6 @@
 
             agregarHoja('Ingresos', historialIngresos.filter(i => !i.anulada).flatMap(i => (i.items || []).map(item => ({
                 'Fecha y hora': i.fecha || '', 'ID ingreso': String(i.id || ''), 'Código': item.codigoInventario || '', 'Producto': item.nombre || '',
-                'Cantidad comprada': numeroFinito(item.cantidadComprada, item.stock), 'Contenido por compra': numeroFinito(item.contenidoPorCompra, 1),
                 'Cantidad ingresada': numeroFinito(item.stock), 'Unidad': item.unidadNombre || item.unidadId || 'Pieza', 'Abreviatura': item.unidadAbreviatura || 'pza',
                 [`Costo unitario final (${moneda})`]: numeroFinito(item.costoIngresado), [`Transporte asignado (${moneda})`]: redondear(item.transporteAsignado),
                 'Proveedor': item.proveedor || '', 'NIT proveedor': item.nit || '', 'Factura': item.factura || ''
@@ -5545,6 +5613,7 @@
             agregarHoja('Cotizaciones', historialCotizaciones.filter(c => !c.eliminada && !c.anulada).map(c => ({
                 'Fecha y hora': c.fecha || '', 'ID cotización': String(c.id || ''), 'Cliente': c.clienteNombre || 'C/F', 'NIT': c.clienteNit || 'C/F',
                 'Detalle': c.resumenItems || (c.detalleItems || []).map(i => `${i.qty}x ${i.nombre}`).join(' + '), [`Total cotizado (${moneda})`]: redondear(c.ingresoTotal),
+                [`Anticipo acordado, no recibido (${moneda})`]: redondear(c.anticipoCotizado), 'Forma de anticipo acordada': c.metodoAnticipoCotizado || '',
                 [`Costo total (${moneda})`]: redondear(c.totalGastos), [`${nombreManoObra} (${moneda})`]: redondear(c.costoManoObra),
                 'SAT %': c.factura ? numeroFinito(c.porcentajeSAT, 5) : 0, [`Ganancia estimada (${moneda})`]: redondear(c.gananciaNeta ?? c.ganancia)
             })));
@@ -5797,7 +5866,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.0";
+        const APP_VERSION = "1.2.1";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);

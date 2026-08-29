@@ -584,7 +584,10 @@
 
     function renderAnticipos() {
         const cont = document.getElementById('lista-anticipos'); if (!cont) return;
-        const lista = anticipos.filter(a => !a.anulado && Number(a.saldoPendiente) > 0).sort((a, b) => Number(b.timestamp) - Number(a.timestamp));
+        const lista = anticipos.filter(a => !a.anulado && Number(a.saldoPendiente) > 0).sort((a, b) => {
+            const porNombre = String(a.clienteNombre || '').localeCompare(String(b.clienteNombre || ''), 'es', { sensitivity: 'base' });
+            return porNombre || (Number(b.timestamp) - Number(a.timestamp));
+        });
         if (!lista.length) return void (cont.innerHTML = '<p class="item-details">No hay anticipos pendientes.</p>');
         cont.innerHTML = lista.map(a => `<div class="item-row"><div class="item-info"><p class="item-title">${escaparHTML(a.clienteNombre || 'CLIENTE')}</p><p class="item-details">${escaparHTML(a.fecha || '')} · ${escaparHTML(a.motivo || '')}<br>Original: ${dineroNegocio(a.montoOriginal)}</p></div><div style="text-align:right;"><strong>${dineroNegocio(a.saldoPendiente)}</strong><br><button class="btn-sm btn-delete" onclick="devolverAnticipo('${codificarParametroHTML(a.id)}')">Devolver</button></div></div>`).join('');
     }

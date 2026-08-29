@@ -168,6 +168,14 @@
         return { cantidadBase, costoBase: Math.round(costoBase * 1000000) / 1000000 };
     }
 
+    function calcularIngresoSimple(cantidadIngresada, costoUnitario, unidad) {
+        const cantidadBase = normalizarCantidad(cantidadIngresada, unidad);
+        const costoBase = Number(costoUnitario);
+        if (cantidadBase <= 0) throw new Error('La cantidad que ingresarás debe ser mayor que cero.');
+        if (!Number.isFinite(costoBase) || costoBase < 0) throw new Error('El costo por unidad debe ser un número válido no negativo.');
+        return { cantidadBase, costoBase: Math.round(costoBase * 1000000) / 1000000 };
+    }
+
     function calcularDesgloseFinanciero(detalleItems, costoProduccion, costoEnvio, pideFactura, configuracion, costoManoObra = 0) {
         const items = Array.isArray(detalleItems) ? detalleItems : [];
         const produccion = Number(costoProduccion);
@@ -394,6 +402,7 @@
         obtenerUnidad,
         normalizarCantidad,
         calcularIngresoConvertido,
+        calcularIngresoSimple,
         calcularDesgloseFinanciero,
         normalizarFondos,
         totalFondos,

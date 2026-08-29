@@ -343,6 +343,23 @@
         if (limite) limite.value = '0';
     }
 
+    function mostrarOpcionClientes(opcion) {
+        const opciones = ['formulario', 'directorio', 'creditos', 'anticipos'];
+        const seleccion = opciones.includes(opcion) ? opcion : '';
+        opciones.forEach(nombre => {
+            const panel = document.getElementById(`cliente-panel-${nombre}`);
+            const boton = document.getElementById(`cliente-opcion-${nombre}`);
+            const activo = nombre === seleccion;
+            if (panel) panel.hidden = !activo;
+            if (boton) {
+                boton.classList.toggle('active', activo);
+                boton.setAttribute('aria-expanded', activo ? 'true' : 'false');
+            }
+        });
+        if (seleccion === 'directorio') renderGestionClientes();
+        if ((seleccion === 'creditos' || seleccion === 'anticipos') && typeof global.renderFinanzasNegocio === 'function') global.renderFinanzasNegocio();
+    }
+
     async function guardarCliente() {
         if (!exigirDueno('Solo el Dueño puede crear o modificar fichas de clientes.') || !exigirConexion() || isProcessingTransaction) return;
         let cliente;
@@ -409,6 +426,7 @@
             'cliente-limite': cliente.limiteCredito
         };
         Object.entries(valores).forEach(([idCampo, valor]) => { document.getElementById(idCampo).value = valor ?? ''; });
+        mostrarOpcionClientes('formulario');
         document.getElementById('sec-clientes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -622,14 +640,10 @@
     function actualizarUnidadIngreso(productoForzado) {
         const modo = document.getElementById('inv-modo')?.value || 'existente';
         const producto = productoForzado || inventario.find(p => String(p.id) === String(document.getElementById('ingreso-producto-id')?.value || ''));
-        const unidadId = modo === 'nuevo' ? document.getElementById('inv-unidad')?.value : (producto?.unidadId || 'pieza');
+        const unidadId = modo === 'nuevo' ? 'pieza' : (producto?.unidadId || 'pieza');
         const unidad = core.obtenerUnidad(unidadId, configuracionNegocio);
         const stock = document.getElementById('inv-stock');
-        const contenido = document.getElementById('inv-contenido-compra');
         if (stock) stock.step = unidad.divisible ? String(unidad.paso) : '1';
-        if (contenido) contenido.step = unidad.divisible ? String(unidad.paso) : '1';
-        const ayuda = document.getElementById('ayuda-contenido-compra');
-        if (ayuda) ayuda.textContent = `El resultado se guardará en ${unidad.nombre.toLowerCase()} (${unidad.abreviatura}). Ejemplo: cantidad comprada × contenido por compra.`;
         cambiarLabelCosto();
     }
 
@@ -667,6 +681,7 @@
     global.editarCliente = id => editarCliente(decodeURIComponent(id));
     global.archivarCliente = id => archivarCliente(decodeURIComponent(id));
     global.limpiarFormularioCliente = limpiarFormularioCliente;
+    global.mostrarOpcionClientes = mostrarOpcionClientes;
     global.renderGestionClientes = renderGestionClientes;
     global.renderGestionNegocio = renderGestionNegocio;
     global.sincronizarClienteEnFormulario = sincronizarClienteEnFormulario;

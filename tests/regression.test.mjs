@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.0' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.1' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -174,6 +174,44 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
   assert.match(html, /id="venta-envio"[^>]+oninput="renderCarritoVentas\(\)"/);
   assert.match(html, /id="cotiza-tinta"[^>]+oninput="renderCarritoCotizacion\(\)"/);
   assert.match(html, /id="cotiza-envio"[^>]+oninput="renderCarritoCotizacion\(\)"/);
+});
+
+test('el anticipo acordado solo se vuelve pago al cargar y confirmar la venta', () => {
+  const ids = ['venta-tinta', 'venta-mano-obra', 'venta-envio', 'venta-nombre', 'venta-cliente-id', 'venta-nit', 'venta-factura', 'venta-tipo-cobro', 'venta-metodo-pago', 'venta-pago-inicial', 'venta-aplicar-anticipo'];
+  const elementos = Object.fromEntries(ids.map(id => [id, { value: '', checked: false }]));
+  const contexto = vm.createContext({
+    Math, Number, JSON, Date,
+    document: { getElementById: id => elementos[id] },
+    window: { scrollTo() {} }
+  });
+  vm.runInContext(`
+    let carritoVentas = [];
+    let cotizacionOrigenVentaId = null;
+    function actualizarCamposCobroVenta() {}
+    function renderCarritoVentas() {}
+    function cambiarPestaña() {}
+    ${extraerFuncion('copiarDatos')}
+    ${extraerFuncion('numeroFinito')}
+    ${extraerFuncion('aCentavos')}
+    ${extraerFuncion('cargarCotizacionEnFormularioVenta')}
+  `, contexto);
+
+  contexto.cargarCotizacionEnFormularioVenta({
+    detalleItems: [{ idProd: 'p1', qty: 1, precioCobrado: 100, costoBase: 40 }],
+    ingresoTotal: 100, anticipoCotizado: 30, metodoAnticipoCotizado: 'transferencia', clienteId: 'c1', clienteNombre: 'ANA', clienteNit: '1'
+  }, 'cot-1');
+  assert.equal(elementos['venta-tipo-cobro'].value, 'credito');
+  assert.equal(elementos['venta-metodo-pago'].value, 'transferencia');
+  assert.equal(elementos['venta-pago-inicial'].value, '30');
+  assert.equal(elementos['venta-aplicar-anticipo'].value, '0');
+
+  contexto.cargarCotizacionEnFormularioVenta({
+    detalleItems: [{ idProd: 'p1', qty: 1, precioCobrado: 100, costoBase: 40 }],
+    ingresoTotal: 100, anticipoCotizado: 100, metodoAnticipoCotizado: 'efectivo'
+  });
+  assert.equal(elementos['venta-tipo-cobro'].value, 'contado');
+  assert.equal(elementos['venta-metodo-pago'].value, 'efectivo');
+  assert.equal(elementos['venta-pago-inicial'].value, '0');
 });
 
 test('estrés matemático: 50000 escenarios conservan las identidades financieras', () => {
@@ -581,8 +619,8 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.0"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.0/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.1"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.1/);
   assert.match(leer('sw.js'), /\.\/buscador\.js/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(`\\.\\/${archivo.replace('.', '\\.')}`)));
   for(const icono of manifest.icons) {

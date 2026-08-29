@@ -45,6 +45,55 @@ test('las unidades y empaques convierten cantidad y costo con precisión', () =>
   assert.equal(core.normalizarCantidad(1.257, core.obtenerUnidad('kilogramo', config)), 1.257);
 });
 
+test('el ingreso simple usa únicamente la cantidad real y el costo unitario', () => {
+  const pieza = core.obtenerUnidad('pieza', {});
+  assert.deepEqual(plano(core.calcularIngresoSimple(12, 9.9, pieza)), { cantidadBase: 12, costoBase: 9.9 });
+  assert.throws(() => core.calcularIngresoSimple(0, 9.9, pieza), /mayor que cero/);
+  assert.throws(() => core.calcularIngresoSimple(1.5, 9.9, pieza), /cantidades enteras/);
+  assert.throws(() => core.calcularIngresoSimple(1, -1, pieza), /no negativo/);
+  for (let cantidad = 1; cantidad <= 10000; cantidad += 1) {
+    const resultado = core.calcularIngresoSimple(cantidad, (cantidad % 997) / 100, pieza);
+    assert.equal(resultado.cantidadBase, cantidad);
+    assert.equal(resultado.costoBase, (cantidad % 997) / 100);
+  }
+});
+
+test('ventas y cotizaciones presentan cliente, carrito, gastos y cobro en ese orden', () => {
+  const ventas = html.slice(html.indexOf('id="sec-ventas"'), html.indexOf('id="sec-cotizacion"'));
+  const cotizaciones = html.slice(html.indexOf('id="sec-cotizacion"'), html.indexOf('id="sec-clientes"'));
+  const posicionesVenta = ['id="venta-nombre"', 'id="buscador-venta-producto"', 'id="venta-tinta"', 'id="venta-metodo-pago"'].map(texto => ventas.indexOf(texto));
+  const posicionesCotizacion = ['id="cotiza-nombre"', 'id="buscador-cotiza-producto"', 'id="cotiza-tinta"', 'id="cotiza-metodo-anticipo"'].map(texto => cotizaciones.indexOf(texto));
+  assert.ok(posicionesVenta.every(posicion => posicion >= 0));
+  assert.ok(posicionesCotizacion.every(posicion => posicion >= 0));
+  assert.deepEqual([...posicionesVenta].sort((a, b) => a - b), posicionesVenta);
+  assert.deepEqual([...posicionesCotizacion].sort((a, b) => a - b), posicionesCotizacion);
+  assert.match(cotizaciones, /Generar cotización/);
+});
+
+test('la interfaz de ingreso y clientes permanece simple y plegable', () => {
+  assert.match(html, /id="inv-medida-descripcion"/);
+  assert.match(html, /calcularIngresoSimple\(cantidadIngresada, costoIngresado, unidad\)/);
+  assert.doesNotMatch(html, /id="inv-contenido-compra"/);
+  assert.doesNotMatch(html, /id="inv-tipo-costo"/);
+  ['formulario', 'directorio', 'creditos', 'anticipos'].forEach(opcion => {
+    assert.match(html, new RegExp(`id="cliente-opcion-${opcion}"`));
+    assert.match(html, new RegExp(`id="cliente-panel-${opcion}"[^>]*hidden`));
+  });
+  assert.match(gestionSource, /function mostrarOpcionClientes/);
+  assert.match(gestionSource, /localeCompare/);
+  assert.match(finanzasSource, /clienteNombre[\s\S]*localeCompare/);
+  assert.match(html, /input, select, textarea/);
+});
+
+test('el anticipo cotizado se informa sin registrarlo en caja antes de la venta', () => {
+  assert.match(html, /id="cotiza-anticipo"/);
+  assert.match(html, /id="cotiza-metodo-anticipo"/);
+  assert.match(html, /anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false/);
+  assert.match(html, /No se ha sumado a caja ni registrado como recibido/);
+  assert.match(html, /esPagoParcialAcordado/);
+  assert.match(html, /pendiente de registrar/);
+});
+
 test('la distribución por centavos siempre conserva el total exacto', () => {
   assert.deepEqual(plano(core.distribuirCentavos(2, { a: 10, b: 10, c: 10 })), { a: 1, b: 1, c: 0 });
   assert.deepEqual(plano(core.distribuirCentavos(2, { a: 0, b: 0, c: 0 })), { a: 1, b: 1, c: 0 });
@@ -190,14 +239,14 @@ test('la copia completa valida, crea punto previo y conserva el UID actual', () 
   assert.doesNotMatch(respaldoSource, /lote\.delete/);
 });
 
-test('reglas, PWA y versión 1.2.0 quedan listas para activación controlada', () => {
+test('reglas, PWA y versión 1.2.1 quedan listas para activación controlada', () => {
   const reglas = leer('firestore.rules');
   assert.match(reglas, /request\.auth\.uid == authPropietario\(\)\.get\('uid'/);
   assert.match(reglas, /activacionPropiaValida/);
   assert.match(reglas, /!proteccionActivada\(\) \|\| esPropietarioAutenticado\(\)/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.0' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.0');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.0/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.1' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.1');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.1/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });
