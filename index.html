@@ -412,6 +412,16 @@
         .settings-actions button { flex: 1 1 180px; }
         .compact-note { color: var(--text-light); font-size: 11px; line-height: 1.45; margin-top: 5px; }
         .list-scroll { max-height: 420px; overflow-y: auto; padding-right: 4px; }
+        .settings-section, .fold-card { display: block; margin-bottom: 14px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--card-bg); box-shadow: var(--shadow); overflow: hidden; }
+        .settings-section > summary, .fold-card > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 19px; color: var(--text-dark); font-size: 15px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+        .settings-section > summary::-webkit-details-marker, .fold-card > summary::-webkit-details-marker { display: none; }
+        .settings-section > summary::after, .fold-card > summary::after { content: '+'; display: grid; place-items: center; min-width: 26px; height: 26px; border-radius: 999px; background: rgba(96,165,250,.12); color: #93c5fd; font-size: 19px; line-height: 1; }
+        .settings-section[open] > summary::after, .fold-card[open] > summary::after { content: '−'; }
+        .settings-section[open] > summary, .fold-card[open] > summary { border-bottom: 1px solid var(--border-color); }
+        .settings-section-content, .fold-card-content { padding: 18px 19px 20px; }
+        .settings-section-content > .section-title, .fold-card-content > .section-title { display: none; }
+        .settings-section-content > :first-child, .fold-card-content > :first-child { margin-top: 0; }
+        .ingreso-preview { margin: 2px 0 14px; padding: 10px 12px; border: 1px solid rgba(96,165,250,.30); border-radius: 10px; background: rgba(37,99,235,.09); color: #bfdbfe; font-size: 12px; line-height: 1.5; }
         .client-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
         .client-option-btn { min-height: 58px; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(5,11,22,.48); color: var(--text-light); cursor: pointer; font-weight: 800; }
         .client-option-btn:hover, .client-option-btn.active { border-color: rgba(96,165,250,.45); background: rgba(37,99,235,.20); color: var(--text-dark); }
@@ -485,8 +495,6 @@
             <button id="tab-inventario" class="tab-btn" onclick="cambiarPestaña('inventario')" title="Inventario"><span class="nav-icon">📦</span><span class="nav-label">Inventario</span></button>
             <button id="tab-ventas" class="tab-btn" onclick="cambiarPestaña('ventas')" title="Ventas"><span class="nav-icon">🛒</span><span class="nav-label">Ventas</span></button>
             <button id="tab-cotizacion" class="tab-btn" onclick="cambiarPestaña('cotizacion')" title="Cotización"><span class="nav-icon">📄</span><span class="nav-label">Cotización</span></button>
-            <button id="tab-clientes" class="tab-btn" onclick="cambiarPestaña('clientes')" title="Clientes, créditos y anticipos"><span class="nav-icon">👥</span><span class="nav-label">Clientes</span></button>
-            <button id="tab-caja" class="tab-btn" onclick="cambiarPestaña('caja')" title="Efectivo, banco y préstamos"><span class="nav-icon">🏦</span><span class="nav-label">Caja</span></button>
             <button id="tab-alertas" class="tab-btn" onclick="cambiarPestaña('alertas')" title="Por surtir"><span class="nav-icon">⚠️</span><span class="nav-label">Por Surtir</span></button>
             <button id="tab-buscador" class="tab-btn" onclick="cambiarPestaña('buscador')" title="Buscador de diseños"><span class="nav-icon">🔎</span><span class="nav-label">Diseños</span></button>
             <button id="tab-ajustes" class="tab-btn" onclick="accederAjustesProtegidos()" title="Opciones"><span class="nav-icon">⚙️</span><span class="nav-label">Opciones</span></button>
@@ -524,8 +532,8 @@
                     <div class="dash-card bg-dark"><p class="dash-title">Dinero disponible</p><p class="dash-value" id="dash-total-caja">Q 0.00</p><p style="font-size: 11px; margin-top: 5px; opacity: 0.8;">Efectivo + banco, sin contar crédito pendiente</p></div>
                     <div class="dash-card bg-green"><p class="dash-title">Efectivo</p><p class="dash-value" id="dash-efectivo">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('caja')">Ver movimientos / retirar</button></div>
                     <div class="dash-card bg-blue"><p class="dash-title">Banco</p><p class="dash-value" id="dash-banco">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('caja')">Ver transferencias / retirar</button></div>
-                    <div class="dash-card bg-orange"><p class="dash-title">Crédito por cobrar</p><p class="dash-value" id="dash-credito-pendiente">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes'); setTimeout(() => mostrarOpcionClientes('creditos'), 0)">Ver cuentas</button></div>
-                    <div class="dash-card bg-purple"><p class="dash-title">Anticipos pendientes</p><p class="dash-value" id="dash-anticipos-pendientes">Q 0.00</p><button class="dash-btn" onclick="cambiarPestaña('clientes'); setTimeout(() => mostrarOpcionClientes('anticipos'), 0)">Ver anticipos</button></div>
+                    <div class="dash-card bg-orange"><p class="dash-title">Crédito por cobrar</p><p class="dash-value" id="dash-credito-pendiente">Q 0.00</p><button class="dash-btn" onclick="accederAjustesProtegidos('clientes', 'creditos')">Ver cuentas</button></div>
+                    <div class="dash-card bg-purple"><p class="dash-title">Anticipos pendientes</p><p class="dash-value" id="dash-anticipos-pendientes">Q 0.00</p><button class="dash-btn" onclick="accederAjustesProtegidos('clientes', 'anticipos')">Ver anticipos</button></div>
                     
                     <div class="dash-card bg-purple">
                         <p class="dash-title">Fondo: Productos</p><p class="dash-value" id="dash-costo-producto">Q 0.00</p>
@@ -570,7 +578,9 @@
         </div>
 
         <div id="sec-ajustes" style="display: none;">
-            <div class="card">
+            <details id="ajuste-interfaz" class="settings-section">
+                <summary>🖥️ Interfaz de computadora</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">🖥️ Interfaz de computadora</h3>
                 <p class="settings-note">Cambia únicamente la presentación de este dispositivo. En celular se conserva automáticamente la interfaz actual.</p>
                 <div class="settings-choice">
@@ -584,9 +594,12 @@
                         <option value="expandido">Iconos y nombres</option>
                     </select>
                 </div>
-            </div>
+                </div>
+            </details>
 
-            <div class="card">
+            <details id="ajuste-inteligencia" class="settings-section">
+                <summary>✨ IA y funciones inteligentes</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">✨ IA y funciones inteligentes</h3>
                 <p class="settings-note">El motor inteligente trabaja localmente con los datos ya cargados. Nunca vende, retira, borra ni cambia existencias por sí solo.</p>
                 <div class="master-switch">
@@ -604,9 +617,12 @@
                     <div class="smart-setting-row" data-modulo="etiquetas"><div class="smart-setting-main"><input type="checkbox" id="smart-etiquetas"><span>Etiquetas y códigos</span></div><select id="smart-etiquetas-modo"><option value="informar">Solo informar</option><option value="ayudar">Ayudar con opciones</option></select></div>
                 </div>
                 <button class="btn-main btn-green" onclick="guardarPreferenciasSistemaDesdeUI()">Guardar preferencias de este dispositivo</button>
-            </div>
+                </div>
+            </details>
 
-            <div class="card">
+            <details id="ajuste-negocio" class="settings-section">
+                <summary>🏪 Identidad y cálculos del negocio</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">🏪 Identidad y cálculos del negocio</h3>
                 <p class="settings-note">Solo el Dueño puede cambiar estos datos. Se sincronizan entre celular y computadora; las ventas anteriores conservan el porcentaje y los importes con los que fueron registradas.</p>
                 <div class="grid-2">
@@ -622,9 +638,12 @@
                     <button class="btn-main btn-green" onclick="guardarConfiguracionNegocio()">Guardar configuración</button>
                 </div>
                 <p class="compact-note">El nombre visible de producción cambia, pero internamente se conserva la clave existente para no romper fondos ni ventas antiguas.</p>
-            </div>
+                </div>
+            </details>
 
-            <div class="card">
+            <details id="ajuste-cuenta" class="settings-section">
+                <summary>🔐 Cuenta real del Dueño</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">🔐 Cuenta real del Dueño</h3>
                 <p class="settings-note">El correo identifica el dispositivo en Firebase y permite recuperar la contraseña. Después se mantiene el PIN rápido para elegir Dueño o empleado.</p>
                 <div class="grid-2">
@@ -637,9 +656,12 @@
                     <button class="btn-main btn-cancel" onclick="cerrarSesionPropietario()">Cerrar sesión del dispositivo</button>
                 </div>
                 <p id="config-auth-estado" class="compact-note" aria-live="polite">Cuenta real todavía no activada.</p>
-            </div>
+                </div>
+            </details>
 
-            <div class="card">
+            <details id="ajuste-unidades" class="settings-section">
+                <summary>📐 Unidades personalizadas</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">📐 Unidades personalizadas</h3>
                 <p class="settings-note">Las medidas comunes ya vienen incluidas. Crea aquí una unidad propia, por ejemplo rollo, paquete o plancha.</p>
                 <div class="grid-2">
@@ -650,9 +672,12 @@
                 </div>
                 <button class="btn-main btn-green" onclick="agregarUnidadPersonalizada()">Agregar unidad</button>
                 <div id="lista-unidades-personalizadas" class="list-scroll" style="margin-top:12px;"><p class="item-details">No hay unidades personalizadas.</p></div>
-            </div>
+                </div>
+            </details>
 
-            <div class="card">
+            <details id="ajuste-respaldo" class="settings-section">
+                <summary>💾 Copias de seguridad y restauración</summary>
+                <div class="settings-section-content">
                 <h3 class="section-title">💾 Copias de seguridad y restauración</h3>
                 <p class="settings-note">Excel sirve para consultar. La copia JSON conserva campos y relaciones para una restauración segura.</p>
                 <div class="settings-actions">
@@ -662,8 +687,20 @@
                     <input id="archivo-restauracion" type="file" accept="application/json,.json" style="display:none;" onchange="prepararRestauracion(event)">
                 </div>
                 <p id="estado-restauracion" class="compact-note">La restauración valida el archivo, crea antes una copia del estado actual y nunca borra documentos que no estén incluidos.</p>
-            </div>
+                </div>
+            </details>
 
+            <details id="ajuste-clientes" class="settings-section">
+                <summary>👥 Clientes, cuentas y anticipos</summary>
+                <div class="settings-section-content">
+                    <p class="settings-note">Aquí encontrarás el registro de clientes, el directorio, las cuentas por cobrar y los anticipos.</p>
+                    <div id="clientes-config-slot"></div>
+                </div>
+            </details>
+
+            <details id="ajuste-usuarios" class="settings-section">
+                <summary>👤 Usuarios y permisos</summary>
+                <div class="settings-section-content">
             <div class="card">
                 <h3 class="section-title">👥 Administración de Usuarios</h3>
                 <p style="font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 15px;">Crea PINs para que tus empleados registren operaciones según los permisos que les asignes.</p>
@@ -696,6 +733,8 @@
                 <h3 class="section-title">📋 Usuarios Activos</h3>
                 <div id="lista-usuarios"></div>
             </div>
+                </div>
+            </details>
         </div>
 
         <div id="sec-ingreso" style="display: none;">
@@ -722,10 +761,21 @@
                     <input type="text" id="inv-nombre" placeholder="Ej: Taza blanca" oninput="actualizarVistaMedidaIngreso()">
                 </div>
 
-                <div class="form-group" id="grupo-medida-producto" style="display: none;">
-                    <label>Medida o presentación (Opcional)</label>
-                    <input type="text" id="inv-medida-descripcion" maxlength="60" placeholder="Ej: 11 oz, 20 cm o talla M" oninput="actualizarVistaMedidaIngreso()">
-                    <p id="vista-medida-producto" class="compact-note">Solo se añadirá al nombre del producto; no cambiará la cantidad ni el costo.</p>
+                <div class="form-group" id="grupo-medida-producto">
+                    <label>Medida, tamaño o presentación (Opcional)</label>
+                    <div class="grid-2">
+                        <div>
+                            <input type="text" id="inv-medida-descripcion" maxlength="60" placeholder="Ej: 11, 20, M o caja de 36" oninput="actualizarVistaMedidaIngreso()">
+                            <p class="compact-note">Puedes escribir una presentación completa, como “caja de 36”, sin elegir unidad.</p>
+                        </div>
+                        <div>
+                            <select id="inv-medida-unidad" onchange="actualizarVistaMedidaIngreso()">
+                                <option value="">Sin unidad de medida</option>
+                            </select>
+                            <p class="compact-note">Si eliges una unidad, solo se agregará a la descripción.</p>
+                        </div>
+                    </div>
+                    <p id="vista-medida-producto" class="compact-note">La medida solo completa la descripción; nunca cambia cantidades ni costos.</p>
                 </div>
 
                 <div class="form-group" id="grupo-categoria-producto" style="display: none;">
@@ -741,18 +791,45 @@
                 </div>
                 
                 <select id="inv-unidad" style="display:none;" aria-hidden="true" tabindex="-1"></select>
-                <div class="grid-2">
+
+                <div class="form-group">
+                    <label>¿Cómo deseas ingresar la compra?</label>
+                    <select id="inv-forma-ingreso" onchange="actualizarFormaIngreso()">
+                        <option value="unidad">Unidades sueltas</option>
+                        <option value="lote">Lote o paquete</option>
+                    </select>
+                    <p class="compact-note">“Lote o paquete” sirve cuando compras varias cajas, paquetes o grupos con la misma cantidad interna.</p>
+                </div>
+
+                <div id="grupo-ingreso-unidad" class="grid-2">
                     <div class="form-group">
-                        <label>Cantidad que ingresará al inventario</label>
+                        <label>Cantidad total de unidades</label>
                         <input type="number" id="inv-stock" min="0" step="any" placeholder="0">
-                        <p class="compact-note">Escribe la cantidad real que deseas sumar. No se harán multiplicaciones ni conversiones ocultas.</p>
+                        <p class="compact-note">Escribe la cantidad real que deseas sumar al inventario.</p>
                     </div>
                     <div class="form-group">
-                        <label>Costo por cada unidad ingresada</label>
+                        <label>Costo por unidad</label>
                         <input type="number" id="inv-costo" step="0.000001" min="0" placeholder="Q 0.00">
                         <p class="compact-note">El transporte del lote se suma después de forma proporcional al costo real.</p>
                     </div>
                 </div>
+
+                <div id="grupo-ingreso-lote" class="grid-2" style="display:none;">
+                    <div class="form-group">
+                        <label>Cantidad de lotes o paquetes</label>
+                        <input type="number" id="inv-cantidad-lotes" min="0" step="1" placeholder="Ej. 3" oninput="actualizarVistaIngresoLote()">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidades dentro de cada lote</label>
+                        <input type="number" id="inv-unidades-lote" min="0" step="any" placeholder="Ej. 12" oninput="actualizarVistaIngresoLote()">
+                    </div>
+                    <div class="form-group">
+                        <label>Costo total de todos los lotes</label>
+                        <input type="number" id="inv-costo-lote-total" min="0" step="0.01" placeholder="Q 0.00" oninput="actualizarVistaIngresoLote()">
+                        <p class="compact-note">El sistema dividirá el costo total entre todas las unidades.</p>
+                    </div>
+                </div>
+                <div id="vista-ingreso-lote" class="ingreso-preview" style="display:none;" aria-live="polite">Completa los datos del lote para ver la conversión.</div>
 
                 <h4 class="sub-title" style="margin-top: 10px;">Datos de Compra (Opcional)</h4>
                 <div class="grid-2">
@@ -1026,8 +1103,7 @@
         </div>
 
         <div id="sec-clientes" style="display: none;">
-            <div class="card">
-                <h3 class="section-title">👥 Clientes</h3>
+            <div style="margin-bottom:18px;">
                 <p class="settings-note">Elige una opción. Los formularios y listados permanecen cerrados hasta que los necesites.</p>
                 <div class="client-options" role="navigation" aria-label="Opciones de clientes">
                     <button id="cliente-opcion-formulario" class="client-option-btn" onclick="mostrarOpcionClientes('formulario')">➕ Guardar cliente</button>
@@ -1094,24 +1170,32 @@
             </div>
 
             <div class="management-grid">
-                <div class="card">
+                <details class="fold-card">
+                    <summary>Transferir entre efectivo y banco</summary>
+                    <div class="fold-card-content">
                     <h3 class="section-title">Transferir entre ubicaciones</h3>
                     <div class="form-group"><label>Movimiento</label><select id="traslado-direccion"><option value="efectivo-banco">Efectivo → Banco</option><option value="banco-efectivo">Banco → Efectivo</option></select></div>
                     <div class="form-group"><label>Monto</label><input id="traslado-monto" type="number" min="0.01" step="0.01"></div>
                     <div class="form-group"><label>Referencia / motivo</label><input id="traslado-motivo" type="text" maxlength="160"></div>
                     <button class="btn-main btn-green" onclick="registrarTrasladoDinero()">Registrar traslado</button>
-                </div>
-                <div class="card">
+                    </div>
+                </details>
+                <details class="fold-card">
+                    <summary>Registrar un retiro general</summary>
+                    <div class="fold-card-content">
                     <h3 class="section-title">Retiro general</h3>
                     <div class="form-group"><label>Origen</label><select id="caja-retiro-origen"><option value="efectivo">Efectivo</option><option value="banco">Banco</option></select></div>
                     <div class="form-group"><label>Cómo descontar fondos</label><select id="caja-retiro-modo"><option value="ganancia">Solo ganancia libre</option><option value="inteligente">Inteligente (protege SAT)</option><option value="total">Disponible, incluyendo SAT si hace falta</option></select></div>
                     <div class="form-group"><label>Monto</label><input id="caja-retiro-monto" type="number" min="0.01" step="0.01"></div>
                     <div class="form-group"><label>Motivo</label><input id="caja-retiro-motivo" type="text" maxlength="160"></div>
                     <button class="btn-main" onclick="registrarRetiroCaja()">Registrar retiro</button>
-                </div>
+                    </div>
+                </details>
             </div>
 
-            <div class="card">
+            <details class="fold-card">
+                <summary>🤝 Dinero prestado que regresará</summary>
+                <div class="fold-card-content">
                 <h3 class="section-title">🤝 Dinero prestado que regresará</h3>
                 <p class="settings-note">Al prestar se descuenta la ubicación y los fondos exactos. Cada devolución restaura proporcionalmente ese mismo desglose.</p>
                 <div class="grid-2">
@@ -1123,10 +1207,13 @@
                 <div class="form-group"><label>Motivo</label><input id="prestamo-motivo" type="text" maxlength="180"></div>
                 <button class="btn-main btn-green" onclick="registrarPrestamo()">Registrar préstamo</button>
                 <div id="lista-prestamos" class="list-scroll" style="margin-top:14px;"><p class="item-details">No hay préstamos activos.</p></div>
-            </div>
+                </div>
+            </details>
 
             <div class="management-grid">
-                <div class="card">
+                <details class="fold-card">
+                    <summary>↩️ Devolución o reembolso</summary>
+                    <div class="fold-card-content">
                     <h3 class="section-title">↩️ Devolución / reembolso</h3>
                     <p class="compact-note">Selecciona una venta. El sistema reduce primero el crédito pendiente y calcula si corresponde devolver dinero. Producción, trabajo y envío ya realizados se conservan como gastos reales.</p>
                     <div class="form-group"><label>Venta</label><select id="devolucion-venta" onchange="actualizarOpcionesDevolucion()"></select></div>
@@ -1137,8 +1224,11 @@
                     <div class="form-group"><label>Método del reembolso, si corresponde</label><select id="devolucion-metodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="deposito">Depósito</option></select></div>
                     <div class="form-group"><label>Motivo</label><input id="devolucion-motivo" type="text" maxlength="180"></div>
                     <button class="btn-main" onclick="registrarDevolucionVenta()">Registrar devolución</button>
-                </div>
-                <div class="card">
+                    </div>
+                </details>
+                <details class="fold-card">
+                    <summary>📉 Pérdida o merma</summary>
+                    <div class="fold-card-content">
                     <h3 class="section-title">📉 Pérdida o merma</h3>
                     <p class="compact-note">Descuenta existencias dañadas, vencidas o extraviadas sin simular una venta ni sumar dinero.</p>
                     <div class="form-group"><label>Producto</label><select id="perdida-producto"></select></div>
@@ -1146,13 +1236,17 @@
                     <div class="form-group"><label>Motivo</label><input id="perdida-motivo" type="text" maxlength="180"></div>
                     <button class="btn-main" style="background:var(--primary-red);" onclick="registrarPerdidaInventario()">Registrar pérdida</button>
                     <div id="lista-perdidas" class="list-scroll" style="margin-top:14px;"><p class="item-details">No hay pérdidas registradas.</p></div>
-                </div>
+                    </div>
+                </details>
             </div>
 
-            <div class="card">
+            <details class="fold-card">
+                <summary>📋 Bitácora de caja</summary>
+                <div class="fold-card-content">
                 <h3 class="section-title">Bitácora de caja</h3>
                 <div id="lista-movimientos-caja" class="list-scroll"><p class="item-details">No hay movimientos adicionales.</p></div>
-            </div>
+                </div>
+            </details>
         </div>
 
         <div id="sec-buscador" style="display: none;">
@@ -1862,15 +1956,50 @@
             }
         }
 
-        async function accederAjustesProtegidos() {
+        function prepararSeccionesConfiguracion() {
+            const slotClientes = document.getElementById('clientes-config-slot');
+            const seccionClientes = document.getElementById('sec-clientes');
+            if(slotClientes && seccionClientes && !slotClientes.contains(seccionClientes)) slotClientes.appendChild(seccionClientes);
+            if(seccionClientes) seccionClientes.style.display = 'block';
+
+            const secciones = Array.from(document.querySelectorAll('#sec-ajustes > .settings-section'));
+            secciones.forEach(seccion => {
+                if(seccion.dataset.plegablePreparado === '1') return;
+                seccion.dataset.plegablePreparado = '1';
+                seccion.addEventListener('toggle', () => {
+                    if(!seccion.open) return;
+                    secciones.forEach(otra => { if(otra !== seccion) otra.open = false; });
+                    if(seccion.id === 'ajuste-clientes') renderGestionNegocio();
+                });
+            });
+        }
+
+        function abrirSeccionConfiguracion(apartado, opcionCliente = '') {
+            if(!apartado) return;
+            prepararSeccionesConfiguracion();
+            const seccion = document.getElementById(`ajuste-${apartado}`);
+            if(!seccion) return;
+            seccion.open = true;
+            if(apartado === 'clientes') {
+                mostrarOpcionClientes(opcionCliente);
+                renderGestionNegocio();
+            }
+            seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function accederAjustesProtegidos(apartado = '', opcionCliente = '') {
             if(currentUserData && currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede abrir Configuración.');
             if(!cuentaPropietarioAutorizada()) {
                 actualizarPanelAccesoReal();
                 return alert('Primero inicia sesión con la cuenta real del Dueño.');
             }
+            const abrirAjustes = () => {
+                cambiarPestaña('ajustes');
+                if(apartado) setTimeout(() => abrirSeccionConfiguracion(apartado, opcionCliente), 0);
+            };
             const dueñosRegistrados = usuarios.some(u => u.rol === 'dueno');
             if (!dueñosRegistrados) {
-                cambiarPestaña('ajustes');
+                abrirAjustes();
                 return;
             }
 
@@ -1878,7 +2007,7 @@
             if (pass !== null) {
                 const verificado = await esDueno(pass);
                 if (verificado) {
-                    cambiarPestaña('ajustes');
+                    abrirAjustes();
                 } else {
                     alert("❌ Acceso denegado. PIN incorrecto o no tiene permisos de Dueño.");
                 }
@@ -1886,7 +2015,7 @@
         }
 
         function aplicarPermisos(user) {
-            const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'clientes', 'caja', 'alertas', 'buscador', 'ajustes'];
+            const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'buscador', 'ajustes'];
             todasPestañas.forEach(id => {
                 let btn = document.getElementById('tab-' + id);
                 if (btn) btn.style.display = 'none';
@@ -3005,7 +3134,7 @@
                 logoCont.style.display = (pestaña === 'inicio') ? 'block' : 'none';
             }
 
-            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'clientes', 'caja', 'alertas', 'buscador', 'ajustes'].forEach(p => {
+            ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'caja', 'alertas', 'buscador', 'ajustes'].forEach(p => {
                 const sec = document.getElementById('sec-' + p);
                 if(sec) sec.style.display = 'none';
                 const tabBtn = document.getElementById('tab-' + p);
@@ -3021,10 +3150,10 @@
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
             if(pestaña === 'inventario') renderInventario();
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
-            if(pestaña === 'clientes' || pestaña === 'caja') renderGestionNegocio();
+            if(pestaña === 'caja') renderGestionNegocio();
             if(pestaña === 'alertas') renderAlertas();
             if(pestaña === 'buscador' && window.renderBuscadorDisenos) window.renderBuscadorDisenos();
-            if(pestaña === 'ajustes') { renderUsuarios(); sincronizarControlesPreferencias(); }
+            if(pestaña === 'ajustes') { prepararSeccionesConfiguracion(); renderUsuarios(); sincronizarControlesPreferencias(); }
         }
 
         function cargarLogo(event) {
@@ -3085,7 +3214,7 @@
             const esNuevo = val === 'nuevo';
             document.getElementById('grupo-buscador-ingreso').style.display = esNuevo ? 'none' : 'block';
             document.getElementById('grupo-nombre-producto').style.display = esNuevo ? 'block' : 'none';
-            document.getElementById('grupo-medida-producto').style.display = esNuevo ? 'block' : 'none';
+            document.getElementById('grupo-medida-producto').style.display = 'block';
             document.getElementById('grupo-min-producto').style.display = esNuevo ? 'block' : 'none';
             document.getElementById('grupo-categoria-producto').style.display = esNuevo ? 'block' : 'none';
             
@@ -3093,6 +3222,7 @@
             document.getElementById('ingreso-producto-id').value = '';
             document.getElementById('inv-nombre').value = '';
             document.getElementById('inv-medida-descripcion').value = '';
+            document.getElementById('inv-medida-unidad').value = '';
             
             if(document.getElementById('inv-categoria')) document.getElementById('inv-categoria').value = 'OTROS';
             if(document.getElementById('inv-categoria-nueva')) {
@@ -3101,6 +3231,7 @@
             }
             actualizarVistaMedidaIngreso();
             actualizarUnidadIngreso();
+            actualizarVistaIngresoLote();
         }
 
         function renderSugerenciasIngreso(mostrarTodo = false) {
@@ -3125,7 +3256,7 @@
                     const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
                     div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">(Actual: ${escaparHTML(etiquetaUnidadProducto(p, p.stock))})</span>`;
 
-                    div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; actualizarUnidadIngresoDesdeProducto(p.id); };
+                    div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; actualizarUnidadIngresoDesdeProducto(p.id); actualizarVistaMedidaIngreso(); actualizarVistaIngresoLote(); };
                     box.appendChild(div);
                 });
 
@@ -3137,40 +3268,77 @@
             else debouncedEjecucion('ingreso', execute, 250);
         }
 
-        function descripcionProductoConMedida(nombre, medida) {
+        function descripcionProductoConMedida(nombre, medida, unidadMedida = '') {
             const descripcion = String(nombre || '').trim().replace(/\s+/g, ' ').toUpperCase();
             const medidaLimpia = String(medida || '').trim().replace(/\s+/g, ' ').toUpperCase();
-            if(!descripcion || !medidaLimpia) return descripcion;
-            if(descripcion === medidaLimpia || descripcion.endsWith(` ${medidaLimpia}`)) return descripcion;
-            return `${descripcion} ${medidaLimpia}`;
+            const unidadLimpia = String(unidadMedida || '').trim().replace(/\s+/g, ' ').toUpperCase();
+            const complemento = [medidaLimpia, unidadLimpia].filter(Boolean).join(' ');
+            if(!descripcion || !complemento) return descripcion;
+            if(descripcion === complemento || descripcion.endsWith(` ${complemento}`)) return descripcion;
+            return `${descripcion} ${complemento}`;
         }
 
         function actualizarVistaMedidaIngreso() {
             const vista = document.getElementById('vista-medida-producto');
             if(!vista) return;
-            const nombreFinal = descripcionProductoConMedida(document.getElementById('inv-nombre')?.value, document.getElementById('inv-medida-descripcion')?.value);
-            vista.textContent = nombreFinal ? `Descripción final: ${nombreFinal}. La medida no cambia cantidades ni costos.` : 'Solo se añadirá al nombre del producto; no cambiará la cantidad ni el costo.';
+            const modo = document.getElementById('inv-modo')?.value || 'existente';
+            const producto = inventario.find(item => String(item.id) === String(document.getElementById('ingreso-producto-id')?.value || ''));
+            const nombreBase = modo === 'nuevo' ? document.getElementById('inv-nombre')?.value : producto?.nombre;
+            const nombreFinal = descripcionProductoConMedida(nombreBase, document.getElementById('inv-medida-descripcion')?.value, document.getElementById('inv-medida-unidad')?.value);
+            vista.textContent = nombreFinal ? `Descripción final: ${nombreFinal}. La medida no cambia cantidades ni costos.` : 'La medida solo completa la descripción; nunca cambia cantidades ni costos.';
+        }
+
+        function unidadActualIngreso() {
+            const modo = document.getElementById('inv-modo')?.value || 'existente';
+            const producto = inventario.find(item => String(item.id) === String(document.getElementById('ingreso-producto-id')?.value || ''));
+            return SubliNegocioCore.obtenerUnidad(modo === 'nuevo' ? 'pieza' : (producto?.unidadId || 'pieza'), configuracionNegocio);
+        }
+
+        function actualizarFormaIngreso() {
+            const porLote = document.getElementById('inv-forma-ingreso')?.value === 'lote';
+            document.getElementById('grupo-ingreso-unidad').style.display = porLote ? 'none' : 'grid';
+            document.getElementById('grupo-ingreso-lote').style.display = porLote ? 'grid' : 'none';
+            document.getElementById('vista-ingreso-lote').style.display = porLote ? 'block' : 'none';
+            actualizarVistaIngresoLote();
+        }
+
+        function actualizarVistaIngresoLote() {
+            const vista = document.getElementById('vista-ingreso-lote');
+            if(!vista || document.getElementById('inv-forma-ingreso')?.value !== 'lote') return;
+            const lotes = Number(document.getElementById('inv-cantidad-lotes')?.value);
+            const contenido = Number(document.getElementById('inv-unidades-lote')?.value);
+            const costoTotal = Number(document.getElementById('inv-costo-lote-total')?.value);
+            if(!(lotes > 0) || !(contenido > 0) || !Number.isFinite(costoTotal) || costoTotal < 0) {
+                vista.textContent = 'Completa los datos del lote para ver la conversión antes de agregarlo.';
+                return;
+            }
+            try {
+                const conversion = SubliNegocioCore.calcularIngresoConvertido(lotes, contenido, costoTotal, 'total', unidadActualIngreso());
+                vista.textContent = `${lotes} lote${lotes === 1 ? '' : 's'} × ${contenido} unidades = ${conversion.cantidadBase} unidades. Costo calculado: Q${conversion.costoBase.toFixed(6)} por unidad.`;
+            } catch(error) {
+                vista.textContent = error.message;
+            }
         }
 
         function cambiarLabelCosto() {
             const inputCosto = document.getElementById('inv-costo');
-            const modo = document.getElementById('inv-modo')?.value || 'existente';
-            const prod = inventario.find(p => String(p.id) === String(document.getElementById('ingreso-producto-id')?.value || ''));
-            const unidad = SubliNegocioCore.obtenerUnidad(modo === 'nuevo' ? 'pieza' : (prod?.unidadId || 'pieza'), configuracionNegocio);
+            const unidad = unidadActualIngreso();
             inputCosto.placeholder = `Q por ${unidad.abreviatura}`;
+            actualizarVistaIngresoLote();
         }
 
         function agregarAlCarritoIngreso() {
             const modo = document.getElementById('inv-modo').value;
-            const cantidadIngresada = Number(document.getElementById('inv-stock').value);
+            const formaIngreso = document.getElementById('inv-forma-ingreso').value;
             const proveedor = document.getElementById('inv-proveedor').value.trim().toUpperCase() || 'NO ESPECIFICADO';
             const nit = document.getElementById('inv-nit').value.trim() || '';
-            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || ''; 
-            const costoIngresado = Number(document.getElementById('inv-costo').value || 0);
-            let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null; let productoExistente = null;
+            const factura = document.getElementById('inv-factura').value.trim().toUpperCase() || '';
+            const medidaDescripcion = document.getElementById('inv-medida-descripcion').value;
+            const medidaUnidad = document.getElementById('inv-medida-unidad').value;
+            let nombreProd = ""; let minStock = 5; let categoria = "OTROS"; let selectId = null; let productoExistente = null; let nombreOriginal = '';
 
             if (modo === 'nuevo') {
-                nombreProd = descripcionProductoConMedida(document.getElementById('inv-nombre').value, document.getElementById('inv-medida-descripcion').value);
+                nombreProd = descripcionProductoConMedida(document.getElementById('inv-nombre').value, medidaDescripcion, medidaUnidad);
                 
                 minStock = Number(document.getElementById('inv-min').value || 0);
                 let catElegida = document.getElementById('inv-categoria').value;
@@ -3183,7 +3351,9 @@
                 const idExistente = document.getElementById('ingreso-producto-id').value;
                 if(!idExistente) { alert("⚠️ Por favor, busca y selecciona un producto existente de la lista."); return; }
                 productoExistente = inventario.find(p => String(p.id) === String(idExistente));
-                nombreProd = productoExistente ? productoExistente.nombre : "PRODUCTO";
+                nombreOriginal = productoExistente ? productoExistente.nombre : "PRODUCTO";
+                const descripcionCalculada = descripcionProductoConMedida(nombreOriginal, medidaDescripcion, medidaUnidad);
+                nombreProd = String(descripcionCalculada).toUpperCase() === String(nombreOriginal).toUpperCase() ? nombreOriginal : descripcionCalculada;
                 minStock = productoExistente && productoExistente.min !== undefined ? productoExistente.min : 5;
                 categoria = productoExistente && productoExistente.categoria ? productoExistente.categoria : "OTROS";
                 selectId = idExistente;
@@ -3191,9 +3361,21 @@
 
             const unidadId = modo === 'nuevo' ? 'pieza' : (productoExistente?.unidadId || 'pieza');
             const unidad = SubliNegocioCore.obtenerUnidad(unidadId, configuracionNegocio);
-            let conversion;
+            let conversion; let cantidadComprada; let contenidoPorCompra; let costoIngresado; let tipoCosto;
             try {
-                conversion = SubliNegocioCore.calcularIngresoSimple(cantidadIngresada, costoIngresado, unidad);
+                if(formaIngreso === 'lote') {
+                    cantidadComprada = Number(document.getElementById('inv-cantidad-lotes').value);
+                    contenidoPorCompra = Number(document.getElementById('inv-unidades-lote').value);
+                    costoIngresado = Number(document.getElementById('inv-costo-lote-total').value || 0);
+                    tipoCosto = 'total';
+                    conversion = SubliNegocioCore.calcularIngresoConvertido(cantidadComprada, contenidoPorCompra, costoIngresado, tipoCosto, unidad);
+                } else {
+                    cantidadComprada = Number(document.getElementById('inv-stock').value);
+                    contenidoPorCompra = 1;
+                    costoIngresado = Number(document.getElementById('inv-costo').value || 0);
+                    tipoCosto = 'unitario';
+                    conversion = SubliNegocioCore.calcularIngresoSimple(cantidadComprada, costoIngresado, unidad);
+                }
                 minStock = SubliNegocioCore.normalizarCantidad(minStock, unidad);
             } catch(error) {
                 alert('⚠️ ' + error.message);
@@ -3208,20 +3390,28 @@
                     alert(`❌ El producto "${nombreProd}" ya existe en tu inventario. Por favor, cambia la opción de arriba a "Producto Existente" para sumarle stock.`);
                     return;
                 }
+            } else if(nombreProd !== nombreOriginal) {
+                const descripcionOcupada = inventario.find(producto => String(producto.id) !== String(selectId) && String(producto.nombre || '').toUpperCase() === nombreProd);
+                if(descripcionOcupada) {
+                    alert(`❌ La descripción "${nombreProd}" ya pertenece a otro producto.`);
+                    return;
+                }
             }
 
-            const existeEnCarrito = carritoIngresos.find(item => item.nombre === nombreProd);
+            const existeEnCarrito = carritoIngresos.find(item => modo === 'nuevo' ? item.nombre === nombreProd : String(item.idOriginal) === String(selectId));
             if (existeEnCarrito) {
                 alert(`🔔 El artículo "${nombreProd}" ya está en la lista de ingresos pendiente. Si necesitas cambiar la cantidad, elimínalo de la lista inferior y vuelve a agregarlo con la cantidad correcta.`);
                 return;
             }
             
-            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, stock, cantidadComprada: stock, contenidoPorCompra: 1, min: minStock, costoBase, costoIngresado, tipoCosto: 'unitario', proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
-            
-            document.getElementById('inv-stock').value = ''; document.getElementById('inv-costo').value = ''; document.getElementById('inv-nombre').value = ''; document.getElementById('inv-medida-descripcion').value = ''; document.getElementById('buscador-ingreso-producto').value = ''; document.getElementById('ingreso-producto-id').value = '';
+            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, nombreOriginal, actualizarDescripcion: modo !== 'nuevo' && nombreProd !== nombreOriginal, formaIngreso, stock, cantidadComprada, contenidoPorCompra, min: minStock, costoBase, costoIngresado, tipoCosto, proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
+
+            ['inv-stock', 'inv-costo', 'inv-cantidad-lotes', 'inv-unidades-lote', 'inv-costo-lote-total', 'inv-nombre', 'inv-medida-descripcion', 'buscador-ingreso-producto', 'ingreso-producto-id'].forEach(id => { document.getElementById(id).value = ''; });
+            document.getElementById('inv-medida-unidad').value = '';
             if(document.getElementById('inv-min')) document.getElementById('inv-min').value = '5';
             document.getElementById('inv-categoria').value = 'OTROS'; document.getElementById('inv-categoria-nueva').style.display = 'none'; document.getElementById('inv-categoria-nueva').value = '';
             actualizarVistaMedidaIngreso();
+            actualizarVistaIngresoLote();
             
             renderCarritoIngresos();
         }
@@ -3240,7 +3430,9 @@
                 costoTotalPreview += (item.stock * item.costoBase);
                 let provText = item.proveedor !== 'NO ESPECIFICADO' ? ` | Prov: ${item.proveedor}` : '';
                 let facText = item.factura ? ` | Fac: ${item.factura}` : '';
-                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">Cantidad a ingresar: ${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(provText)}${escaparHTML(facText)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
+                const origenCantidad = item.formaIngreso === 'lote' ? `${numeroFinito(item.cantidadComprada)} lote(s) × ${numeroFinito(item.contenidoPorCompra)} = ` : '';
+                const cambioDescripcion = item.actualizarDescripcion ? ' | Se actualizará la descripción' : '';
+                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">${escaparHTML(origenCantidad)}${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(cambioDescripcion)}${escaparHTML(provText)}${escaparHTML(facText)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
             });
             html += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">Líneas a ingresar: <b>${carritoIngresos.length}</b><br>Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b></div>`;
             contenedor.innerHTML = html;
@@ -3346,6 +3538,7 @@
                             }
                             producto.stock = numeroFinito(item.stockAntes);
                             producto.costo = numeroFinito(item.costoAntes);
+                            if(item.descripcionActualizada && item.nombreAnterior && String(producto.nombre || '') === String(item.nombre || '')) producto.nombre = item.nombreAnterior;
                             producto.lastModified = timestampActual;
                             productosTrabajo.set(clave, producto);
                         }
@@ -3393,6 +3586,12 @@
                             producto = copiarDatos(productosTrabajo.get(String(item.idFinal)));
                             stockAntes = numeroFinito(producto.stock);
                             costoAntes = numeroFinito(producto.costo);
+                            if(item.actualizarDescripcion) {
+                                if(String(producto.nombre || '') !== String(item.nombreOriginal || '')) {
+                                    throw new Error(`La descripción de “${item.nombreOriginal}” cambió en otro dispositivo. Vuelve a seleccionar el producto.`);
+                                }
+                                producto.nombre = item.nombre;
+                            }
                             producto.costo = calcularCostoPromedioPonderado(producto.stock, producto.costo, item.stock, costoFinal);
                             producto.stock = desdeMilesimas(aMilesimas(producto.stock) + aMilesimas(item.stock));
                             producto.lastModified = timestampActual;
@@ -3408,7 +3607,7 @@
                         }
 
                         productosTrabajo.set(String(producto.id), producto);
-                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: item.nombre, stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
+                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: producto.nombre, nombreAnterior: item.actualizarDescripcion ? item.nombreOriginal : null, descripcionActualizada: Boolean(item.actualizarDescripcion), formaIngreso: item.formaIngreso || 'unidad', stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
                     }
 
                     const productosActualizados = Array.from(productosTrabajo.values());
@@ -3462,8 +3661,9 @@
                 if (reg.anulada) return; 
                 let totalGasto = 0; 
                 const resumen = reg.items.map(i => {
-                    totalGasto += (i.stock * (i.costoIngresado || 0)); 
+                    totalGasto += (i.stock * (i.costoIngresado || 0));
                     let info = `+${numeroFinito(i.stock)} ${i.unidadAbreviatura || 'unid'} × ${i.nombre}`;
+                    if(i.formaIngreso === 'lote') info += ` [${numeroFinito(i.cantidadComprada)} lote(s) × ${numeroFinito(i.contenidoPorCompra)}]`;
                     if (i.proveedor && i.proveedor !== "NO ESPECIFICADO") info += ` (${i.proveedor})`;
                     if (i.factura) info += ` [Fac: ${i.factura}]`;
                     if (i.nit) info += ` [NIT: ${i.nit}]`;
@@ -3512,13 +3712,16 @@
                     isNew: false,
                     idOriginal: i.idFinal,
                     nombre: i.nombre,
+                    nombreOriginal: i.nombreAnterior || i.nombre,
+                    actualizarDescripcion: Boolean(i.descripcionActualizada),
+                    formaIngreso: i.formaIngreso || 'unidad',
                     stock: i.stock,
                     cantidadComprada: numeroFinito(i.cantidadComprada, numeroFinito(i.stock)),
                     contenidoPorCompra: numeroFinito(i.contenidoPorCompra, 1),
                     min: producto?.min ?? 5,
                     costoBase: i.costoIngresado || 0,
                     costoIngresado: i.costoIngresado || 0,
-                    tipoCosto: 'unitario',
+                    tipoCosto: i.formaIngreso === 'lote' ? 'total' : 'unitario',
                     proveedor: i.proveedor || '',
                     nit: i.nit || '',
                     factura: i.factura || '',
@@ -3584,6 +3787,7 @@
                     }
                     producto.stock = numeroFinito(item.stockAntes);
                     producto.costo = numeroFinito(item.costoAntes);
+                    if(item.descripcionActualizada && item.nombreAnterior && String(producto.nombre || '') === String(item.nombre || '')) producto.nombre = item.nombreAnterior;
                     producto.lastModified = timestampActual;
                     productosActualizados.push(producto);
                 }
@@ -5866,7 +6070,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.1";
+        const APP_VERSION = "1.2.2";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -5911,6 +6115,8 @@
         window.addEventListener('DOMContentLoaded', async () => {
             // Evita cambios accidentales de cantidades: la rueda vuelve a desplazar la página.
             document.addEventListener('wheel', desactivarRuedaEnCamposNumericos, { capture: true, passive: true });
+            prepararSeccionesConfiguracion();
+            actualizarFormaIngreso();
             const currentVersion = localStorage.getItem("app_version");
 
             if (currentVersion !== APP_VERSION) {

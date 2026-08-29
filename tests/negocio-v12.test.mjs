@@ -33,7 +33,7 @@ test('la configuración del negocio se normaliza y conserva identificadores de u
   assert.equal(core.normalizarConfiguracionNegocio({ porcentajeSAT: 200 }).porcentajeSAT, 5);
 });
 
-test('las unidades y empaques convierten cantidad y costo con precisión', () => {
+test('las unidades y los lotes convierten cantidad y costo con precisión', () => {
   const config = { unidadesPersonalizadas: [{ nombre: 'Rollo', abreviatura: 'roll', divisible: false }] };
   const unidades = core.listarUnidades(config);
   assert.ok(unidades.some(unidad => unidad.id === 'metro' && unidad.divisible));
@@ -41,6 +41,8 @@ test('las unidades y empaques convierten cantidad y costo con precisión', () =>
   const convertido = core.calcularIngresoConvertido(3, 8, 10, 'total', core.obtenerUnidad('pieza', config));
   assert.equal(convertido.cantidadBase, 24);
   assert.equal(convertido.costoBase, 0.416667);
+  assert.deepEqual(plano(core.calcularIngresoConvertido(3, 12, 297, 'total', core.obtenerUnidad('pieza', config))), { cantidadBase: 36, costoBase: 8.25 });
+  assert.throws(() => core.calcularIngresoConvertido(1.5, 12, 100, 'total', core.obtenerUnidad('pieza', config)), /número entero/);
   assert.throws(() => core.normalizarCantidad(1.5, core.obtenerUnidad('pieza', config)), /cantidades enteras/);
   assert.equal(core.normalizarCantidad(1.257, core.obtenerUnidad('kilogramo', config)), 1.257);
 });
@@ -70,15 +72,31 @@ test('ventas y cotizaciones presentan cliente, carrito, gastos y cobro en ese or
   assert.match(cotizaciones, /Generar cotización/);
 });
 
-test('la interfaz de ingreso y clientes permanece simple y plegable', () => {
+test('el ingreso permite unidades sueltas o lotes y conserva la medida solo descriptiva', () => {
   assert.match(html, /id="inv-medida-descripcion"/);
-  assert.match(html, /calcularIngresoSimple\(cantidadIngresada, costoIngresado, unidad\)/);
+  assert.match(html, /id="inv-medida-unidad"/);
+  assert.match(html, /id="inv-forma-ingreso"/);
+  assert.match(html, /id="inv-cantidad-lotes"/);
+  assert.match(html, /id="inv-unidades-lote"/);
+  assert.match(html, /id="inv-costo-lote-total"/);
+  assert.match(html, /calcularIngresoSimple\(cantidadComprada, costoIngresado, unidad\)/);
+  assert.match(html, /calcularIngresoConvertido\(cantidadComprada, contenidoPorCompra, costoIngresado, tipoCosto, unidad\)/);
+  assert.match(html, /actualizarDescripcion: modo !== 'nuevo' && nombreProd !== nombreOriginal/);
   assert.doesNotMatch(html, /id="inv-contenido-compra"/);
   assert.doesNotMatch(html, /id="inv-tipo-costo"/);
+});
+
+test('clientes y configuración permanecen cerrados hasta seleccionarlos', () => {
   ['formulario', 'directorio', 'creditos', 'anticipos'].forEach(opcion => {
     assert.match(html, new RegExp(`id="cliente-opcion-${opcion}"`));
     assert.match(html, new RegExp(`id="cliente-panel-${opcion}"[^>]*hidden`));
   });
+  ['interfaz', 'inteligencia', 'negocio', 'cuenta', 'unidades', 'respaldo', 'clientes', 'usuarios'].forEach(apartado => {
+    assert.match(html, new RegExp(`<details id="ajuste-${apartado}" class="settings-section">`));
+  });
+  assert.match(html, /id="clientes-config-slot"/);
+  assert.doesNotMatch(html, /id="tab-clientes"/);
+  assert.doesNotMatch(html, /id="tab-caja"/);
   assert.match(gestionSource, /function mostrarOpcionClientes/);
   assert.match(gestionSource, /localeCompare/);
   assert.match(finanzasSource, /clienteNombre[\s\S]*localeCompare/);
@@ -177,8 +195,11 @@ test('las fichas de clientes validan identidad y límite de crédito', () => {
   assert.throws(() => core.validarCliente({ nombres: '', apellidos: '' }), /nombre o apellido/);
 });
 
-test('la interfaz integra clientes, caja, unidades, respaldo y los módulos en orden', () => {
-  ['tab-clientes', 'tab-caja', 'sec-clientes', 'sec-caja', 'config-porcentaje-sat', 'config-margen-objetivo', 'config-unidad-nombre', 'archivo-restauracion'].forEach(id => assert.match(html, new RegExp(`id="${id}"`)));
+test('la interfaz integra clientes en configuración y caja en el panel financiero', () => {
+  ['ajuste-clientes', 'clientes-config-slot', 'sec-clientes', 'sec-caja', 'config-porcentaje-sat', 'config-margen-objetivo', 'config-unidad-nombre', 'archivo-restauracion'].forEach(id => assert.match(html, new RegExp(`id="${id}"`)));
+  assert.match(html, /class="quick-finance-actions"[\s\S]*?cambiarPestaña\('caja'\)/);
+  assert.match(html, /accederAjustesProtegidos\('clientes', 'creditos'\)/);
+  assert.doesNotMatch(html, /id="tab-(?:clientes|caja)"/);
   const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./${archivo}"`));
   assert.ok(posiciones.every(posicion => posicion > 0));
   assert.deepEqual([...posiciones].sort((a, b) => a - b), posiciones);
@@ -239,14 +260,14 @@ test('la copia completa valida, crea punto previo y conserva el UID actual', () 
   assert.doesNotMatch(respaldoSource, /lote\.delete/);
 });
 
-test('reglas, PWA y versión 1.2.1 quedan listas para activación controlada', () => {
+test('reglas, PWA y versión 1.2.2 quedan listas para activación controlada', () => {
   const reglas = leer('firestore.rules');
   assert.match(reglas, /request\.auth\.uid == authPropietario\(\)\.get\('uid'/);
   assert.match(reglas, /activacionPropiaValida/);
   assert.match(reglas, /!proteccionActivada\(\) \|\| esPropietarioAutenticado\(\)/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.1' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.1');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.1/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.2' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.2');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.2/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });

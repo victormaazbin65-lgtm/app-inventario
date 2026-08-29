@@ -158,8 +158,9 @@
         const compras = Number(cantidadCompra);
         const contenido = Number(contenidoPorCompra);
         const costo = Number(costoIngresado);
-        if (!Number.isFinite(compras) || compras <= 0) throw new Error('La cantidad comprada debe ser mayor que cero.');
-        if (!Number.isFinite(contenido) || contenido <= 0) throw new Error('El contenido por empaque debe ser mayor que cero.');
+        if (!Number.isFinite(compras) || compras <= 0) throw new Error('La cantidad de lotes o paquetes debe ser mayor que cero.');
+        if (!Number.isInteger(compras)) throw new Error('La cantidad de lotes o paquetes debe ser un número entero.');
+        if (!Number.isFinite(contenido) || contenido <= 0) throw new Error('Las unidades por lote o paquete deben ser mayores que cero.');
         if (!Number.isFinite(costo) || costo < 0) throw new Error('El costo no puede ser negativo.');
         const cantidadBase = normalizarCantidad(compras * contenido, unidad);
         if (cantidadBase <= 0) throw new Error('La conversión no produjo existencias válidas.');

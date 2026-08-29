@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.1' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.2' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -58,6 +58,16 @@ test('el costo promedio ponderado conserva el valor del inventario', () => {
   assert.equal(costo, 6);
   assert.equal((15 * costo), (10 * 5) + (5 * 8));
   assert.throws(() => contexto.calcularCostoPromedioPonderado(10, 5, -1, 8));
+});
+
+test('la medida opcional completa la descripción sin participar en los cálculos', () => {
+  const contexto = vm.createContext({ String });
+  vm.runInContext(extraerFuncion('descripcionProductoConMedida'), contexto);
+  assert.equal(contexto.descripcionProductoConMedida('Taza blanca', '11', 'oz'), 'TAZA BLANCA 11 OZ');
+  assert.equal(contexto.descripcionProductoConMedida('Taza blanca 11 oz', '11', 'oz'), 'TAZA BLANCA 11 OZ');
+  assert.equal(contexto.descripcionProductoConMedida('Vaso', 'caja de 36', ''), 'VASO CAJA DE 36');
+  assert.equal(contexto.descripcionProductoConMedida('Vaso', '', ''), 'VASO');
+  assert.match(scriptClasico, /descripcionActualizada[\s\S]*?producto\.nombre = item\.nombreAnterior/);
 });
 
 test('sumar y revertir una venta devuelve el resumen mensual al punto inicial', () => {
@@ -619,8 +629,8 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.1"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.1/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.2"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.2/);
   assert.match(leer('sw.js'), /\.\/buscador\.js/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(`\\.\\/${archivo.replace('.', '\\.')}`)));
   for(const icono of manifest.icons) {

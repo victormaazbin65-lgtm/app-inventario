@@ -566,8 +566,15 @@
             select.innerHTML = unidades.map(u => `<option value="${escaparHTML(u.id)}">${escaparHTML(u.nombre)} (${escaparHTML(u.abreviatura)})${u.divisible ? ' · fraccionable' : ''}</option>`).join('');
             select.value = unidades.some(u => u.id === anterior) ? anterior : 'pieza';
         });
+        const medidaDescripcion = document.getElementById('inv-medida-unidad');
+        if (medidaDescripcion) {
+            const anterior = medidaDescripcion.value;
+            medidaDescripcion.innerHTML = '<option value="">Sin unidad de medida</option>' + unidades.map(unidad => `<option value="${escaparHTML(unidad.abreviatura)}">${escaparHTML(unidad.nombre)} (${escaparHTML(unidad.abreviatura)})</option>`).join('');
+            medidaDescripcion.value = unidades.some(unidad => unidad.abreviatura === anterior) ? anterior : '';
+        }
         actualizarUnidadIngreso();
         actualizarPasoEdicionUnidad();
+        if (typeof global.actualizarVistaMedidaIngreso === 'function') global.actualizarVistaMedidaIngreso();
     }
 
     function actualizarPasoUnidadPersonalizada() {
