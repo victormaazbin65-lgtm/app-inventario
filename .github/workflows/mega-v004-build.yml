@@ -1,0 +1,53 @@
+name: Build MEGA v0.04
+on:
+  push:
+    branches:
+      - mega-apk-v004-temp
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.13
+
+      - name: Extract MEGA source
+        run: |
+          cat mega_v004/chunk_* > source.b64
+          base64 -d source.b64 > mega.zip
+          unzip -q mega.zip
+
+      - name: Build unsigned release
+        working-directory: MEGA_v0.01
+        run: gradle assembleRelease --no-daemon
+
+      - name: Package build and signing tools
+        run: |
+          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.04-unsigned.apk
+          mkdir -p signtools/lib
+          cp "$ANDROID_HOME/build-tools/36.0.0/apksigner" signtools/
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" signtools/lib/
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MEGA-v0.04-build
+          path: |
+            MEGA-v0.04-unsigned.apk
+            signtools/
