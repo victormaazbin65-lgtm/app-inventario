@@ -44,7 +44,14 @@ jobs:
           cat mega_v008_patch_chunks/chunk_* > patch8.b64
           base64 -d patch8.b64 > patch8.tar.xz
           tar -xJf patch8.tar.xz -C MEGA_v0.01
+
+      - name: Apply MEGA v0.08 startup hotfix
+        run: |
+          cat mega_v008_hotfix_chunks/chunk_* > hotfix.b64
+          base64 -d hotfix.b64 > hotfix.tar.xz
+          tar -xJf hotfix.tar.xz -C MEGA_v0.01
           grep -q "versionName '0.08'" MEGA_v0.01/app/build.gradle
+          grep -q "buildEmergencyUi" MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
           grep -q "activate3D" MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
           grep -q "glFailed" MEGA_v0.01/app/src/main/java/com/mega/pet/Mega3DView.java
 
