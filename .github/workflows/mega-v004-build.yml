@@ -1,4 +1,4 @@
-name: Build MEGA v0.07
+name: Build MEGA v0.08
 on:
   push:
     branches:
@@ -38,9 +38,15 @@ jobs:
           cat mega_v007_patch_chunks/chunk_* > patch.b64
           base64 -d patch.b64 > patch.tar.xz
           tar -xJf patch.tar.xz -C MEGA_v0.01
-          grep -q "versionName '0.07'" MEGA_v0.01/app/build.gradle
-          grep -q "safeShowNotification" MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
-          grep -q "gpt-5.6-luna" MEGA_v0.01/app/src/main/java/com/mega/pet/MegaBrain.java
+
+      - name: Apply MEGA v0.08 safe-start patch
+        run: |
+          cat mega_v008_patch_chunks/chunk_* > patch8.b64
+          base64 -d patch8.b64 > patch8.tar.xz
+          tar -xJf patch8.tar.xz -C MEGA_v0.01
+          grep -q "versionName '0.08'" MEGA_v0.01/app/build.gradle
+          grep -q "activate3D" MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
+          grep -q "glFailed" MEGA_v0.01/app/src/main/java/com/mega/pet/Mega3DView.java
 
       - name: Build unsigned release
         working-directory: MEGA_v0.01
@@ -48,7 +54,7 @@ jobs:
 
       - name: Package build and signing tools
         run: |
-          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.07-unsigned.apk
+          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.08-unsigned.apk
           mkdir -p signtools/lib
           cp "$ANDROID_HOME/build-tools/36.0.0/apksigner" signtools/
           cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" signtools/lib/
@@ -56,7 +62,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: MEGA-v0.07-build
+          name: MEGA-v0.08-build
           path: |
-            MEGA-v0.07-unsigned.apk
+            MEGA-v0.08-unsigned.apk
             signtools/
