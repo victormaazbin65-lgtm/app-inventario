@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -27,11 +27,25 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Extract MEGA v0.06 source
+      - name: Extract and fix MEGA v0.06 source
         run: |
           cat mega_v006_chunks/chunk_* > source.b64
           base64 -d source.b64 > mega.zip
           unzip -q mega.zip
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java')
+          s=p.read_text()
+          if 'import android.view.inputmethod.InputMethodManager;' not in s:
+              s=s.replace('import android.view.*;', 'import android.view.*;\nimport android.view.inputmethod.InputMethodManager;')
+          p.write_text(s)
+          p=Path('MEGA_v0.01/app/src/main/java/com/mega/pet/MegaBrain.java')
+          s=p.read_text()
+          old='''        request(c, prompt, (ok, text) -> {\n            if (!ok || text == null || text.trim().equalsIgnoreCase("[SILENCIO]")) return;\n            cb.done(true, text);\n        });'''
+          new='''        request(c, prompt, (ok, text) -> {\n            if (!ok || text == null || text.trim().equalsIgnoreCase("[SILENCIO]")) return;\n            cb.done(true, text);\n        }, false);'''
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
 
       - name: Build unsigned release
         working-directory: MEGA_v0.01
