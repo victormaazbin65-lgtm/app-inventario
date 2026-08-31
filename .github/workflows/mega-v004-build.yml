@@ -1,4 +1,4 @@
-name: Build MEGA v0.05
+name: Build MEGA v0.06
 on:
   push:
     branches:
@@ -27,20 +27,10 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Extract MEGA v0.04 base
+      - name: Extract MEGA v0.06 source
         run: |
-          cat mega_v004/chunk_* > source.b64
-          base64 -d source.b64 > mega.zip
+          base64 -d mega_v006/source.b64 > mega.zip
           unzip -q mega.zip
-
-      - name: Apply MEGA v0.05 brain and UI
-        run: |
-          cp mega_patch_v005/MainActivity.java MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
-          cp mega_patch_v005/MegaPrefs.java MEGA_v0.01/app/src/main/java/com/mega/pet/MegaPrefs.java
-          cp mega_patch_v005/LearnedSkills.java MEGA_v0.01/app/src/main/java/com/mega/pet/LearnedSkills.java
-          cp mega_patch_v005/AndroidManifest.xml MEGA_v0.01/app/src/main/AndroidManifest.xml
-          cp mega_patch_v005/app_build.gradle MEGA_v0.01/app/build.gradle
-          python3 mega_patch_v005/patch_v005.py
 
       - name: Build unsigned release
         working-directory: MEGA_v0.01
@@ -48,7 +38,7 @@ jobs:
 
       - name: Package build and signing tools
         run: |
-          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.05-unsigned.apk
+          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.06-unsigned.apk
           mkdir -p signtools/lib
           cp "$ANDROID_HOME/build-tools/36.0.0/apksigner" signtools/
           cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" signtools/lib/
@@ -56,7 +46,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: MEGA-v0.05-build
+          name: MEGA-v0.06-build
           path: |
-            MEGA-v0.05-unsigned.apk
+            MEGA-v0.06-unsigned.apk
             signtools/
