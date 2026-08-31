@@ -1,4 +1,4 @@
-name: Test MEGA v0.07 startup
+name: Test MEGA v0.09 startup
 on:
   push:
     branches:
@@ -27,16 +27,20 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Reconstruct source
+      - name: Reconstruct current source
         run: |
           cat mega_v006_chunks/chunk_* > source.b64
           base64 -d source.b64 > mega.zip
           unzip -q mega.zip
-          cat mega_v007_patch_chunks/chunk_* > patch.b64
-          base64 -d patch.b64 > patch.tar.xz
-          tar -xJf patch.tar.xz -C MEGA_v0.01
+          for v in mega_v007_patch_chunks mega_v008_patch_chunks mega_v008_hotfix_chunks mega_v009_patch_chunks; do
+            cat "$v"/chunk_* > one.b64
+            base64 -d one.b64 > one.tar.xz
+            tar -xJf one.tar.xz -C MEGA_v0.01
+          done
+          grep -q "SafeLauncherActivity" MEGA_v0.01/app/src/main/AndroidManifest.xml
+          grep -q "versionName '0.09'" MEGA_v0.01/app/build.gradle
 
-      - name: Launch without notification permission
+      - name: Launch safe and full modes without permissions
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -48,13 +52,32 @@ jobs:
             gradle -p MEGA_v0.01 assembleDebug --no-daemon
             adb install -r MEGA_v0.01/app/build/outputs/apk/debug/app-debug.apk
             adb logcat -c
-            adb shell am start -W -n com.mega.pet/.MainActivity
-            sleep 8
+
+            echo "=== SAFE LAUNCHER ==="
+            adb shell am start -W -n com.mega.pet/.SafeLauncherActivity
+            sleep 5
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
-            echo "MEGA PID=$PID"
+            echo "MEGA safe PID=$PID"
             test -n "$PID"
+            adb shell dumpsys activity activities | grep -m1 "mResumedActivity" || true
             if adb logcat -d | grep -q "FATAL EXCEPTION.*com.mega.pet"; then
-              adb logcat -d | grep -A 80 -B 10 "FATAL EXCEPTION"
+              adb logcat -d | grep -A 100 -B 15 "FATAL EXCEPTION"
               exit 1
             fi
-            echo "MEGA stayed alive after launch"
+
+            echo "=== FULL MEGA VIA SAFE LAUNCHER ==="
+            adb shell am force-stop com.mega.pet
+            adb logcat -c
+            adb shell am start -W -n com.mega.pet/.SafeLauncherActivity --ez test_full true
+            sleep 10
+            PID=$(adb shell pidof com.mega.pet | tr -d '\r')
+            echo "MEGA full PID=$PID"
+            if [ -z "$PID" ]; then
+              adb logcat -d | grep -A 120 -B 20 "FATAL EXCEPTION" || adb logcat -d | tail -300
+              exit 1
+            fi
+            if adb logcat -d | grep -q "FATAL EXCEPTION.*com.mega.pet"; then
+              adb logcat -d | grep -A 120 -B 20 "FATAL EXCEPTION"
+              exit 1
+            fi
+            echo "MEGA safe launcher and full activity stayed alive"
