@@ -1,4 +1,4 @@
-name: Test MEGA v0.11 fresh startup
+name: Test MEGA v0.12 startup
 on:
   push:
     branches:
@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Reconstruct fresh source
+      - name: Reconstruct MEGA v0.12 source
         run: |
           cat mega_v006_chunks/chunk_* > source.b64
           base64 -d source.b64 > mega.zip
@@ -48,8 +48,6 @@ jobs:
           manifest.write_text(text)
           gradle = root / 'app/build.gradle'
           text = gradle.read_text().replace("namespace 'com.mega.pet'", "namespace 'com.mega.virtualai'").replace("applicationId 'com.mega.pet'", "applicationId 'com.mega.virtualai'")
-          text = re.sub(r'versionCode\s+\d+', 'versionCode 11', text, count=1)
-          text = re.sub(r"versionName\s+'[^']+'", "versionName '0.11'", text, count=1)
           gradle.write_text(text)
           old = root / 'app/src/main/java/com/mega/pet'
           new = root / 'app/src/main/java/com/mega/virtualai'
@@ -57,8 +55,7 @@ jobs:
           if new.exists(): shutil.rmtree(new)
           old.rename(new)
           for p in new.rglob('*.java'):
-              s=p.read_text().replace('package com.mega.pet;', 'package com.mega.virtualai;').replace('com.mega.pet.', 'com.mega.virtualai.')
-              p.write_text(s)
+              p.write_text(p.read_text().replace('package com.mega.pet;', 'package com.mega.virtualai;').replace('com.mega.pet.', 'com.mega.virtualai.'))
           main = new / 'MainActivity.java'
           text = main.read_text()
           pattern = r'    private boolean hasInternet\(\) \{.*?^    \}\n\n    private String connectivityLine\(\) \{'
@@ -84,17 +81,24 @@ jobs:
           if count != 1: raise SystemExit('Could not patch hasInternet()')
           main.write_text(text)
           PY
-          grep -q "applicationId 'com.mega.virtualai'" MEGA_v0.01/app/build.gradle
+          cp mega_v012_overlay/app/build.gradle MEGA_v0.01/app/build.gradle
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MainActivity.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MainActivity.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaPrefs.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaPrefs.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaBrain.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaBrain.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/Mega3DView.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/Mega3DView.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaRobotView.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaRobotView.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaNotifier.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaNotifier.java
+          grep -q "versionName '0.12'" MEGA_v0.01/app/build.gradle
           grep -q "SafeLauncherActivity" MEGA_v0.01/app/src/main/AndroidManifest.xml
 
-      - name: Launch safe and full modes without permissions
+      - name: Launch safe and full v0.12 without permissions
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 35
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect
           script: |
             gradle -p MEGA_v0.01 assembleDebug --no-daemon
             adb install -r MEGA_v0.01/app/build/outputs/apk/debug/app-debug.apk
@@ -108,9 +112,9 @@ jobs:
             adb shell am force-stop com.mega.virtualai
             adb logcat -c
             adb shell am start -W -n com.mega.virtualai/com.mega.virtualai.SafeLauncherActivity --ez test_full true
-            sleep 10
+            sleep 12
             PID=$(adb shell pidof com.mega.virtualai | tr -d '\r')
             echo "MEGA full PID=$PID"
             if [ -z "$PID" ]; then adb logcat -d | tail -1000; exit 1; fi
             if adb logcat -d | grep -q "FATAL EXCEPTION"; then adb logcat -d | grep -A 180 -B 40 "FATAL EXCEPTION"; exit 1; fi
-            echo "MEGA v0.11 fresh startup passed"
+            echo "MEGA v0.12 startup passed"
