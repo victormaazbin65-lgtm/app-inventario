@@ -1,0 +1,61 @@
+name: Test MEGA v0.07 startup
+on:
+  push:
+    branches:
+      - mega-apk-v004-temp
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install build SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.13
+
+      - name: Reconstruct source
+        run: |
+          cat mega_v006_chunks/chunk_* > source.b64
+          base64 -d source.b64 > mega.zip
+          unzip -q mega.zip
+          cat mega_v007_patch_chunks/chunk_* > patch.b64
+          base64 -d patch.b64 > patch.tar.xz
+          tar -xJf patch.tar.xz -C MEGA_v0.01
+
+      - name: Launch without notification permission
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            cd MEGA_v0.01
+            gradle assembleDebug --no-daemon
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n com.mega.pet/.MainActivity
+            sleep 5
+            PID=$(adb shell pidof com.mega.pet | tr -d '\r')
+            echo "MEGA PID=$PID"
+            test -n "$PID"
+            if adb logcat -d | grep -q "FATAL EXCEPTION.*com.mega.pet"; then
+              adb logcat -d | grep -A 80 -B 10 "FATAL EXCEPTION"
+              exit 1
+            fi
+            echo "MEGA stayed alive after launch"
