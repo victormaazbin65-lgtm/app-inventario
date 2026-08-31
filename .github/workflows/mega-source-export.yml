@@ -1,0 +1,21 @@
+name: Export MEGA source
+on:
+  push:
+    branches:
+      - mega-apk-v004-temp
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Reconstruct source
+        run: |
+          cat mega_v006_chunks/chunk_* > source.b64
+          base64 -d source.b64 > mega.zip
+          unzip -q mega.zip
+      - name: Upload reconstructed source
+        uses: actions/upload-artifact@v4
+        with:
+          name: MEGA-source-v006
+          path: MEGA_v0.01/
