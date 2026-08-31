@@ -1,4 +1,4 @@
-name: Build MEGA v0.06
+name: Build MEGA v0.07
 on:
   push:
     branches:
@@ -27,25 +27,20 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Extract and fix MEGA v0.06 source
+      - name: Reconstruct MEGA v0.06 base
         run: |
           cat mega_v006_chunks/chunk_* > source.b64
           base64 -d source.b64 > mega.zip
           unzip -q mega.zip
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java')
-          s=p.read_text()
-          if 'import android.view.inputmethod.InputMethodManager;' not in s:
-              s=s.replace('import android.view.*;', 'import android.view.*;\nimport android.view.inputmethod.InputMethodManager;')
-          p.write_text(s)
-          p=Path('MEGA_v0.01/app/src/main/java/com/mega/pet/MegaBrain.java')
-          s=p.read_text()
-          old='''        request(c, prompt, (ok, text) -> {\n            if (!ok || text == null || text.trim().equalsIgnoreCase("[SILENCIO]")) return;\n            cb.done(true, text);\n        });'''
-          new='''        request(c, prompt, (ok, text) -> {\n            if (!ok || text == null || text.trim().equalsIgnoreCase("[SILENCIO]")) return;\n            cb.done(true, text);\n        }, false);'''
-          s=s.replace(old,new)
-          p.write_text(s)
-          PY
+
+      - name: Apply MEGA v0.07 patch
+        run: |
+          cat mega_v007_patch_chunks/chunk_* > patch.b64
+          base64 -d patch.b64 > patch.tar.xz
+          tar -xJf patch.tar.xz -C MEGA_v0.01
+          grep -q "versionName '0.07'" MEGA_v0.01/app/build.gradle
+          grep -q "safeShowNotification" MEGA_v0.01/app/src/main/java/com/mega/pet/MainActivity.java
+          grep -q "gpt-5.6-luna" MEGA_v0.01/app/src/main/java/com/mega/pet/MegaBrain.java
 
       - name: Build unsigned release
         working-directory: MEGA_v0.01
@@ -53,7 +48,7 @@ jobs:
 
       - name: Package build and signing tools
         run: |
-          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.06-unsigned.apk
+          cp MEGA_v0.01/app/build/outputs/apk/release/app-release-unsigned.apk MEGA-v0.07-unsigned.apk
           mkdir -p signtools/lib
           cp "$ANDROID_HOME/build-tools/36.0.0/apksigner" signtools/
           cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" signtools/lib/
@@ -61,7 +56,7 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: MEGA-v0.06-build
+          name: MEGA-v0.07-build
           path: |
-            MEGA-v0.06-unsigned.apk
+            MEGA-v0.07-unsigned.apk
             signtools/
