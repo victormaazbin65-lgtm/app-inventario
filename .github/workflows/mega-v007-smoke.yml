@@ -45,12 +45,11 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            cd MEGA_v0.01
-            gradle assembleDebug --no-daemon
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            gradle -p MEGA_v0.01 assembleDebug --no-daemon
+            adb install -r MEGA_v0.01/app/build/outputs/apk/debug/app-debug.apk
             adb logcat -c
             adb shell am start -W -n com.mega.pet/.MainActivity
-            sleep 5
+            sleep 8
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
             echo "MEGA PID=$PID"
             test -n "$PID"
