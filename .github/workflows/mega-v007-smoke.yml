@@ -5,7 +5,7 @@ on:
       - mega-apk-v004-temp
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim
           script: |
             gradle -p MEGA_v0.01 assembleDebug --no-daemon
             adb install -r MEGA_v0.01/app/build/outputs/apk/debug/app-debug.apk
@@ -55,13 +55,19 @@ jobs:
 
             echo "=== SAFE LAUNCHER ==="
             adb shell am start -W -n com.mega.pet/.SafeLauncherActivity
-            sleep 5
+            sleep 4
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
             echo "MEGA safe PID=$PID"
-            test -n "$PID"
+            if [ -z "$PID" ]; then
+              echo "=== LOGCAT AFTER SAFE LAUNCH FAILED ==="
+              adb logcat -d | tail -700
+              echo "=== ACTIVITY STATE ==="
+              adb shell dumpsys activity activities | tail -250 || true
+              exit 1
+            fi
             adb shell dumpsys activity activities | grep -m1 "mResumedActivity" || true
-            if adb logcat -d | grep -q "FATAL EXCEPTION.*com.mega.pet"; then
-              adb logcat -d | grep -A 100 -B 15 "FATAL EXCEPTION"
+            if adb logcat -d | grep -q "FATAL EXCEPTION"; then
+              adb logcat -d | grep -A 140 -B 30 "FATAL EXCEPTION"
               exit 1
             fi
 
@@ -73,11 +79,12 @@ jobs:
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
             echo "MEGA full PID=$PID"
             if [ -z "$PID" ]; then
-              adb logcat -d | grep -A 120 -B 20 "FATAL EXCEPTION" || adb logcat -d | tail -300
+              echo "=== LOGCAT AFTER FULL LAUNCH FAILED ==="
+              adb logcat -d | tail -1000
               exit 1
             fi
-            if adb logcat -d | grep -q "FATAL EXCEPTION.*com.mega.pet"; then
-              adb logcat -d | grep -A 120 -B 20 "FATAL EXCEPTION"
+            if adb logcat -d | grep -q "FATAL EXCEPTION"; then
+              adb logcat -d | grep -A 180 -B 40 "FATAL EXCEPTION"
               exit 1
             fi
             echo "MEGA safe launcher and full activity stayed alive"
