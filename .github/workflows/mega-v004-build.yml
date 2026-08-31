@@ -86,9 +86,13 @@ jobs:
 
       - name: Apply MEGA v0.12 redesign and local brain
         run: |
-          cat mega_v012_patch_chunks/chunk_* > v12.b64
-          base64 -d v12.b64 > v12.tar.xz
-          tar -xJf v12.tar.xz -C MEGA_v0.01
+          cp mega_v012_overlay/app/build.gradle MEGA_v0.01/app/build.gradle
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MainActivity.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MainActivity.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaPrefs.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaPrefs.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaBrain.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaBrain.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/Mega3DView.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/Mega3DView.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaRobotView.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaRobotView.java
+          cp mega_v012_overlay/app/src/main/java/com/mega/virtualai/MegaNotifier.java MEGA_v0.01/app/src/main/java/com/mega/virtualai/MegaNotifier.java
           grep -q "versionName '0.12'" MEGA_v0.01/app/build.gradle
           grep -q "applicationId 'com.mega.virtualai'" MEGA_v0.01/app/build.gradle
           grep -q "MEGA Neo" MEGA_v0.01/app/src/main/java/com/mega/virtualai/Mega3DView.java
