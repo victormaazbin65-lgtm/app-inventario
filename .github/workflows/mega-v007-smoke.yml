@@ -1,11 +1,11 @@
-name: Test MEGA v0.09 startup
+name: Test MEGA v0.10 startup
 on:
   push:
     branches:
       - mega-apk-v004-temp
 jobs:
   smoke:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: 8.13
 
-      - name: Reconstruct current source
+      - name: Reconstruct and patch current source
         run: |
           cat mega_v006_chunks/chunk_* > source.b64
           python3 -c "import base64;open('mega.zip','wb').write(base64.b64decode(open('source.b64','rb').read()))"
@@ -37,8 +37,49 @@ jobs:
             python3 -c "import base64;open('one.tar.xz','wb').write(base64.b64decode(open('one.b64','rb').read()))"
             tar -xJf one.tar.xz -C MEGA_v0.01
           done
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('MEGA_v0.01')
+          manifest = root / 'app/src/main/AndroidManifest.xml'
+          text = manifest.read_text()
+          if 'android.permission.ACCESS_NETWORK_STATE' not in text:
+              text = text.replace('<uses-permission android:name="android.permission.INTERNET" />', '<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />')
+          manifest.write_text(text)
+          gradle = root / 'app/build.gradle'
+          text = gradle.read_text()
+          text = re.sub(r'versionCode\s+\d+', 'versionCode 10', text, count=1)
+          text = re.sub(r"versionName\s+'[^']+'", "versionName '0.10'", text, count=1)
+          gradle.write_text(text)
+          main = root / 'app/src/main/java/com/mega/pet/MainActivity.java'
+          text = main.read_text()
+          pattern = r'    private boolean hasInternet\(\) \{.*?^    \}\n\n    private String connectivityLine\(\) \{'
+          replacement = '''    private boolean hasInternet() {
+              try {
+                  ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+                  if (cm == null) return false;
+                  Network n = cm.getActiveNetwork();
+                  if (n == null) return false;
+                  NetworkCapabilities caps = cm.getNetworkCapabilities(n);
+                  if (caps == null) return false;
+                  return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                          && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                          || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                          || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+              } catch (RuntimeException e) {
+                  return false;
+              }
+          }
+
+          private String connectivityLine() {'''
+          text, count = re.subn(pattern, replacement, text, count=1, flags=re.S | re.M)
+          if count != 1:
+              raise SystemExit('Could not patch hasInternet()')
+          main.write_text(text)
+          PY
           grep -q "SafeLauncherActivity" MEGA_v0.01/app/src/main/AndroidManifest.xml
-          grep -q "versionName '0.09'" MEGA_v0.01/app/build.gradle
+          grep -q "versionName '0.10'" MEGA_v0.01/app/build.gradle
+          grep -q "ACCESS_NETWORK_STATE" MEGA_v0.01/app/src/main/AndroidManifest.xml
 
       - name: Launch safe and full modes without permissions
         uses: ReactiveCircus/android-emulator-runner@v2
@@ -59,19 +100,15 @@ jobs:
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
             echo "MEGA safe PID=$PID"
             if [ -z "$PID" ]; then
-              echo "=== LOGCAT AFTER SAFE LAUNCH FAILED ==="
               adb logcat -d | tail -700
-              echo "=== ACTIVITY STATE ==="
-              adb shell dumpsys activity activities | tail -250 || true
               exit 1
             fi
-            adb shell dumpsys activity activities | grep -m1 "mResumedActivity" || true
             if adb logcat -d | grep -q "FATAL EXCEPTION"; then
               adb logcat -d | grep -A 140 -B 30 "FATAL EXCEPTION"
               exit 1
             fi
 
-            echo "=== FULL MEGA VIA SAFE LAUNCHER ==="
+            echo "=== FULL MEGA ==="
             adb shell am force-stop com.mega.pet
             adb logcat -c
             adb shell am start -W -n com.mega.pet/.SafeLauncherActivity --ez test_full true
@@ -79,7 +116,6 @@ jobs:
             PID=$(adb shell pidof com.mega.pet | tr -d '\r')
             echo "MEGA full PID=$PID"
             if [ -z "$PID" ]; then
-              echo "=== LOGCAT AFTER FULL LAUNCH FAILED ==="
               adb logcat -d | tail -1000
               exit 1
             fi
@@ -87,4 +123,4 @@ jobs:
               adb logcat -d | grep -A 180 -B 40 "FATAL EXCEPTION"
               exit 1
             fi
-            echo "MEGA safe launcher and full activity stayed alive"
+            echo "MEGA v0.10 startup passed"
