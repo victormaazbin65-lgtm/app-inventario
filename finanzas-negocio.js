@@ -16,6 +16,16 @@
         return salida;
     }
 
+    function normalizarMontoMoneda(valor) {
+        const numero = Number(valor);
+        if (!Number.isFinite(numero)) throw new Error('El monto debe ser un número válido.');
+        const centavos = core.aCentavos(numero);
+        const normalizado = core.desdeCentavos(centavos);
+        if (centavos <= 0) throw new Error('El monto mínimo es Q 0.01.');
+        if (Math.abs(numero - normalizado) > 1e-9) throw new Error('El monto admite como máximo dos decimales.');
+        return normalizado;
+    }
+
     function movimientoCaja(tipo, monto, ubicacion, detalles = {}) {
         const timestamp = Date.now();
         return {
@@ -81,11 +91,11 @@
         if (!exigirDueno('Solo el Dueño puede registrar anticipos.') || !navigator.onLine || isProcessingTransaction) return;
         const clienteId = document.getElementById('anticipo-cliente').value;
         const cliente = clientes.find(c => String(c.id) === String(clienteId) && !c.archivado);
-        const monto = Number(document.getElementById('anticipo-monto').value);
+        let monto;
         const metodo = document.getElementById('anticipo-metodo').value;
         const motivo = document.getElementById('anticipo-motivo').value.trim();
         if (!cliente) return alert('Selecciona un cliente guardado.');
-        if (!Number.isFinite(monto) || monto <= 0) return alert('Escribe un monto válido mayor a cero.');
+        try { monto = normalizarMontoMoneda(document.getElementById('anticipo-monto').value); } catch (error) { return alert(error.message); }
         if (!motivo) return alert('Escribe el motivo o trabajo del anticipo.');
         const ubicacion = core.ubicacionMetodoPago(metodo);
         if (!confirm(`Registrar ${dineroNegocio(monto)} como anticipo de ${cliente.nombreCompleto} en ${ubicacion}?`)) return;
@@ -109,17 +119,23 @@
                 }
                 const data = configSnap.exists() ? configSnap.data() : {};
                 const clienteServidor = clienteSnap.data();
+                const anticiposBase = Number.isFinite(Number(clienteServidor.saldoAnticipos))
+                    ? core.redondearMoneda(clienteServidor.saldoAnticipos)
+                    : totalAnticiposCliente(cliente.id);
+                const clienteActualizado = { ...clienteServidor, saldoAnticipos: core.desdeCentavos(core.aCentavos(anticiposBase) + core.aCentavos(monto)), ultimaOperacionAnticipoEn: timestamp };
                 const anticipoServidor = { ...anticipo, clienteNombre: clienteServidor.nombreCompleto || cliente.nombreCompleto };
                 const movimientoServidor = { ...movimiento, clienteId: String(cliente.id), referenciaId: anticipoServidor.id };
                 const saldos = cambiarSaldo(saldoServidor(data), ubicacion, monto, 1);
                 t.set(configRef, { ...data, saldosDinero: saldos, ultimaActualizacion: timestamp });
+                t.set(clienteRef, clienteActualizado);
                 t.set(global.doc(global.db, 'anticipos', String(anticipoServidor.id)), anticipoServidor);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimientoServidor.id)), movimientoServidor);
-                return { saldos, anticipo: anticipoServidor, movimiento: movimientoServidor };
+                return { saldos, anticipo: anticipoServidor, movimiento: movimientoServidor, clienteActualizado };
             });
             saldosDinero = resultado.saldos;
             anticipos = fusionarPorId(anticipos, [resultado.anticipo]);
             movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
+            clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
             document.getElementById('anticipo-monto').value = '';
             document.getElementById('anticipo-motivo').value = '';
             renderFinanzasNegocio(); actualizarUI();
@@ -136,8 +152,9 @@
         if (!local || Number(local.saldoPendiente) <= 0) return;
         const texto = prompt(`Saldo disponible: ${dineroNegocio(local.saldoPendiente)}. ¿Cuánto devolver?`, Number(local.saldoPendiente).toFixed(2));
         if (texto === null) return;
-        const monto = Number(texto);
-        if (!Number.isFinite(monto) || monto <= 0 || core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto de devolución inválido.');
+        let monto;
+        try { monto = normalizarMontoMoneda(texto); } catch (error) { return alert(error.message); }
+        if (core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto de devolución inválido.');
         const metodo = prompt('Método de devolución: escribe efectivo, transferencia o deposito.', local.metodo || 'efectivo');
         if (metodo === null) return;
         if (!core.METODOS_PAGO[String(metodo).toLowerCase()]) return alert('Método no válido.');
@@ -155,19 +172,31 @@
                 const configSnap = await t.get(configRef);
                 if (!anticipoSnap.exists()) throw new Error('El anticipo ya no existe.');
                 const actual = anticipoSnap.data();
+                const clienteRef = actual.clienteId ? global.doc(global.db, 'clientes', String(actual.clienteId)) : null;
+                const clienteSnap = clienteRef ? await t.get(clienteRef) : null;
                 if (core.aCentavos(monto) > core.aCentavos(actual.saldoPendiente)) throw new Error('El saldo cambió desde otro dispositivo.');
                 const data = configSnap.exists() ? configSnap.data() : {};
                 const saldos = cambiarSaldo(saldoServidor(data), ubicacion, monto, -1);
                 const saldoNuevo = core.desdeCentavos(core.aCentavos(actual.saldoPendiente) - core.aCentavos(monto));
                 const actualizado = { ...actual, saldoPendiente: saldoNuevo, devueltoTotal: core.redondearMoneda(Number(actual.devueltoTotal || 0) + monto), estado: saldoNuevo === 0 ? 'devuelto' : 'pendiente', actualizadoEn: timestamp };
+                let clienteActualizado = null;
+                if (clienteSnap?.exists()) {
+                    const clienteServidor = clienteSnap.data();
+                    const anticiposBase = Number.isFinite(Number(clienteServidor.saldoAnticipos))
+                        ? core.redondearMoneda(clienteServidor.saldoAnticipos)
+                        : totalAnticiposCliente(actual.clienteId);
+                    clienteActualizado = { ...clienteServidor, saldoAnticipos: core.desdeCentavos(Math.max(0, core.aCentavos(anticiposBase) - core.aCentavos(monto))), ultimaOperacionAnticipoEn: timestamp };
+                }
                 t.set(anticipoRef, actualizado);
                 t.set(configRef, { ...data, saldosDinero: saldos, ultimaActualizacion: timestamp });
+                if (clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { actualizado, saldos };
+                return { actualizado, saldos, clienteActualizado };
             });
             saldosDinero = resultado.saldos;
             anticipos = fusionarPorId(anticipos, [resultado.actualizado]);
             movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            if (resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
             renderFinanzasNegocio(); actualizarUI();
             alert('✅ Devolución de anticipo registrada.');
         } catch (error) { alert('No se realizó la devolución. ' + error.message); }
@@ -177,9 +206,9 @@
     async function registrarTrasladoDinero() {
         if (!exigirDueno() || !navigator.onLine || isProcessingTransaction) return;
         const direccion = document.getElementById('traslado-direccion').value;
-        const monto = Number(document.getElementById('traslado-monto').value);
+        let monto;
         const motivo = document.getElementById('traslado-motivo').value.trim() || 'TRASLADO ENTRE CUENTAS';
-        if (!Number.isFinite(monto) || monto <= 0) return alert('Monto inválido.');
+        try { monto = normalizarMontoMoneda(document.getElementById('traslado-monto').value); } catch (error) { return alert(error.message); }
         const origen = direccion === 'banco-efectivo' ? 'banco' : 'efectivo';
         const destino = origen === 'banco' ? 'efectivo' : 'banco';
         if (!confirm(`Mover ${dineroNegocio(monto)} de ${origen} a ${destino}? Esto no cambia la ganancia.`)) return;
@@ -212,9 +241,9 @@
         if (!exigirDueno() || !navigator.onLine || isProcessingTransaction) return;
         const origen = document.getElementById('caja-retiro-origen').value;
         const modo = document.getElementById('caja-retiro-modo').value;
-        const monto = Number(document.getElementById('caja-retiro-monto').value);
+        let monto;
         const motivo = document.getElementById('caja-retiro-motivo').value.trim();
-        if (!Number.isFinite(monto) || monto <= 0) return alert('Monto inválido.');
+        try { monto = normalizarMontoMoneda(document.getElementById('caja-retiro-monto').value); } catch (error) { return alert(error.message); }
         if (!motivo) return alert('Escribe el motivo del retiro.');
         let previo;
         try { previo = desgloseRetiro(monto, fondos, modo); } catch (error) { return alert(error.message); }
@@ -249,11 +278,11 @@
         if (!exigirDueno() || !navigator.onLine || isProcessingTransaction) return;
         const persona = document.getElementById('prestamo-persona').value.trim().toUpperCase();
         const motivo = document.getElementById('prestamo-motivo').value.trim();
-        const monto = Number(document.getElementById('prestamo-monto').value);
+        let monto;
         const origen = document.getElementById('prestamo-origen').value;
         const vencimiento = document.getElementById('prestamo-vencimiento').value || '';
         if (!persona || !motivo) return alert('Escribe la persona y el motivo.');
-        if (!Number.isFinite(monto) || monto <= 0) return alert('Monto inválido.');
+        try { monto = normalizarMontoMoneda(document.getElementById('prestamo-monto').value); } catch (error) { return alert(error.message); }
         let previo;
         try { previo = calcularDesgloseRetiroInteligente(monto, fondos, 'inteligente'); } catch (error) { return alert(error.message + ' El préstamo protege el fondo SAT.'); }
         if (!confirm(`Prestar ${dineroNegocio(monto)} a ${persona} desde ${origen}? El dinero se marcará por cobrar.`)) return;
@@ -290,8 +319,9 @@
         if (!local || Number(local.saldoPendiente) <= 0) return;
         const texto = prompt(`Saldo de ${local.persona}: ${dineroNegocio(local.saldoPendiente)}. Monto devuelto:`, Number(local.saldoPendiente).toFixed(2));
         if (texto === null) return;
-        const monto = Number(texto);
-        if (!Number.isFinite(monto) || monto <= 0 || core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto inválido.');
+        let monto;
+        try { monto = normalizarMontoMoneda(texto); } catch (error) { return alert(error.message); }
+        if (core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto inválido.');
         const metodo = prompt('¿Cómo regresó? efectivo, transferencia o deposito.', local.origen === 'banco' ? 'transferencia' : 'efectivo');
         if (metodo === null || !core.METODOS_PAGO[String(metodo).toLowerCase()]) return alert('Método no válido.');
         const ubicacion = core.ubicacionMetodoPago(String(metodo).toLowerCase());
@@ -327,12 +357,14 @@
     async function registrarAbonoCredito(idCodificado) {
         if (!exigirDueno('Solo el Dueño puede registrar abonos de crédito.') || !navigator.onLine || isProcessingTransaction) return;
         const id = decodeURIComponent(idCodificado);
-        const local = ventas.find(v => String(v.id) === String(id) && !v.anulada);
+        const fuenteCreditos = creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas;
+        const local = fuenteCreditos.find(v => String(v.id) === String(id) && !v.anulada);
         if (!local || Number(local.saldoPendiente) <= 0) return;
         const texto = prompt(`Saldo pendiente: ${dineroNegocio(local.saldoPendiente)}. Monto del abono:`, Number(local.saldoPendiente).toFixed(2));
         if (texto === null) return;
-        const monto = Number(texto);
-        if (!Number.isFinite(monto) || monto <= 0 || core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto inválido.');
+        let monto;
+        try { monto = normalizarMontoMoneda(texto); } catch (error) { return alert(error.message); }
+        if (core.aCentavos(monto) > core.aCentavos(local.saldoPendiente)) return alert('Monto inválido.');
         const metodo = prompt('Método: efectivo, transferencia o deposito.', 'efectivo');
         if (metodo === null || !core.METODOS_PAGO[String(metodo).toLowerCase()]) return alert('Método no válido.');
         const metodoNormal = String(metodo).toLowerCase();
@@ -375,7 +407,7 @@
                     clienteActualizado = { ...clienteServidor, saldoCredito: core.desdeCentavos(Math.max(0, core.aCentavos(saldoBase) - core.aCentavos(monto))), ultimaOperacionCreditoEn: timestamp };
                 }
                 const pago = { id: pagoId, timestamp, fecha: fechaHoraNegocio(timestamp), monto: core.redondearMoneda(monto), metodo: metodoNormal, ubicacion, tipo: 'abono' };
-                const actualizada = { ...venta, montoPagadoDinero: core.redondearMoneda(Number(venta.montoPagadoDinero || 0) + monto), montoCobradoTotal: cobradoNuevo, saldoPendiente, estadoCobro: saldoPendiente === 0 ? 'pagado' : 'credito', asignacionFondosCobrado: asignacionNueva, pagos: [...(venta.pagos || []), pago], actualizadoCobroEn: timestamp };
+                const actualizada = { ...venta, montoPagadoDinero: core.redondearMoneda(Number(venta.montoPagadoDinero || 0) + monto), montoCobradoTotal: cobradoNuevo, saldoPendiente, estadoCobro: saldoPendiente === 0 ? 'pagado' : 'credito', asignacionFondosCobrado: asignacionNueva, pagos: [...(venta.pagos || []), pago], revision: Math.trunc(Number(venta.revision || 0)) + 1, actualizadoCobroEn: timestamp };
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 t.set(ventaRef, actualizada);
                 if (clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
@@ -384,6 +416,9 @@
                 return { fondosNuevos, saldos, actualizada, clienteActualizado };
             });
             fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; ventas = fusionarPorId(ventas, [resultado.actualizada]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            ventasCreditoPendiente = resultado.actualizada.saldoPendiente > 0
+                ? fusionarPorId(ventasCreditoPendiente, [resultado.actualizada])
+                : ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.actualizada.id));
             if (resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Abono registrado. Los fondos aumentaron solo por el dinero recibido.');
         } catch (error) { alert('No se registró el abono. ' + error.message); }
@@ -402,24 +437,26 @@
         if (cantidad <= 0 || cantidad > Number(producto.stock)) return alert('La cantidad supera la existencia disponible.');
         if (!motivo) return alert('Escribe el motivo de la pérdida.');
         const costo = core.redondearMoneda(cantidad * Number(producto.costo || 0));
-        if (!confirm(`Descontar ${etiquetaUnidadProducto(producto, cantidad)} de ${producto.nombre}?\nCosto registrado de la pérdida: ${dineroNegocio(costo)}.`)) return;
+        if (!confirm(`Descontar ${etiquetaUnidadProducto(producto, cantidad)} de ${producto.nombre}?\nCosto estimado de la pérdida: ${dineroNegocio(costo)}. Se confirmará con el costo actual del servidor.`)) return;
         isProcessingTransaction = true;
         try {
             const timestamp = Date.now();
-            const perdida = { id: generarIDSeguro(), productoId: String(producto.id), productoNombre: producto.nombre, codigoInventario: producto.codigoInventario || null, cantidad, unidadId: producto.unidadId || 'pieza', costoUnitario: Number(producto.costo || 0), costoTotal: costo, motivo, timestamp, fecha: fechaHoraNegocio(timestamp), usuarioNombre: currentUserData?.nombre || 'Dueño' };
-            const actualizado = await global.runTransaction(global.db, async t => {
+            const perdidaId = generarIDSeguro();
+            const resultado = await global.runTransaction(global.db, async t => {
                 const ref = global.doc(global.db, 'inventario', String(producto.id));
                 const snap = await t.get(ref);
                 if (!snap.exists()) throw new Error('El producto ya no existe.');
                 const actual = snap.data();
                 const qty = validarCantidadProducto(cantidad, actual);
                 if (core.aMilesimas(actual.stock) < core.aMilesimas(qty)) throw new Error('El stock cambió desde otro dispositivo.');
+                const costoUnitario = Number(actual.costo || 0);
+                const perdida = { id: perdidaId, productoId: String(actual.id || producto.id), productoNombre: actual.nombre || producto.nombre, codigoInventario: actual.codigoInventario || null, cantidad: qty, unidadId: actual.unidadId || 'pieza', costoUnitario, costoTotal: core.redondearMoneda(qty * costoUnitario), motivo, timestamp, fecha: fechaHoraNegocio(timestamp), usuarioNombre: currentUserData?.nombre || 'Dueño' };
                 const nuevo = { ...actual, stock: core.desdeMilesimas(core.aMilesimas(actual.stock) - core.aMilesimas(qty)), lastModified: timestamp };
                 t.set(ref, nuevo);
                 t.set(global.doc(global.db, 'perdidas_inventario', String(perdida.id)), perdida);
-                return nuevo;
+                return { actualizado: nuevo, perdida };
             });
-            inventario = fusionarPorId(inventario, [actualizado]); perdidasInventario = fusionarPorId(perdidasInventario, [perdida]);
+            inventario = fusionarPorId(inventario, [resultado.actualizado]); perdidasInventario = fusionarPorId(perdidasInventario, [resultado.perdida]);
             document.getElementById('perdida-cantidad').value = ''; document.getElementById('perdida-motivo').value = '';
             renderFinanzasNegocio(); actualizarUI(); alert('✅ Pérdida registrada sin crear una venta ni sumar dinero.');
         } catch (error) { alert('No se registró la pérdida. ' + error.message); }
@@ -456,14 +493,21 @@
             const producto = inventario.find(p => String(p.id) === String(item.idProd));
             validarCantidadProducto(cantidad, producto || { unidadId: item.unidadId || 'pieza' });
         }
-        const ingresoDevuelto = core.redondearMoneda(cantidad * Number(item.precioCobrado || 0));
+        const calculoLinea = core.calcularDevolucionLinea(item, cantidad);
+        const ingresoDevuelto = calculoLinea.ingresoDevuelto;
         const saldoAntes = core.redondearMoneda(venta.saldoPendiente || 0);
         const cobradoAntes = core.redondearMoneda(venta.montoCobradoTotal ?? venta.ingresoTotal);
-        const ingresoNuevo = core.redondearMoneda(Number(venta.ingresoTotal) - ingresoDevuelto);
+        const ingresoNuevo = core.desdeCentavos(Math.max(0, core.aCentavos(venta.ingresoTotal) - calculoLinea.ingresoDevueltoCentavos));
         const cobradoNuevo = Math.min(cobradoAntes, ingresoNuevo);
         const reembolso = core.redondearMoneda(cobradoAntes - cobradoNuevo);
-        const creditoReducido = core.redondearMoneda(Math.min(saldoAntes, ingresoDevuelto));
-        return { venta, item, indice, cantidad, ingresoDevuelto, ingresoNuevo, cobradoAntes, cobradoNuevo, reembolso, creditoReducido };
+        const saldoNuevo = core.desdeCentavos(Math.max(0, core.aCentavos(ingresoNuevo) - core.aCentavos(cobradoNuevo)));
+        const creditoReducido = core.desdeCentavos(Math.max(0, core.aCentavos(saldoAntes) - core.aCentavos(saldoNuevo)));
+        return {
+            venta, item, indice, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas),
+            ingresoDevuelto, ingresoNuevo, cobradoAntes, cobradoNuevo, reembolso, creditoReducido,
+            referenciaLinea: core.crearReferenciaLineaVenta(item, indice),
+            revisionVenta: Math.trunc(Number(venta.revision || 0))
+        };
     }
 
     function actualizarPreviewDevolucion() {
@@ -490,6 +534,7 @@
         try {
             const timestamp = Date.now();
             const devolucionId = generarIDSeguro();
+            const movimientoId = generarIDSeguro();
             const resultado = await global.runTransaction(global.db, async t => {
                 const ventaRef = global.doc(global.db, 'ventas', String(preview.venta.id));
                 const configRef = global.doc(global.db, 'sistema', 'config');
@@ -499,15 +544,27 @@
                 const productoSnap = productoRef ? await t.get(productoRef) : null;
                 if (!ventaSnap.exists() || !configSnap.exists()) throw new Error('La venta o configuración ya no existe.');
                 const venta = ventaSnap.data();
-                const item = venta.detalleItems?.[preview.indice];
-                if (!item || core.aMilesimas(item.qty) < core.aMilesimas(preview.cantidad)) throw new Error('La venta cambió desde otro dispositivo.');
+                if (venta.anulada) throw new Error('La venta ya fue anulada desde otro dispositivo.');
+                if (Number(venta.versionCalculo) < 3) throw new Error('La venta no admite devoluciones parciales seguras.');
+                if (Math.trunc(Number(venta.revision || 0)) !== preview.revisionVenta) throw new Error('La venta cambió desde otro dispositivo. Recarga y revisa antes de devolver.');
+                const indiceServidor = core.localizarLineaVenta(venta.detalleItems, preview.referenciaLinea);
+                if (indiceServidor < 0) throw new Error('El artículo cambió de posición o contenido desde otro dispositivo. No se aplicó la devolución.');
+                const item = venta.detalleItems[indiceServidor];
+                const calculoLinea = core.calcularDevolucionLinea(item, preview.cantidad);
+                let clienteRef = null;
+                let clienteServidor = null;
+                if (venta.clienteId) {
+                    clienteRef = global.doc(global.db, 'clientes', String(venta.clienteId));
+                    const clienteSnap = await t.get(clienteRef);
+                    if (clienteSnap.exists()) clienteServidor = clienteSnap.data();
+                }
                 const ingresoAnterior = Number(venta.ingresoTotal || 0);
-                const ingresoDevuelto = core.redondearMoneda(preview.cantidad * Number(item.precioCobrado || 0));
+                const ingresoDevuelto = calculoLinea.ingresoDevuelto;
                 const proporcion = ingresoAnterior > 0 ? ingresoDevuelto / ingresoAnterior : 0;
                 const ingresoDevueltoAntes = (venta.devoluciones || []).reduce((total, devolucion) => total + Number(devolucion.ingresoDevuelto || 0), 0);
                 const ingresoBaseGastos = ingresoAnterior + ingresoDevueltoAntes;
                 const proporcionGastos = ingresoBaseGastos > 0 ? ingresoDevuelto / ingresoBaseGastos : 0;
-                const costoLinea = core.redondearMoneda(preview.cantidad * Number(item.costoUnitarioReal ?? item.costoBase ?? 0));
+                const costoLinea = calculoLinea.costoDevuelto;
                 const costoReversado = reingresar ? costoLinea : 0;
                 const produccionNoRecuperada = core.redondearMoneda(Number(venta.costoTinta || 0) * proporcionGastos);
                 const envioNoRecuperado = core.redondearMoneda(Number(venta.costoEnvio || 0) * proporcionGastos);
@@ -518,8 +575,8 @@
                 const satReversado = core.redondearMoneda(Number(venta.impuestoSAT || 0) * proporcion);
                 const gananciaReversada = core.redondearMoneda(ingresoDevuelto - costoReversado - tintaReversada - envioReversado - manoReversada - satReversado);
                 const nuevoDesglose = {
-                    ingresoTotal: core.redondearMoneda(ingresoAnterior - ingresoDevuelto),
-                    costosProductos: core.redondearMoneda(Number(venta.costosProductos || 0) - costoReversado),
+                    ingresoTotal: core.desdeCentavos(Math.max(0, core.aCentavos(ingresoAnterior) - calculoLinea.ingresoDevueltoCentavos)),
+                    costosProductos: core.desdeCentavos(Math.max(0, core.aCentavos(venta.costosProductos) - core.aCentavos(costoReversado))),
                     costoTinta: core.redondearMoneda(Number(venta.costoTinta || 0) - tintaReversada),
                     costoEnvio: core.redondearMoneda(Number(venta.costoEnvio || 0) - envioReversado),
                     costoManoObra: core.redondearMoneda(Number(venta.costoManoObra || 0) - manoReversada),
@@ -541,34 +598,71 @@
                 core.CLAVES_FONDOS.forEach(clave => { if (core.aCentavos(fondosNuevos[clave]) < 0) throw new Error('Ya se retiró parte del dinero asignado a esta venta. Repón los fondos antes de devolverla.'); });
                 let saldos = saldoServidor(data);
                 if (reembolsoDinero > 0) saldos = cambiarSaldo(saldos, ubicacion, reembolsoDinero, -1);
-                const detalleNuevo = venta.detalleItems.map((detalle, indice) => indice === preview.indice ? { ...detalle, qty: core.desdeMilesimas(core.aMilesimas(detalle.qty) - core.aMilesimas(preview.cantidad)) } : detalle).filter(detalle => core.aMilesimas(detalle.qty) > 0);
+                const detalleNuevo = venta.detalleItems.map((detalle, indice) => indice === indiceServidor ? {
+                    ...detalle,
+                    qty: calculoLinea.cantidadRestante,
+                    cantidadOriginalMilesimas: calculoLinea.cantidadOriginalMilesimas,
+                    ingresoLineaOriginalCentavos: calculoLinea.ingresoLineaOriginalCentavos,
+                    costoLineaOriginalCentavos: calculoLinea.costoLineaOriginalCentavos
+                } : detalle).filter(detalle => core.aMilesimas(detalle.qty) > 0);
                 const saldoPendiente = core.desdeCentavos(Math.max(0, core.aCentavos(nuevoDesglose.ingresoTotal) - core.aCentavos(cobradoNuevo)));
-                const devolucion = { id: devolucionId, ventaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', productoId: item.idProd || null, productoNombre: item.nombre, cantidad: preview.cantidad, unidadId: item.unidadId || 'pieza', ingresoDevuelto, creditoReducido: Math.min(Number(venta.saldoPendiente || 0), ingresoDevuelto), reembolsoDinero, anticipoRestaurado, metodo, ubicacion, reingresadoInventario: reingresar, costoReversado, produccionNoRecuperada, envioNoRecuperado, manoObraNoRecuperada, motivo, timestamp, fecha: fechaHoraNegocio(timestamp) };
-                const actualizada = { ...venta, ingresoTotal: nuevoDesglose.ingresoTotal, costosProductos: nuevoDesglose.costosProductos, costoTinta: nuevoDesglose.costoTinta, costoEnvio: nuevoDesglose.costoEnvio, costoManoObra: nuevoDesglose.costoManoObra, impuestoSAT: nuevoDesglose.impuestoSAT, ganancia: nuevoDesglose.gananciaNeta, detalleItems: detalleNuevo, montoPagadoDinero: core.redondearMoneda(Math.max(0, Number(venta.montoPagadoDinero || 0) - reembolsoDinero)), montoCobradoTotal: cobradoNuevo, saldoPendiente, anticipoAplicado: core.redondearMoneda(anticipoAplicado - anticipoRestaurado), asignacionFondosCobrado: asignacionNueva, estadoCobro: saldoPendiente > 0 ? 'credito' : 'pagado', devoluciones: [...(venta.devoluciones || []), devolucion], editadoEn: timestamp };
+                const creditoReducido = core.desdeCentavos(Math.max(0, core.aCentavos(venta.saldoPendiente) - core.aCentavos(saldoPendiente)));
+                let clienteActualizado = null;
+                if (clienteServidor && (creditoReducido > 0 || anticipoRestaurado > 0)) {
+                    const saldoCreditoBase = Number.isFinite(Number(clienteServidor.saldoCredito))
+                        ? core.redondearMoneda(clienteServidor.saldoCredito)
+                        : saldoCreditoCalculadoCliente(venta.clienteId);
+                    const saldoAnticiposBase = Number.isFinite(Number(clienteServidor.saldoAnticipos))
+                        ? core.redondearMoneda(clienteServidor.saldoAnticipos)
+                        : totalAnticiposCliente(venta.clienteId);
+                    clienteActualizado = {
+                        ...clienteServidor,
+                        saldoCredito: core.desdeCentavos(Math.max(0, core.aCentavos(saldoCreditoBase) - core.aCentavos(creditoReducido))),
+                        saldoAnticipos: core.desdeCentavos(core.aCentavos(saldoAnticiposBase) + core.aCentavos(anticipoRestaurado)),
+                        ultimaOperacionCreditoEn: creditoReducido > 0 ? timestamp : clienteServidor.ultimaOperacionCreditoEn || null,
+                        ultimaOperacionAnticipoEn: anticipoRestaurado > 0 ? timestamp : clienteServidor.ultimaOperacionAnticipoEn || null
+                    };
+                }
+                const devolucion = { id: devolucionId, ventaId: String(venta.id), lineId: item.lineId || null, clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', productoId: item.idProd || null, productoNombre: item.nombre, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), unidadId: item.unidadId || 'pieza', ingresoDevuelto, creditoReducido, reembolsoDinero, anticipoRestaurado, metodo, ubicacion, reingresadoInventario: reingresar, costoReversado, produccionNoRecuperada, envioNoRecuperado, manoObraNoRecuperada, motivo, timestamp, fecha: fechaHoraNegocio(timestamp) };
+                const actualizada = { ...venta, ingresoTotal: nuevoDesglose.ingresoTotal, costosProductos: nuevoDesglose.costosProductos, costoTinta: nuevoDesglose.costoTinta, costoEnvio: nuevoDesglose.costoEnvio, costoManoObra: nuevoDesglose.costoManoObra, impuestoSAT: nuevoDesglose.impuestoSAT, ganancia: nuevoDesglose.gananciaNeta, detalleItems: detalleNuevo, montoPagadoDinero: core.redondearMoneda(Math.max(0, Number(venta.montoPagadoDinero || 0) - reembolsoDinero)), montoCobradoTotal: cobradoNuevo, saldoPendiente, anticipoAplicado: core.redondearMoneda(anticipoAplicado - anticipoRestaurado), asignacionFondosCobrado: asignacionNueva, estadoCobro: saldoPendiente > 0 ? 'credito' : 'pagado', devoluciones: [...(venta.devoluciones || []), devolucion], revision: Math.trunc(Number(venta.revision || 0)) + 1, editadoEn: timestamp };
                 let productoNuevo = null;
                 if (reingresar) {
                     if (!productoSnap?.exists()) throw new Error('El producto ya no existe para reingresarlo.');
                     const producto = productoSnap.data();
-                    productoNuevo = { ...producto, costo: calcularCostoPromedioPonderado(producto.stock, producto.costo, preview.cantidad, Number(item.costoUnitarioReal ?? item.costoBase ?? 0)), stock: core.desdeMilesimas(core.aMilesimas(producto.stock) + core.aMilesimas(preview.cantidad)), ventasTotales: Math.max(0, Number(producto.ventasTotales || 0) - preview.cantidad), lastModified: timestamp };
+                    const cantidadDevuelta = core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas);
+                    productoNuevo = { ...producto, costo: calcularCostoPromedioPonderado(producto.stock, producto.costo, cantidadDevuelta, Number(item.costoUnitarioReal ?? item.costoBase ?? 0)), stock: core.desdeMilesimas(core.aMilesimas(producto.stock) + calculoLinea.cantidadDevueltaMilesimas), ventasTotales: core.desdeMilesimas(Math.max(0, core.aMilesimas(producto.ventasTotales) - calculoLinea.cantidadDevueltaMilesimas)), lastModified: timestamp };
                 }
                 const mes = getMesAnioFromDate(venta.fecha || '', venta.timestamp);
                 let resumenRef = null; let resumenSnap = null;
-                if (mes) { resumenRef = global.doc(global.db, 'resumen_mensual', mes); resumenSnap = await t.get(resumenRef); }
-                const anticipoNuevo = anticipoRestaurado > 0 ? { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: anticipoRestaurado, saldoPendiente: anticipoRestaurado, aplicadoTotal: 0, devueltoTotal: 0, metodo: 'restaurado', ubicacion: null, motivo: `RESTAURADO POR DEVOLUCIÓN ${devolucionId}`, timestamp, fecha: fechaHoraNegocio(timestamp), estado: 'pendiente', origenDevolucionId: devolucionId, versionCalculo: 1 } : null;
+                if (venta.resumenMensualContabilizado === true) {
+                    if (!mes) throw new Error('No se pudo identificar el resumen mensual de la venta.');
+                    resumenRef = global.doc(global.db, 'resumen_mensual', mes);
+                    resumenSnap = await t.get(resumenRef);
+                    if (!resumenSnap.exists()) throw new Error('No se encontró el resumen mensual asociado a esta venta.');
+                }
+                const anticipoNuevo = anticipoRestaurado > 0 ? { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: anticipoRestaurado, saldoPendiente: anticipoRestaurado, aplicadoTotal: 0, devueltoTotal: 0, metodo, ubicacion, motivo: `RESTAURADO POR DEVOLUCIÓN ${devolucionId}`, timestamp, fecha: fechaHoraNegocio(timestamp), estado: 'pendiente', origenDevolucionId: devolucionId, versionCalculo: 1 } : null;
+                const movimientoReembolso = reembolsoDinero > 0 ? movimientoCaja('reembolso_devolucion', reembolsoDinero, ubicacion, { id: movimientoId, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo }) : null;
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 t.set(ventaRef, actualizada);
+                if (clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 if (productoNuevo) t.set(productoRef, productoNuevo);
                 t.set(global.doc(global.db, 'devoluciones', String(devolucionId)), devolucion);
                 if (anticipoNuevo) t.set(global.doc(global.db, 'anticipos', String(anticipoNuevo.id)), anticipoNuevo);
-                if (resumenRef && resumenSnap?.exists()) {
-                    const ajuste = { ingresoTotal: ingresoDevuelto, ganancia: gananciaReversada, costosProductos: costoReversado, costoTinta: tintaReversada, costoEnvio: envioReversado, costoManoObra: manoReversada, impuestoSAT: satReversado, detalleItems: [{ qty: preview.cantidad, rol: item.rol }] };
+                if (movimientoReembolso) t.set(global.doc(global.db, 'movimientos_caja', String(movimientoReembolso.id)), movimientoReembolso);
+                if (resumenRef && resumenSnap) {
+                    const ajuste = { ingresoTotal: ingresoDevuelto, ganancia: gananciaReversada, costosProductos: costoReversado, costoTinta: tintaReversada, costoEnvio: envioReversado, costoManoObra: manoReversada, impuestoSAT: satReversado, detalleItems: [{ qty: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), rol: item.rol }] };
                     t.set(resumenRef, aplicarVentaAResumen(resumenSnap.data(), ajuste, -1));
                 }
-                return { fondosNuevos, saldos, actualizada, productoNuevo, devolucion, anticipoNuevo };
+                return { fondosNuevos, saldos, actualizada, productoNuevo, devolucion, anticipoNuevo, clienteActualizado, movimientoReembolso };
             });
             fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; ventas = fusionarPorId(ventas, [resultado.actualizada]);
+            ventasCreditoPendiente = resultado.actualizada.saldoPendiente > 0
+                ? fusionarPorId(ventasCreditoPendiente, [resultado.actualizada])
+                : ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.actualizada.id));
             if (resultado.productoNuevo) inventario = fusionarPorId(inventario, [resultado.productoNuevo]);
             devoluciones = fusionarPorId(devoluciones, [resultado.devolucion]); if (resultado.anticipoNuevo) anticipos = fusionarPorId(anticipos, [resultado.anticipoNuevo]);
+            if (resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
+            if (resultado.movimientoReembolso) movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimientoReembolso]);
             document.getElementById('devolucion-motivo').value = ''; renderFinanzasNegocio(); actualizarUI();
             alert(`✅ Devolución registrada. Reembolso en dinero: ${dineroNegocio(resultado.devolucion.reembolsoDinero)}${resultado.devolucion.anticipoRestaurado ? `; anticipo restaurado: ${dineroNegocio(resultado.devolucion.anticipoRestaurado)}` : ''}.`);
         } catch (error) { alert('No se registró la devolución. ' + error.message); }
@@ -577,7 +671,8 @@
 
     function renderCreditos() {
         const cont = document.getElementById('lista-creditos'); if (!cont) return;
-        const cuentas = ventas.filter(v => !v.anulada && Number(v.saldoPendiente) > 0).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+        const fuente = creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas;
+        const cuentas = fuente.filter(v => !v.anulada && Number(v.saldoPendiente) > 0).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
         if (!cuentas.length) return void (cont.innerHTML = '<p class="item-details">No hay créditos pendientes.</p>');
         cont.innerHTML = cuentas.map(v => `<div class="item-row"><div class="item-info"><p class="item-title">${escaparHTML(v.clienteNombre || 'CLIENTE')}</p><p class="item-details">Venta ${escaparHTML(v.fecha || '')}<br>Total: ${dineroNegocio(v.ingresoTotal)} · Pagado: ${dineroNegocio(v.montoCobradoTotal || 0)}</p></div><div style="text-align:right;"><strong style="color:var(--primary-orange);">${dineroNegocio(v.saldoPendiente)}</strong><br><button class="btn-sm btn-edit" onclick="registrarAbonoCredito('${codificarParametroHTML(v.id)}')">Abonar</button></div></div>`).join('');
     }
@@ -633,7 +728,10 @@
     function renderFinanzasNegocio() {
         const moneda = monedaNegocio();
         const efectivo = Number(saldosDinero?.efectivo || 0); const banco = Number(saldosDinero?.banco || 0);
-        const credito = ventas.filter(v => !v.anulada).reduce((t, v) => t + Math.max(0, Number(v.saldoPendiente) || 0), 0);
+        const saldosClientes = clientes.filter(c => !c.archivado && Number.isFinite(Number(c.saldoCredito)));
+        const credito = saldosClientes.length
+            ? saldosClientes.reduce((t, c) => t + Math.max(0, Number(c.saldoCredito) || 0), 0)
+            : (creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas).filter(v => !v.anulada).reduce((t, v) => t + Math.max(0, Number(v.saldoPendiente) || 0), 0);
         const anticipo = totalAnticiposPendientes();
         const ids = {
             'dash-efectivo': efectivo, 'dash-banco': banco, 'dash-credito-pendiente': credito,

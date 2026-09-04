@@ -51,11 +51,13 @@
     }
 
     function redondearMoneda(valor) {
-        return Math.round((numeroFinito(valor) + Number.EPSILON) * 100) / 100;
+        return desdeCentavos(aCentavos(valor));
     }
 
     function aCentavos(valor) {
-        return Math.round(numeroFinito(valor) * 100);
+        const numero = numeroFinito(valor);
+        const correccionBinaria = Math.sign(numero) * Number.EPSILON * Math.max(1, Math.abs(numero));
+        return Math.round((numero + correccionBinaria) * 100);
     }
 
     function desdeCentavos(valor) {
@@ -121,7 +123,9 @@
         if (!idBase) return null;
         const divisible = Boolean(unidad.divisible);
         let paso = divisible ? numeroFinito(unidad.paso, 0.01) : 1;
-        if (paso <= 0 || paso > 1) paso = divisible ? 0.01 : 1;
+        const pasoMilesimas = aMilesimas(paso);
+        if (pasoMilesimas < 1 || pasoMilesimas > 1000) paso = divisible ? 0.01 : 1;
+        else paso = divisible ? desdeMilesimas(pasoMilesimas) : 1;
         return {
             id: `personalizada_${idBase}`,
             nombre,
@@ -147,11 +151,18 @@
         const cantidad = Number(valor);
         if (!Number.isFinite(cantidad) || cantidad < 0) throw new Error('La cantidad debe ser un número válido no negativo.');
         const definicion = unidad || UNIDADES_BASE[0];
-        if (!definicion.divisible && !Number.isInteger(cantidad)) {
+        const cantidadMilesimas = aMilesimas(cantidad);
+        if (Math.abs(cantidad - desdeMilesimas(cantidadMilesimas)) > 1e-9) {
+            throw new Error('La cantidad admite como máximo tres decimales.');
+        }
+        if (!definicion.divisible && cantidadMilesimas % 1000 !== 0) {
             throw new Error(`La unidad “${definicion.nombre}” solo admite cantidades enteras.`);
         }
-        const decimales = definicion.paso >= 1 ? 0 : (definicion.paso >= 0.01 ? 2 : 3);
-        return Number(cantidad.toFixed(decimales));
+        const pasoMilesimas = definicion.divisible ? Math.max(1, aMilesimas(definicion.paso || 0.01)) : 1000;
+        if (cantidadMilesimas % pasoMilesimas !== 0) {
+            throw new Error(`La unidad “${definicion.nombre}” admite cantidades en pasos de ${desdeMilesimas(pasoMilesimas)}.`);
+        }
+        return desdeMilesimas(cantidadMilesimas);
     }
 
     function calcularIngresoConvertido(cantidadCompra, contenidoPorCompra, costoIngresado, tipoCosto, unidad) {
@@ -162,11 +173,101 @@
         if (!Number.isInteger(compras)) throw new Error('La cantidad de lotes o paquetes debe ser un número entero.');
         if (!Number.isFinite(contenido) || contenido <= 0) throw new Error('Las unidades por lote o paquete deben ser mayores que cero.');
         if (!Number.isFinite(costo) || costo < 0) throw new Error('El costo no puede ser negativo.');
-        const cantidadBase = normalizarCantidad(compras * contenido, unidad);
+        const contenidoNormalizado = normalizarCantidad(contenido, unidad);
+        const cantidadBase = normalizarCantidad(compras * contenidoNormalizado, unidad);
         if (cantidadBase <= 0) throw new Error('La conversión no produjo existencias válidas.');
         const costoBase = tipoCosto === 'total' ? costo / cantidadBase : costo;
         if (!Number.isFinite(costoBase) || costoBase < 0) throw new Error('El costo convertido no es válido.');
         return { cantidadBase, costoBase: Math.round(costoBase * 1000000) / 1000000 };
+    }
+
+    function crearReferenciaLineaVenta(item, indice) {
+        const linea = item && typeof item === 'object' ? item : {};
+        return {
+            lineId: String(linea.lineId || ''),
+            indice: Number.isInteger(indice) ? indice : -1,
+            idProd: String(linea.idProd || ''),
+            nombre: String(linea.nombre || ''),
+            unidadId: String(linea.unidadId || ''),
+            isService: Boolean(linea.isService),
+            cantidadMilesimas: aMilesimas(linea.qty),
+            cantidadOriginalMilesimas: Math.trunc(numeroFinito(linea.cantidadOriginalMilesimas)),
+            ingresoLineaOriginalCentavos: Math.trunc(numeroFinito(linea.ingresoLineaOriginalCentavos)),
+            costoLineaOriginalCentavos: Math.trunc(numeroFinito(linea.costoLineaOriginalCentavos)),
+            precioCentavos: aCentavos(linea.precioCobrado),
+            costoMicros: Math.round(numeroFinito(linea.costoUnitarioReal, numeroFinito(linea.costoBase)) * 1000000)
+        };
+    }
+
+    function lineaCoincideConReferencia(item, referencia) {
+        if (!item || !referencia) return false;
+        if (referencia.lineId && String(item.lineId || '') !== String(referencia.lineId)) return false;
+        const actual = crearReferenciaLineaVenta(item, referencia.indice);
+        return actual.idProd === String(referencia.idProd || '')
+            && actual.nombre === String(referencia.nombre || '')
+            && actual.unidadId === String(referencia.unidadId || '')
+            && actual.isService === Boolean(referencia.isService)
+            && actual.cantidadMilesimas === Number(referencia.cantidadMilesimas)
+            && actual.cantidadOriginalMilesimas === Number(referencia.cantidadOriginalMilesimas)
+            && actual.ingresoLineaOriginalCentavos === Number(referencia.ingresoLineaOriginalCentavos)
+            && actual.costoLineaOriginalCentavos === Number(referencia.costoLineaOriginalCentavos)
+            && actual.precioCentavos === Number(referencia.precioCentavos)
+            && actual.costoMicros === Number(referencia.costoMicros);
+    }
+
+    function localizarLineaVenta(detalleItems, referencia) {
+        const detalle = Array.isArray(detalleItems) ? detalleItems : [];
+        if (!referencia) return -1;
+        if (referencia.lineId) return detalle.findIndex(item => lineaCoincideConReferencia(item, referencia));
+        const indice = Number(referencia.indice);
+        return Number.isInteger(indice) && indice >= 0 && indice < detalle.length
+            && lineaCoincideConReferencia(detalle[indice], referencia) ? indice : -1;
+    }
+
+    function tramoProporcionalCentavos(totalCentavos, cantidadOriginalMilesimas, cantidadDisponibleMilesimas, cantidadDevueltaMilesimas) {
+        const total = Math.max(0, Math.trunc(numeroFinito(totalCentavos)));
+        const original = Math.trunc(numeroFinito(cantidadOriginalMilesimas));
+        const disponible = Math.trunc(numeroFinito(cantidadDisponibleMilesimas));
+        const devuelta = Math.trunc(numeroFinito(cantidadDevueltaMilesimas));
+        if (original <= 0 || disponible <= 0 || disponible > original || devuelta <= 0 || devuelta > disponible) {
+            throw new Error('La cantidad devuelta no coincide con la línea original.');
+        }
+        const devueltoAntes = original - disponible;
+        const objetivoAntes = Math.round(total * (devueltoAntes / original));
+        const objetivoDespues = devuelta === disponible
+            ? total
+            : Math.round(total * ((devueltoAntes + devuelta) / original));
+        return Math.max(0, objetivoDespues - objetivoAntes);
+    }
+
+    function calcularDevolucionLinea(item, cantidadDevuelta) {
+        if (!item || typeof item !== 'object') throw new Error('La línea de venta no es válida.');
+        const disponible = aMilesimas(item.qty);
+        const devuelta = aMilesimas(cantidadDevuelta);
+        const originalGuardada = Math.trunc(numeroFinito(item.cantidadOriginalMilesimas));
+        const original = originalGuardada >= disponible && originalGuardada > 0 ? originalGuardada : disponible;
+        const ingresoGuardado = Number(item.ingresoLineaOriginalCentavos);
+        const costoGuardado = Number(item.costoLineaOriginalCentavos);
+        const ingresoTotal = Number.isSafeInteger(ingresoGuardado) && ingresoGuardado >= 0
+            ? ingresoGuardado
+            : aCentavos(desdeMilesimas(original) * numeroFinito(item.precioCobrado));
+        const costoUnitario = numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase));
+        const costoTotal = Number.isSafeInteger(costoGuardado) && costoGuardado >= 0
+            ? costoGuardado
+            : aCentavos(desdeMilesimas(original) * costoUnitario);
+        const ingresoDevueltoCentavos = tramoProporcionalCentavos(ingresoTotal, original, disponible, devuelta);
+        const costoDevueltoCentavos = tramoProporcionalCentavos(costoTotal, original, disponible, devuelta);
+        return {
+            cantidadOriginalMilesimas: original,
+            cantidadDevueltaMilesimas: devuelta,
+            cantidadRestante: desdeMilesimas(disponible - devuelta),
+            ingresoLineaOriginalCentavos: ingresoTotal,
+            costoLineaOriginalCentavos: costoTotal,
+            ingresoDevueltoCentavos,
+            costoDevueltoCentavos,
+            ingresoDevuelto: desdeCentavos(ingresoDevueltoCentavos),
+            costoDevuelto: desdeCentavos(costoDevueltoCentavos)
+        };
     }
 
     function calcularIngresoSimple(cantidadIngresada, costoUnitario, unidad) {
@@ -404,6 +505,9 @@
         normalizarCantidad,
         calcularIngresoConvertido,
         calcularIngresoSimple,
+        crearReferenciaLineaVenta,
+        localizarLineaVenta,
+        calcularDevolucionLinea,
         calcularDesgloseFinanciero,
         normalizarFondos,
         totalFondos,

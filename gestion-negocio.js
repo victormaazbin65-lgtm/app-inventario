@@ -450,6 +450,9 @@
                 if (core.aCentavos(actual.saldoCredito) > 0) {
                     throw new Error(`Tiene ${dineroNegocio(actual.saldoCredito)} por cobrar. Actualiza la lista antes de archivarlo.`);
                 }
+                if (core.aCentavos(actual.saldoAnticipos) > 0) {
+                    throw new Error(`Tiene ${dineroNegocio(actual.saldoAnticipos)} en anticipos pendientes. Actualiza la lista antes de archivarlo.`);
+                }
                 t.update(ref, { archivado: true, archivadoEn: Date.now() });
             });
             clientes = clientes.map(c => String(c.id) === String(id) ? { ...c, archivado: true } : c);
@@ -488,7 +491,12 @@
     }
 
     function saldoCreditoCalculadoCliente(clienteId) {
-        return core.redondearMoneda(ventas
+        const cliente = clientes.find(c => String(c.id) === String(clienteId));
+        if (cliente && Number.isFinite(Number(cliente.saldoCredito))) {
+            return core.redondearMoneda(Math.max(0, Number(cliente.saldoCredito)));
+        }
+        const fuente = creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas;
+        return core.redondearMoneda(fuente
             .filter(v => !v.anulada && String(v.clienteId) === String(clienteId))
             .reduce((total, v) => total + Math.max(0, Number(v.saldoPendiente) || 0), 0));
     }
@@ -583,7 +591,7 @@
         if (!paso) return;
         paso.disabled = !divisible;
         if (!divisible) paso.value = '1';
-        else if (Number(paso.value) <= 0 || Number(paso.value) >= 1) paso.value = '0.01';
+        else if (Number(paso.value) < 0.001 || Number(paso.value) > 1) paso.value = '0.01';
     }
 
     function renderUnidadesPersonalizadasConfig() {
@@ -605,7 +613,7 @@
         const paso = divisible ? Number(document.getElementById('config-unidad-paso')?.value) : 1;
         if (!nombre) return alert('Escribe el nombre de la unidad.');
         if (!abreviatura) return alert('Escribe una abreviatura para la unidad.');
-        if (divisible && (!Number.isFinite(paso) || paso <= 0 || paso > 1)) return alert('El paso debe estar entre 0.001 y 1.');
+        if (divisible && (!Number.isFinite(paso) || paso < 0.001 || paso > 1)) return alert('El paso debe estar entre 0.001 y 1.');
         const actual = core.normalizarConfiguracionNegocio(configuracionNegocio).unidadesPersonalizadas;
         const normalizada = core.normalizarConfiguracionNegocio({
             ...configuracionNegocio,

@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.2' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.3' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -258,7 +258,7 @@ test('estrés matemático: 50000 escenarios conservan las identidades financiera
     assert.ok(Number.isFinite(desglose.gananciaNeta));
     assert.ok(Math.abs(desglose.totalGastos - (desglose.costosProductos + tinta + envio + desglose.impuestoSAT)) < 1e-7);
     assert.ok(Math.abs(desglose.gananciaNeta - (desglose.ingresoTotal - desglose.totalGastos)) < 1e-7);
-    assert.equal(Math.round(desglose.impuestoSAT * 100), Math.round((factura ? desglose.ingresoTotal * 0.05 : 0) * 100));
+    assert.equal(contexto.SubliNegocioCore.aCentavos(desglose.impuestoSAT), contexto.SubliNegocioCore.aCentavos(factura ? desglose.ingresoTotal * 0.05 : 0));
 
     const stockActual = Math.floor(aleatorio() * 10000);
     const cantidadNueva = 1 + Math.floor(aleatorio() * 10000);
@@ -629,8 +629,8 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.2"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.2/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.2\.3"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.3/);
   assert.match(leer('sw.js'), /\.\/buscador\.js/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(`\\.\\/${archivo.replace('.', '\\.')}`)));
   for(const icono of manifest.icons) {

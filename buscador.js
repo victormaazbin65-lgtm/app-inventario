@@ -25,6 +25,7 @@ let carpetaBuscador = null;
 let archivosBuscador = [];
 let escaneoBuscadorActivo = false;
 let temporizadorBusqueda = null;
+let secuenciaBusqueda = 0;
 
 export function normalizarTextoBusqueda(valor) {
   return String(valor ?? '')
@@ -147,6 +148,35 @@ export function buscarArchivosInteligente(archivos, consulta = '', extension = '
     .map(resultado => resultado.archivo);
 }
 
+function compararResultadosBuscador(a, b) {
+  return b.puntuacion - a.puntuacion
+    || Number(b.archivo.modificado || 0) - Number(a.archivo.modificado || 0)
+    || String(a.archivo.nombre).localeCompare(String(b.archivo.nombre));
+}
+
+async function buscarArchivosEnLotes(archivos, consulta, extension, limite, secuencia) {
+  const fuente = Array.isArray(archivos) ? archivos : [];
+  const filtroExtension = String(extension || '').toLowerCase();
+  let total = 0;
+  let mejores = [];
+  const TAMANO_LOTE = 750;
+  for(let inicio = 0; inicio < fuente.length; inicio += TAMANO_LOTE) {
+    if(secuencia !== secuenciaBusqueda) return null;
+    const fin = Math.min(fuente.length, inicio + TAMANO_LOTE);
+    for(let indice = inicio; indice < fin; indice += 1) {
+      const archivo = fuente[indice];
+      if(filtroExtension && archivo.extension !== filtroExtension) continue;
+      const puntuacion = puntuarArchivoBuscador(archivo, consulta);
+      if(puntuacion < 0) continue;
+      total += 1;
+      mejores.push({ archivo, puntuacion });
+    }
+    if(mejores.length > limite * 2) mejores = mejores.sort(compararResultadosBuscador).slice(0, limite);
+    if(fin < fuente.length) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  return { total, archivos: mejores.sort(compararResultadosBuscador).slice(0, limite).map(resultado => resultado.archivo) };
+}
+
 function abrirBaseBuscador() {
   return new Promise((resolve, reject) => {
     const solicitud = indexedDB.open(BUSCADOR_DB, BUSCADOR_DB_VERSION);
@@ -164,10 +194,12 @@ async function operarBaseBuscador(modo, operacion) {
   return new Promise((resolve, reject) => {
     const transaccion = db.transaction(BUSCADOR_STORE, modo);
     const solicitud = operacion(transaccion.objectStore(BUSCADOR_STORE));
-    solicitud.onsuccess = () => resolve(solicitud.result);
+    let resultado;
+    solicitud.onsuccess = () => { resultado = solicitud.result; };
     solicitud.onerror = () => reject(solicitud.error);
-    transaccion.oncomplete = () => db.close();
-    transaccion.onabort = () => reject(transaccion.error);
+    transaccion.oncomplete = () => { db.close(); resolve(resultado); };
+    transaccion.onabort = () => { db.close(); reject(transaccion.error); };
+    transaccion.onerror = () => { db.close(); reject(transaccion.error); };
   });
 }
 
@@ -257,16 +289,19 @@ function crearResultadoBuscador(archivo) {
   return tarjeta;
 }
 
-export function renderBuscadorDisenos() {
+export async function renderBuscadorDisenos() {
   const resultados = elementoBuscador('buscador-resultados');
   const contador = elementoBuscador('buscador-contador');
   if(!resultados || !contador) return;
   const consulta = elementoBuscador('buscador-consulta')?.value || '';
   const extension = elementoBuscador('buscador-extension')?.value || '';
-  const coincidencias = buscarArchivosInteligente(archivosBuscador, consulta, extension);
-  const visibles = coincidencias.slice(0, 150);
+  const secuencia = ++secuenciaBusqueda;
+  contador.textContent = archivosBuscador.length > 2000 ? 'Buscando sin bloquear la pantalla…' : 'Buscando…';
+  const coincidencias = await buscarArchivosEnLotes(archivosBuscador, consulta, extension, 150, secuencia);
+  if(!coincidencias || secuencia !== secuenciaBusqueda) return;
+  const visibles = coincidencias.archivos;
   resultados.replaceChildren();
-  contador.textContent = `${coincidencias.length} ${coincidencias.length === 1 ? 'archivo encontrado' : 'archivos encontrados'}${coincidencias.length > visibles.length ? ' · mostrando los primeros 150' : ''}`;
+  contador.textContent = `${coincidencias.total} ${coincidencias.total === 1 ? 'archivo encontrado' : 'archivos encontrados'}${coincidencias.total > visibles.length ? ' · mostrando los primeros 150' : ''}`;
   if(!visibles.length) {
     const vacio = document.createElement('div');
     vacio.className = 'buscador-vacio';
@@ -412,7 +447,7 @@ if(typeof document !== 'undefined') {
     elementoBuscador('buscador-extension')?.addEventListener('change', renderBuscadorDisenos);
     elementoBuscador('buscador-consulta')?.addEventListener('input', () => {
       clearTimeout(temporizadorBusqueda);
-      temporizadorBusqueda = setTimeout(renderBuscadorDisenos, 80);
+      temporizadorBusqueda = setTimeout(renderBuscadorDisenos, 180);
     });
     inicializarBuscadorDisenos();
   };

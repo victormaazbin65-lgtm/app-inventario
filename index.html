@@ -1731,7 +1731,8 @@
 
         const ALERTA_MARGEN_MINIMO = 0.10;
 
-        let inventario = []; let ventas = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = [];
+        let inventario = []; let ventas = []; let ventasCreditoPendiente = []; let historialIngresos = []; let historialCotizaciones = []; let historialRetiros = [];
+        let creditosPendientesConfirmados = false;
         let resumenMensualNube = [];
         let fondos = { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
         let configuracionNegocio = SubliNegocioCore.normalizarConfiguracionNegocio();
@@ -1742,6 +1743,8 @@
         let cargaDatosIniciada = false;
         let historialCompletoCargado = { ventas: false, ingresos: false, cotizaciones: false, retiros: false };
         let ventasAnalisis30 = [];
+        const ID_CREACION = "srv_creacion_01";
+        let servicioCreacionVerificado = false;
         
         let carritoIngresos = []; let carritoVentas = []; let carritoCotizacion = [];
         let ventaEnEdicion = null;
@@ -1847,7 +1850,7 @@
         }
 
         function guardarPreferenciasSistemaDesdeUI() {
-            if(currentUserData && currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede cambiar estas preferencias.');
+            if(!currentUserData || currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede cambiar estas preferencias.');
             const interfazSeleccionada = document.querySelector('input[name="interfaz-pc"]:checked');
             const nueva = crearPreferenciasSistemaPorDefecto();
             nueva.interfazPc = interfazSeleccionada ? interfazSeleccionada.value : preferenciasSistema.interfazPc;
@@ -1873,7 +1876,25 @@
         let isProcessingTransaction = false;
 
         // ================= SISTEMA DE USUARIOS Y PERMISOS =================
-        let usuarios = JSON.parse(localStorage.getItem('subli_usuarios')) || [];
+        function leerJSONLocalSeguro(clave, predeterminado) {
+            try {
+                const contenido = localStorage.getItem(clave);
+                if (!contenido) return predeterminado;
+                const valor = JSON.parse(contenido);
+                return valor === null || valor === undefined ? predeterminado : valor;
+            } catch (error) {
+                console.warn(`Se ignoró el respaldo local dañado ${clave}.`, error);
+                return predeterminado;
+            }
+        }
+
+        function leerArregloLocalSeguro(clave) {
+            const valor = leerJSONLocalSeguro(clave, []);
+            return Array.isArray(valor) ? valor : [];
+        }
+
+        let usuarios = leerJSONLocalSeguro('subli_usuarios', []);
+        if (!Array.isArray(usuarios)) usuarios = [];
         let currentUserData = null;
         let configuracionUsuariosConfirmada = false;
         let usuariosRevision = 0;
@@ -1988,7 +2009,7 @@
         }
 
         async function accederAjustesProtegidos(apartado = '', opcionCliente = '') {
-            if(currentUserData && currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede abrir Configuración.');
+            if(!currentUserData || currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede abrir Configuración.');
             if(!cuentaPropietarioAutorizada()) {
                 actualizarPanelAccesoReal();
                 return alert('Primero inicia sesión con la cuenta real del Dueño.');
@@ -2051,13 +2072,14 @@
         }
 
         async function crearUsuario() {
-            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para crear usuarios.");
+            if (!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos para crear usuarios.");
 
             const nombre = document.getElementById('nuevo-user-nombre').value.trim();
             const pinCrudo = document.getElementById('nuevo-user-pin').value.trim();
             const rol = document.getElementById('nuevo-user-rol').value;
 
             if(!nombre || !pinCrudo) return alert('Completa todos los campos');
+            if(pinCrudo.length < 4) return alert('El PIN debe tener al menos 4 caracteres.');
             
             const hashedPin = await hashPIN(pinCrudo);
             if(usuarios.find(u => u.pin === hashedPin)) return alert('Este PIN ya está en uso. Elige otro.');
@@ -2107,7 +2129,7 @@
         function cerrarModalEditarUser() { document.getElementById('modal-editar-user').style.display = 'none'; }
 
         async function guardarEdicionUser() {
-            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
+            if (!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
             const id = document.getElementById('edit-user-id').value;
             const user = usuarios.find(u => u.id == id);
             if (!user) return;
@@ -2117,6 +2139,7 @@
             const rol = document.getElementById('edit-user-rol').value;
 
             if(!nombre) return alert('El nombre no puede estar vacío');
+            if(nuevoPinCrudo && nuevoPinCrudo.length < 4) return alert('El PIN debe tener al menos 4 caracteres.');
 
             // --- NUEVO SEGURO CONTRA AUTO-BLOQUEO ---
             if (user.rol === 'dueno' && rol === 'empleado') {
@@ -2161,7 +2184,7 @@
         }
 
         async function borrarUsuario(id) {
-            if (currentUserData && currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
+            if (!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
             const user = usuarios.find(u => u.id == id);
             if (user && user.rol === 'dueno') {
                 const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
@@ -2182,6 +2205,7 @@
         }
 
         async function guardarUsuarios() {
+            if(!currentUserData || currentUserData.rol !== 'dueno') throw new Error('Solo el Dueño puede cambiar usuarios.');
             if(!window.db || !navigator.onLine) throw new Error('Necesitas conexión para cambiar usuarios de forma segura.');
             const usuariosNuevos = copiarDatos(usuarios);
             const revisionEsperada = usuariosRevision;
@@ -2247,7 +2271,9 @@
 
         function redondear(num) {
             const valor = Number(num);
-            return Number.isFinite(valor) ? Math.round((valor + Number.EPSILON) * 100) / 100 : 0;
+            if(!Number.isFinite(valor)) return 0;
+            const correccionBinaria = Math.sign(valor) * Number.EPSILON * Math.max(1, Math.abs(valor));
+            return Math.round((valor + correccionBinaria) * 100) / 100;
         }
 
         function numeroFinito(valor, valorPorDefecto = 0) {
@@ -2671,7 +2697,7 @@
             if(!nueva || nueva.trim() === "") return;
             
             const nombreLimpio = normalizarCategoriaCodigo(nueva);
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]').map(normalizarCategoriaCodigo);
+            let customCats = leerArregloLocalSeguro('subli_custom_cats').map(normalizarCategoriaCodigo);
             if(customCats.includes(nombreLimpio) || inventario.some(p => normalizarCategoriaCodigo(p.categoria) === nombreLimpio)) return alert("La categoría ya existe en la lista.");
             if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para reservar un bloque único para la categoría.");
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
@@ -2703,7 +2729,7 @@
         }
 
         function renombrarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
+            const cats = Array.from(new Set([...leerArregloLocalSeguro('subli_custom_cats'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             if(cats.length === 0) return alert("No hay categorías creadas.");
             const select = document.getElementById('select-renombrar-cat');
             select.innerHTML = cats.map(c => `<option value="${escaparHTML(c)}">${escaparHTML(c)}</option>`).join('');
@@ -2717,7 +2743,7 @@
             if(!nuevoNombreCrudo) return alert("Nombre inválido o sin cambios.");
             const nuevoNombre = normalizarCategoriaCodigo(nuevoNombreCrudo);
             if(nuevoNombre === catActual) return alert("Nombre inválido o sin cambios.");
-            const categoriasExistentes = new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p => p.categoria).filter(Boolean)].map(normalizarCategoriaCodigo));
+            const categoriasExistentes = new Set([...leerArregloLocalSeguro('subli_custom_cats'), ...inventario.map(p => p.categoria).filter(Boolean)].map(normalizarCategoriaCodigo));
             if(categoriasExistentes.has(nuevoNombre)) return alert(`La categoría "${nuevoNombre}" ya existe. Para evitar mezclar bloques, elige otro nombre.`);
 
             document.getElementById('modal-renombrar-cat').style.display = 'none';
@@ -2732,7 +2758,7 @@
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
             isProcessingTransaction = true;
             try {
-                const customCatsLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const customCatsLocales = leerArregloLocalSeguro('subli_custom_cats');
                 const resultado = await window.runTransaction(window.db, async t => {
                     const configRef = window.doc(window.db, "sistema", "config");
                     const configSnap = await t.get(configRef);
@@ -2776,7 +2802,7 @@
         }
 
         function eliminarCategoriaGlobalUI() {
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
+            const cats = Array.from(new Set([...leerArregloLocalSeguro('subli_custom_cats'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             if(cats.length === 0) return alert("No hay categorías creadas.");
             
             const selectEliminar = document.getElementById('select-eliminar-cat');
@@ -2788,7 +2814,7 @@
 
         function actualizarDestinoEliminarCat() {
             const aEliminar = document.getElementById('select-eliminar-cat').value;
-            const cats = Array.from(new Set([...JSON.parse(localStorage.getItem('subli_custom_cats') || '[]'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
+            const cats = Array.from(new Set([...leerArregloLocalSeguro('subli_custom_cats'), ...inventario.map(p=>p.categoria).filter(Boolean)])).sort(); 
             const selectDestino = document.getElementById('select-destino-cat');
             const prodsAfectados = inventario.filter(p => (p.categoria || "Otros") === aEliminar);
             
@@ -2825,7 +2851,7 @@
 
             isProcessingTransaction = true;
             try {
-                const customCatsLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const customCatsLocales = leerArregloLocalSeguro('subli_custom_cats');
                 const resultado = await window.runTransaction(window.db, async t => {
                     const configRef = window.doc(window.db, "sistema", "config");
                     const configSnap = await t.get(configRef);
@@ -2866,7 +2892,10 @@
         function cargarDatosLocales() {
             const asignaciones = [
                 [KEY_INV, valor => inventario = valor],
-                [KEY_VENTAS, valor => ventas = valor],
+                [KEY_VENTAS, valor => {
+                    ventas = Array.isArray(valor) ? valor : [];
+                    ventasCreditoPendiente = ventas.filter(v => !v.anulada && SubliNegocioCore.aCentavos(v.saldoPendiente) > 0);
+                }],
                 [KEY_FONDOS, valor => fondos = valor],
                 [KEY_INGRESOS, valor => historialIngresos = valor],
                 [KEY_COTIZ_HIST, valor => historialCotizaciones = valor],
@@ -2894,8 +2923,8 @@
 
         function fusionarPorId(actuales, nuevos) {
             const mapa = new Map();
-            actuales.forEach(item => mapa.set(String(item.id), item));
-            nuevos.forEach(item => mapa.set(String(item.id), item));
+            (Array.isArray(actuales) ? actuales : []).filter(item => item && item.id !== undefined && item.id !== null).forEach(item => mapa.set(String(item.id), item));
+            (Array.isArray(nuevos) ? nuevos : []).filter(item => item && item.id !== undefined && item.id !== null).forEach(item => mapa.set(String(item.id), item));
             return Array.from(mapa.values());
         }
 
@@ -2984,31 +3013,16 @@
             // El respaldo local se muestra primero. Firebase continúa siendo la fuente maestra
             // y reemplazará estos datos cuando llegue una instantánea confirmada del servidor.
             cargarDatosLocales();
+            asegurarServicioCreacion();
             mostrarLogo();
             actualizarUI();
             comprobarIngresoInicialLibre();
 
             if (window.db) {
-                try {
-                    const docViejoRef = window.doc(window.db, "sistema", "datos_actuales");
-                    const docViejoSnap = await window.getDoc(docViejoRef);
-
-                    if (docViejoSnap.exists()) {
-                        const dataVieja = docViejoSnap.data();
-                        if (!dataVieja.migrado_v10) {
-                            inventario = dataVieja.inventario || []; ventas = dataVieja.ventas || []; fondos = dataVieja.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 }; historialIngresos = dataVieja.historialIngresos || []; historialCotizaciones = dataVieja.historialCotizaciones || []; let nubeCustomCats = dataVieja.customCats || []; if(nubeCustomCats.length > 0) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            actualizarUI(); 
-                            const migraciones = [];
-                            inventario.forEach(p => migraciones.push(window.setDoc(window.doc(window.db, "inventario", String(p.id)), p)));
-                            ventas.forEach(v => migraciones.push(window.setDoc(window.doc(window.db, "ventas", String(v.id)), v)));
-                            historialIngresos.forEach(i => migraciones.push(window.setDoc(window.doc(window.db, "ingresos", String(i.id)), i)));
-                            historialCotizaciones.forEach(c => migraciones.push(window.setDoc(window.doc(window.db, "cotizaciones", String(c.id)), c)));
-                            migraciones.push(window.setDoc(window.doc(window.db, "sistema", "config"), { fondos: fondos, customCats: nubeCustomCats, ultimaActualizacion: new Date(), usuarios: usuarios, codigosInventario: estadoCodigosInventario }));
-                            await Promise.all(migraciones);
-                            await window.updateDoc(docViejoRef, { migrado_v10: true });
-                        }
-                    }
-                } catch (e) { console.warn("No se pudo completar la migración antigua; no se marcó como terminada.", e); }
+                // La migración v10 ya fue retirada. Ejecutarla durante el arranque podía
+                // sobrescribir una configuración moderna o quedar aplicada a medias.
+                // El documento histórico se conserva intacto y solo puede migrarse con
+                // una herramienta administrativa, respaldo verificado y mantenimiento.
 
                 try {
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
@@ -3054,6 +3068,7 @@
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             inventario = temp;
                             datosCargadosDeLaNube = true;
+                            asegurarServicioCreacion();
                             debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
                             actualizarUI();
                         }
@@ -3067,6 +3082,17 @@
                             actualizarUI();
                         }
                     }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error));
+
+                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
+                        const pendientes = [];
+                        snap.forEach(d => {
+                            const venta = d.data();
+                            if(!venta.anulada && aCentavos(venta.saldoPendiente) > 0) pendientes.push(venta);
+                        });
+                        ventasCreditoPendiente = pendientes;
+                        creditosPendientesConfirmados = !snap.metadata.fromCache;
+                        actualizarUI();
+                    }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error));
 
                     window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
@@ -4006,7 +4032,7 @@
                 let ocupadosGlobales = revisionInicial.codigosOcupados;
                 let estadoFinal = revisionInicial.estado;
                 const documentosOrdenados = documentosRemotos.sort((a, b) => normalizarCategoriaCodigo(a.categoria).localeCompare(normalizarCategoriaCodigo(b.categoria)) || String(a.nombre || '').localeCompare(String(b.nombre || '')) || String(a.id).localeCompare(String(b.id)));
-                const categoriasLocales = JSON.parse(localStorage.getItem('subli_custom_cats') || '[]');
+                const categoriasLocales = leerArregloLocalSeguro('subli_custom_cats');
                 const actualizadosTotales = [];
                 const TAMANO_LOTE_REGISTRO = 80;
                 for(let inicio = 0; inicio < documentosOrdenados.length; inicio += TAMANO_LOTE_REGISTRO) {
@@ -4349,8 +4375,8 @@
                 const metodoPago = document.getElementById('venta-metodo-pago').value || 'efectivo';
                 const ubicacionPago = SubliNegocioCore.ubicacionMetodoPago(metodoPago);
                 const clienteId = document.getElementById('venta-cliente-id').value || null;
-                const pagoInicialSolicitado = Number(document.getElementById('venta-pago-inicial').value || 0);
-                const anticipoSolicitado = Number(document.getElementById('venta-aplicar-anticipo').value || 0);
+                let pagoInicialSolicitado = Number(document.getElementById('venta-pago-inicial').value || 0);
+                let anticipoSolicitado = Number(document.getElementById('venta-aplicar-anticipo').value || 0);
                 const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F';
                 const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
                 const saldoCreditoLocalAntes = clienteId ? saldoCreditoCalculadoCliente(clienteId) : 0;
@@ -4368,6 +4394,11 @@
                 if(ingresoPrevisto <= 0 && !confirm("⚠️ El total de esta venta es Q0.00. ¿Realmente deseas registrarla sin cobro?")) return;
                 if(tipoCobroSeleccionado === 'credito' && !clienteId) { alert('⚠️ Una venta a crédito requiere seleccionar un cliente guardado.'); return; }
                 if(!Number.isFinite(pagoInicialSolicitado) || pagoInicialSolicitado < 0 || !Number.isFinite(anticipoSolicitado) || anticipoSolicitado < 0) { alert('⚠️ El pago inicial y el anticipo deben ser números válidos no negativos.'); return; }
+                const pagoNormalizado = desdeCentavos(aCentavos(pagoInicialSolicitado));
+                const anticipoNormalizado = desdeCentavos(aCentavos(anticipoSolicitado));
+                if(Math.abs(pagoInicialSolicitado - pagoNormalizado) > 1e-9 || Math.abs(anticipoSolicitado - anticipoNormalizado) > 1e-9) { alert('⚠️ El pago inicial y el anticipo admiten como máximo dos decimales.'); return; }
+                pagoInicialSolicitado = pagoNormalizado;
+                anticipoSolicitado = anticipoNormalizado;
                 if(aCentavos(anticipoSolicitado) > aCentavos(totalAnticiposCliente(clienteId))) { alert('⚠️ El anticipo solicitado supera el saldo disponible del cliente.'); return; }
                 const pagoDineroPrevisto = tipoCobroSeleccionado === 'contado' ? redondear(ingresoPrevisto - anticipoSolicitado) : redondear(pagoInicialSolicitado);
                 if(pagoDineroPrevisto < 0 || aCentavos(pagoDineroPrevisto + anticipoSolicitado) > aCentavos(ingresoPrevisto)) { alert('⚠️ La suma del pago y el anticipo no puede superar el total de la venta.'); return; }
@@ -4503,13 +4534,27 @@
                         productosActualizados.push({ ref: entrada.ref, datos: producto });
                     });
 
-                    const detalleFinal = carritoSnapshot.map(item => ({
+                    const detalleCosteado = carritoSnapshot.map(item => ({
                         ...item,
                         costoBase: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)],
                         costoUnitarioReal: item.isService ? numeroFinito(item.costoBase) : costosUnitarios[String(item.idProd)]
                     }));
-                    const desglose = calcularDesgloseFinanciero(detalleFinal, costoTinta, costoEnvio, pideFactura, costoManoObra, configuracionVenta);
+                    const desglose = calcularDesgloseFinanciero(detalleCosteado, costoTinta, costoEnvio, pideFactura, costoManoObra, configuracionVenta);
                     const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
+                    const detalleConIds = detalleCosteado.map((item, indice) => ({
+                        ...item,
+                        lineId: item.lineId || `${nuevaVentaId}-L${String(indice + 1).padStart(3, '0')}`
+                    }));
+                    const pesosIngreso = Object.fromEntries(detalleConIds.map(item => [item.lineId, numeroFinito(item.qty) * numeroFinito(item.precioCobrado)]));
+                    const pesosCosto = Object.fromEntries(detalleConIds.map(item => [item.lineId, numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase))]));
+                    const ingresoPorLinea = SubliNegocioCore.distribuirCentavos(aCentavos(ingresoTotal), pesosIngreso);
+                    const costoPorLinea = SubliNegocioCore.distribuirCentavos(aCentavos(costosProductos), pesosCosto);
+                    const detalleFinal = detalleConIds.map(item => ({
+                        ...item,
+                        cantidadOriginalMilesimas: aMilesimas(item.qty),
+                        ingresoLineaOriginalCentavos: ingresoPorLinea[item.lineId],
+                        costoLineaOriginalCentavos: costoPorLinea[item.lineId]
+                    }));
                     const itemsResumen = detalleFinal.map(item => {
                         let suffix = ''; if(item.rol === 'material') suffix = ' (M)'; if(item.rol === 'combo') suffix = ' (Combo)';
                         return `${item.qty}x ${item.nombre}${suffix}`;
@@ -4532,7 +4577,17 @@
                         if(limiteCredito > 0 && aCentavos(saldoCreditoNuevo) > aCentavos(limiteCredito)) {
                             throw new Error(`El crédito dejaría al cliente con Q ${saldoCreditoNuevo.toFixed(2)} pendiente y su límite es Q ${limiteCredito.toFixed(2)}.`);
                         }
-                        clienteActualizado = { ...clienteServidor, saldoCredito: saldoCreditoNuevo, ultimaOperacionCreditoEn: timestampActual };
+                        const anticipoAplicadoReal = anticiposLeidos.reduce((total, entrada) => total + aCentavos(entrada.aplicado), 0);
+                        const saldoAnticiposBase = Number.isFinite(Number(clienteServidor.saldoAnticipos))
+                            ? redondear(clienteServidor.saldoAnticipos)
+                            : totalAnticiposCliente(clienteId);
+                        clienteActualizado = {
+                            ...clienteServidor,
+                            saldoCredito: saldoCreditoNuevo,
+                            saldoAnticipos: desdeCentavos(Math.max(0, aCentavos(saldoAnticiposBase) - anticipoAplicadoReal)),
+                            ultimaOperacionCreditoEn: timestampActual,
+                            ultimaOperacionAnticipoEn: anticipoAplicadoReal > 0 ? timestampActual : clienteServidor.ultimaOperacionAnticipoEn || null
+                        };
                     }
                     // Una venta antigua conserva su modelo histórico (los gastos de envío y
                     // mano de obra ya se consideraban pagados). Las ventas nuevas reservan
@@ -4574,7 +4629,8 @@
                         pagos: pagoInicial ? [pagoInicial] : [],
                         origenCotizacionId: cotizacionOrigenVentaId || null,
                         resumenMensualContabilizado: true,
-                        versionCalculo: ventaAnterior ? 2 : 3
+                        revision: ventaAnterior ? numeroFinito(ventaAnterior.revision) + 1 : 1,
+                        versionCalculo: ventaAnterior ? 2 : 4
                     };
 
                     const configData = configSnap.data();
@@ -4650,6 +4706,9 @@
                 if(resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
                 ventas = fusionarPorId(ventas, [resultado.nuevaVenta]);
+                ventasCreditoPendiente = resultado.nuevaVenta.saldoPendiente > 0
+                    ? fusionarPorId(ventasCreditoPendiente, [resultado.nuevaVenta])
+                    : ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.nuevaVenta.id));
                 if(cotizacionOrigenVentaId) {
                     const cotizacionOrigen = historialCotizaciones.find(c => String(c.id) === String(cotizacionOrigenVentaId));
                     if(cotizacionOrigen) { cotizacionOrigen.eliminada = true; cotizacionOrigen.convertidaEnVentaId = resultado.nuevaVenta.id; }
@@ -4768,11 +4827,18 @@
                     if(aCentavos(reembolsoDinero) > aCentavos(saldosBase[ubicacion])) throw new Error(`No hay suficiente saldo en ${ubicacion} para el reembolso final.`);
                     saldosBase[ubicacion] = desdeCentavos(aCentavos(saldosBase[ubicacion]) - aCentavos(reembolsoDinero));
                     if(numeroFinito(venta.anticipoAplicado) > 0) {
-                        anticipoRestaurado = { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: numeroFinito(venta.anticipoAplicado), saldoPendiente: numeroFinito(venta.anticipoAplicado), aplicadoTotal: 0, devueltoTotal: 0, metodo: 'restaurado', ubicacion: null, motivo: `RESTAURADO POR ANULACIÓN DE VENTA ${venta.id}`, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), estado: 'pendiente', origenVentaAnuladaId: String(venta.id), versionCalculo: 1 };
+                        anticipoRestaurado = { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: numeroFinito(venta.anticipoAplicado), saldoPendiente: numeroFinito(venta.anticipoAplicado), aplicadoTotal: 0, devueltoTotal: 0, metodo: ubicacionReembolso === 'banco' ? 'transferencia' : 'efectivo', ubicacion: ubicacionReembolso === 'banco' ? 'banco' : 'efectivo', motivo: `RESTAURADO POR ANULACIÓN DE VENTA ${venta.id}`, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), estado: 'pendiente', origenVentaAnuladaId: String(venta.id), versionCalculo: 1 };
                     }
                     if(clienteServidor) {
                         const saldoBaseCliente = Number.isFinite(Number(clienteServidor.saldoCredito)) ? redondear(clienteServidor.saldoCredito) : saldoCreditoCalculadoCliente(venta.clienteId);
-                        clienteActualizado = { ...clienteServidor, saldoCredito: desdeCentavos(Math.max(0, aCentavos(saldoBaseCliente) - aCentavos(venta.saldoPendiente))), ultimaOperacionCreditoEn: timestampActual };
+                        const saldoAnticiposBase = Number.isFinite(Number(clienteServidor.saldoAnticipos)) ? redondear(clienteServidor.saldoAnticipos) : totalAnticiposCliente(venta.clienteId);
+                        clienteActualizado = {
+                            ...clienteServidor,
+                            saldoCredito: desdeCentavos(Math.max(0, aCentavos(saldoBaseCliente) - aCentavos(venta.saldoPendiente))),
+                            saldoAnticipos: desdeCentavos(aCentavos(saldoAnticiposBase) + aCentavos(venta.anticipoAplicado)),
+                            ultimaOperacionCreditoEn: aCentavos(venta.saldoPendiente) > 0 ? timestampActual : clienteServidor.ultimaOperacionCreditoEn || null,
+                            ultimaOperacionAnticipoEn: aCentavos(venta.anticipoAplicado) > 0 ? timestampActual : clienteServidor.ultimaOperacionAnticipoEn || null
+                        };
                     }
                     devolucionTotal = { id: devolucionId, ventaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', tipo: 'anulacion_total', ingresoDevuelto: numeroFinito(venta.ingresoTotal), creditoReducido: numeroFinito(venta.saldoPendiente), reembolsoDinero, anticipoRestaurado: numeroFinito(venta.anticipoAplicado), ubicacion, motivo: 'ANULACIÓN TOTAL DE VENTA', timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual) };
                     if(reembolsoDinero > 0) movimientoReembolso = { id: movimientoId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), tipo: 'reembolso_anulacion', monto: reembolsoDinero, ubicacion, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo: 'ANULACIÓN TOTAL DE VENTA', usuarioNombre: currentUserData?.nombre || 'Dueño' };
@@ -4791,7 +4857,7 @@
                 }
 
                 productosActualizados.forEach(entrada => t.set(entrada.ref, entrada.datos));
-                t.update(ventaRef, { anulada: true, anuladaEn: timestampActual });
+                t.update(ventaRef, { anulada: true, anuladaEn: timestampActual, revision: Math.trunc(numeroFinito(venta.revision)) + 1 });
                 t.set(configRef, { ...configData, fondos: fondosBase, saldosDinero: saldosBase, ultimaActualizacion: timestampActual });
                 if(clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 if(anticipoRestaurado) t.set(window.doc(window.db, 'anticipos', String(anticipoRestaurado.id)), anticipoRestaurado);
@@ -4804,7 +4870,7 @@
                     t.set(resumenRef, resumenActualizado);
                 }
 
-                return { venta: { ...venta, anulada: true, anuladaEn: timestampActual }, clienteActualizado, fondosActualizados: fondosBase, saldosActualizados: saldosBase, anticipoRestaurado, devolucionTotal, movimientoReembolso, productosActualizados: productosActualizados.map(x => x.datos) };
+                return { venta: { ...venta, anulada: true, anuladaEn: timestampActual, revision: Math.trunc(numeroFinito(venta.revision)) + 1 }, clienteActualizado, fondosActualizados: fondosBase, saldosActualizados: saldosBase, anticipoRestaurado, devolucionTotal, movimientoReembolso, productosActualizados: productosActualizados.map(x => x.datos) };
             });
         }
 
@@ -4884,6 +4950,7 @@
                 if(resultado.movimientoReembolso) movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimientoReembolso]);
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
                 ventas = fusionarPorId(ventas, [resultado.venta]);
+                ventasCreditoPendiente = ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.venta.id));
                 guardarDatos(); actualizarUI();
                 alert("✅ Venta anulada correctamente.");
             } catch(error) {
@@ -5320,6 +5387,7 @@
         }
 
         function exportarPorSurtirExcel() {
+            if(typeof XLSX === 'undefined') return alert('La herramienta de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
             let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
             let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
 
@@ -5351,10 +5419,13 @@
         async function procesarRetiro(tipo, val, fondoKey) {
             if(isProcessingTransaction) return false;
             if(!currentUserData || currentUserData.rol !== 'dueno') { alert('Solo el Dueño puede registrar retiros.'); return false; }
-            if(!Number.isFinite(val) || val <= 0) {
-                alert("Ingrese un monto válido mayor a 0");
+            const centavosSolicitados = aCentavos(val);
+            const valorNormalizado = desdeCentavos(centavosSolicitados);
+            if(!Number.isFinite(val) || centavosSolicitados <= 0 || Math.abs(val - valorNormalizado) > 1e-9) {
+                alert("Ingrese un monto válido de al menos Q 0.01 y máximo dos decimales");
                 return false;
             }
+            val = valorNormalizado;
             if(!window.db || !navigator.onLine) {
                 alert("⚠️ Necesitas conexión para registrar un retiro sin arriesgar los fondos ni la bitácora.");
                 return false;
@@ -5436,7 +5507,9 @@
 
         function aCentavos(valor) {
             const numero = Number(valor);
-            return Number.isFinite(numero) ? Math.round(numero * 100) : 0;
+            if(!Number.isFinite(numero)) return 0;
+            const correccionBinaria = Math.sign(numero) * Number.EPSILON * Math.max(1, Math.abs(numero));
+            return Math.round((numero + correccionBinaria) * 100);
         }
 
         function desdeCentavos(centavos) {
@@ -5980,7 +6053,7 @@
         function actualizarListaCategorias() {
             const selectInv = document.getElementById('inv-categoria'); const selectEdit = document.getElementById('edit-categoria'); 
             if(!selectInv || !selectEdit ) return;
-            let customCats = JSON.parse(localStorage.getItem('subli_custom_cats')); if (!customCats) { customCats = ["CERÁMICA", "INSUMOS", "OTROS", "TEXTIL"]; localStorage.setItem('subli_custom_cats', JSON.stringify(customCats)); }
+            let customCats = leerArregloLocalSeguro('subli_custom_cats'); if (!customCats.length) { customCats = ["CERÁMICA", "INSUMOS", "OTROS", "TEXTIL"]; localStorage.setItem('subli_custom_cats', JSON.stringify(customCats)); }
             const categoriasUnicas = new Set([...customCats.map(c => c.toUpperCase())]);
             inventario.forEach(p => { if(p.categoria && p.categoria !== "") { categoriasUnicas.add(p.categoria.toUpperCase()); } });
             let categoriasArray = Array.from(categoriasUnicas).sort();
@@ -5992,14 +6065,28 @@
             if([...selectEdit.options].some(o => o.value === valEdit)) selectEdit.value = valEdit;
         }
 
+        function crearServicioCreacion() {
+            return { id: ID_CREACION, nombre: "CREACIÓN (SERVICIO/DISEÑO)", stock: 9999, min: 0, costo: 0, proveedor: "SERVICIO INTERNO", categoria: "SERVICIOS", unidadId: "servicio", unidadNombre: "Servicio", unidadAbreviatura: "serv", unidadPaso: 1, lastModified: Date.now(), isService: true };
+        }
+
+        async function asegurarServicioCreacion() {
+            if(!inventario.some(p => p && p.id === ID_CREACION)) inventario.push(crearServicioCreacion());
+            if(!window.db || !datosCargadosDeLaNube || servicioCreacionVerificado) return;
+            servicioCreacionVerificado = true;
+            try {
+                await window.runTransaction(window.db, async t => {
+                    const ref = window.doc(window.db, "inventario", ID_CREACION);
+                    const snap = await t.get(ref);
+                    if(!snap.exists()) t.set(ref, crearServicioCreacion());
+                });
+            } catch(error) {
+                servicioCreacionVerificado = false;
+                console.warn('No se pudo verificar el servicio de creación.', error);
+            }
+        }
+
         // --- SOLUCIÓN 2 Y 3: EMBOUDO DE RENDERIZADO Y OPTIMIZACIÓN DE CHART.JS ---
         function renderizarTodo() {
-            const ID_CREACION = "srv_creacion_01"; let existeCreacion = inventario.find(p => p.id === ID_CREACION);
-            if (!existeCreacion) {
-                let rec = { id: ID_CREACION, nombre: "CREACIÓN (SERVICIO/DISEÑO)", stock: 9999, min: 0, costo: 0, proveedor: "SERVICIO INTERNO", categoria: "SERVICIOS", unidadId: "servicio", unidadNombre: "Servicio", unidadAbreviatura: "serv", unidadPaso: 1, lastModified: Date.now(), isService: true };
-                inventario.push(rec);
-                if(window.db && datosCargadosDeLaNube) window.setDoc(window.doc(window.db, "inventario", String(rec.id)), rec);
-            }
 
             let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
             const simboloMoneda = configuracionNegocio.moneda || 'Q';
@@ -6070,7 +6157,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.2";
+        const APP_VERSION = "1.2.3";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -6085,13 +6172,14 @@
 
         async function forzarActualizacionApp(versionObjetivo) {
             console.log("Instalando actualización: " + versionObjetivo);
+            sessionStorage.setItem('subli_actualizacion_intentada', String(versionObjetivo));
             if ('caches' in window) {
                 const names = await caches.keys();
-                await Promise.all(names.map(name => caches.delete(name)));
+                await Promise.all(names.filter(name => name.startsWith('sublicosturas-v')).map(name => caches.delete(name)));
             }
             if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(registrations.map(registration => registration.unregister()));
+                const registration = await navigator.serviceWorker.getRegistration('./');
+                if(registration) await registration.update().catch(() => undefined);
             }
             // Solamente se limpian archivos temporales de la aplicación. Nunca se borran
             // el respaldo local, inventario, ventas, ingresos ni datos de Firebase.
@@ -6118,11 +6206,8 @@
             prepararSeccionesConfiguracion();
             actualizarFormaIngreso();
             const currentVersion = localStorage.getItem("app_version");
-
-            if (currentVersion !== APP_VERSION) {
-                await forzarActualizacionApp(APP_VERSION);
-                return;
-            }
+            if(currentVersion !== APP_VERSION) localStorage.setItem("app_version", APP_VERSION);
+            if(sessionStorage.getItem('subli_actualizacion_intentada') === APP_VERSION) sessionStorage.removeItem('subli_actualizacion_intentada');
 
             aplicarPreferenciasSistema();
 
@@ -6135,6 +6220,7 @@
             setTimeout(() => {
                 if(!cargaDatosIniciada) {
                     cargarDatosLocales();
+                    asegurarServicioCreacion();
                     mostrarLogo();
                     actualizarUI();
                     comprobarIngresoInicialLibre();
@@ -6149,8 +6235,12 @@
                 })
                 .then(data => {
                     if (data && data.version && esVersionMasNueva(data.version, APP_VERSION)) {
-                        console.log("¡Nueva actualización detectada en la nube! Actualizando de " + APP_VERSION + " a " + data.version);
-                        forzarActualizacionApp(data.version);
+                        if(sessionStorage.getItem('subli_actualizacion_intentada') !== String(data.version)) {
+                            console.log("¡Nueva actualización detectada en la nube! Actualizando de " + APP_VERSION + " a " + data.version);
+                            forzarActualizacionApp(data.version);
+                        } else {
+                            console.warn('La actualización ya se intentó en esta pestaña; se evitó un ciclo de recargas.');
+                        }
                     }
                 }).catch(e => console.log("Modo offline activo o version.json no configurado."));
             }, 3000);
