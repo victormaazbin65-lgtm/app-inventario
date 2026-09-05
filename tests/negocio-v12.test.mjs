@@ -261,15 +261,15 @@ test('la copia completa valida, crea punto previo y conserva el UID actual', () 
   assert.doesNotMatch(respaldoSource, /lote\.delete/);
 });
 
-test('reglas, PWA y versión 1.2.4 quedan coordinadas', () => {
+test('reglas, PWA y versión 1.2.5 quedan coordinadas', () => {
   const reglas = leer('firestore.rules');
   assert.match(reglas, /request\.auth\.uid == authPropietario\(\)\.get\('uid'/);
   assert.match(reglas, /allow read, write: if esPropietarioAutenticado\(\)/);
   assert.doesNotMatch(reglas, /!proteccionActivada\(\)/);
   assert.doesNotMatch(reglas, /activacionPropiaValida/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.4' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.4');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.4/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.5/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });

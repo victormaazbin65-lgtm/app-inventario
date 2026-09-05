@@ -436,6 +436,43 @@
             .client-options { grid-template-columns: 1fr 1fr; }
         }
 
+        /* Plan de surtido: misma estructura para los modelos Profesional y Clásico. */
+        .supply-toolbar { display: grid; grid-template-columns: minmax(145px, .7fr) minmax(190px, 1fr) minmax(220px, 1.3fr) auto; gap: 10px; align-items: end; margin: 17px 0 14px; }
+        .supply-toolbar .form-group { min-width: 0; margin: 0; }
+        .supply-toolbar input, .supply-toolbar select { margin: 0; }
+        .supply-toolbar .supply-export { width: auto; min-height: 42px; margin: 0; padding: 10px 14px; white-space: nowrap; }
+        .supply-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 15px; }
+        .supply-metric { min-width: 0; padding: 11px 12px; border: 1px solid var(--border-color); border-radius: 11px; background: var(--surface-soft); }
+        .supply-metric span { display: block; color: var(--text-light); font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        .supply-metric strong { display: block; margin-top: 3px; color: var(--text-dark); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .supply-provider-group { margin-bottom: 14px; overflow: hidden; border: 1px solid var(--border-color); border-radius: 14px; background: rgba(5, 11, 22, .34); }
+        .supply-provider-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border-color); background: rgba(96, 165, 250, .07); }
+        .supply-provider-head h4 { margin: 0; color: var(--text-dark); font-size: 15px; overflow-wrap: anywhere; }
+        .supply-provider-meta { color: var(--text-light); font-size: 11px; line-height: 1.5; text-align: right; }
+        .supply-provider-products { padding: 10px; }
+        .supply-product { margin-bottom: 9px; padding: 13px; border: 1px solid var(--border-color); border-left: 3px solid var(--primary-orange); border-radius: 11px; background: rgba(15, 23, 42, .56); }
+        .supply-product:last-child { margin-bottom: 0; }
+        .supply-product.is-out { border-left-color: var(--primary-red); background: rgba(127, 29, 29, .11); }
+        .supply-product.is-minimum { border-left-color: var(--primary-blue); }
+        .supply-product-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 9px; }
+        .supply-product-title { margin: 0; color: var(--text-dark); font-size: 14px; overflow-wrap: anywhere; }
+        .supply-product-provider { display: block; margin-top: 3px; color: var(--text-light); font-size: 11px; }
+        .supply-product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .supply-product-data { min-width: 0; color: var(--text-light); font-size: 11px; line-height: 1.45; }
+        .supply-product-data strong { display: block; color: var(--text-dark); font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .supply-product-data.suggested strong { color: var(--primary-green); }
+        .supply-empty { padding: 24px 12px; color: var(--text-light); text-align: center; }
+        @media (max-width: 820px) {
+            .supply-toolbar { grid-template-columns: 1fr 1fr; }
+            .supply-toolbar .supply-export { width: 100%; }
+            .supply-summary, .supply-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 520px) {
+            .supply-toolbar, .supply-summary { grid-template-columns: 1fr; }
+            .supply-product-head, .supply-provider-head { flex-direction: column; }
+            .supply-provider-meta { text-align: left; }
+        }
+
         /* Selector de modelo. No comparte estado con los datos del negocio. */
         .visual-model-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
         .visual-model-card { position: relative; display: block; min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: 15px; background: rgba(5, 11, 22, .44); color: var(--text-dark); cursor: pointer; transition: border-color .2s ease, background-color .2s ease, transform .2s ease; }
@@ -1422,10 +1459,28 @@
 
         <div id="sec-alertas" style="display: none;">
             <div class="card">
-                <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Productos por Surtir</h3>
-                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px; margin-bottom: 15px;">Lista de artículos que han llegado a su nivel mínimo de alerta.</p>
-                <button class="btn-main" style="background-color: var(--primary-green); margin-bottom: 15px; margin-top: 0;" onclick="exportarPorSurtirExcel()">📂 Exportar Lista a Excel</button>
-                <div id="lista-alertas-surtir"><p class="item-details" style="text-align:center;">Cargando alertas...</p></div>
+                <h3 class="section-title" style="color: var(--primary-red); border-bottom-color: var(--primary-red);">⚠️ Plan de Surtido</h3>
+                <p style="font-size: 13px; color: var(--text-light); margin-top: -5px;">Revisa los productos con existencia mínima y organiza la compra por artículo o por empresa distribuidora.</p>
+                <div class="supply-toolbar">
+                    <div class="form-group">
+                        <label for="surtido-vista">Organizar por</label>
+                        <select id="surtido-vista" onchange="cambiarVistaSurtido(this.value)">
+                            <option value="productos">Productos</option>
+                            <option value="distribuidores">Distribuidores</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="surtido-proveedor">Distribuidor / proveedor</label>
+                        <select id="surtido-proveedor" onchange="renderAlertas()"><option value="todos">Todas las empresas</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="surtido-busqueda">Buscar en el plan</label>
+                        <input id="surtido-busqueda" type="search" autocomplete="off" placeholder="Producto, categoría, código o empresa" oninput="renderAlertas()">
+                    </div>
+                    <button class="btn-main btn-green supply-export" onclick="exportarPorSurtirExcel()">📂 Exportar Excel</button>
+                </div>
+                <div id="resumen-alertas-surtir" class="supply-summary" aria-live="polite"></div>
+                <div id="lista-alertas-surtir"><p class="item-details" style="text-align:center;">Cargando plan...</p></div>
             </div>
         </div>
 
@@ -1868,6 +1923,7 @@
         const KEY_MOVIMIENTOS_CAJA = 'subli_movimientos_caja_v1';
         const KEY_DEVOLUCIONES = 'subli_devoluciones_v1';
         const KEY_PERDIDAS = 'subli_perdidas_v1';
+        const KEY_VISTA_SURTIDO = 'subli_vista_surtido_v1';
 
         const ALERTA_MARGEN_MINIMO = 0.10;
 
@@ -1891,6 +1947,16 @@
         let ventaEdicionVersion = null;
         let ingresoEnEdicion = null;
         let cotizacionOrigenVentaId = null;
+
+        function cargarVistaSurtidoLocal() {
+            try {
+                return localStorage.getItem(KEY_VISTA_SURTIDO) === 'distribuidores' ? 'distribuidores' : 'productos';
+            } catch(error) {
+                return 'productos';
+            }
+        }
+
+        let vistaSurtido = cargarVistaSurtidoLocal();
 
         function crearPreferenciasSistemaPorDefecto() {
             return {
@@ -5653,52 +5719,185 @@
         }
 
         // ================= PESTAÑA ALERTAS / POR SURTIR =================
+        function cambiarVistaSurtido(valor) {
+            vistaSurtido = valor === 'distribuidores' ? 'distribuidores' : 'productos';
+            try { localStorage.setItem(KEY_VISTA_SURTIDO, vistaSurtido); } catch(error) { console.warn('No se pudo guardar la vista de surtido.', error); }
+            renderAlertas();
+        }
+
+        function actualizarOpcionesDistribuidorSurtido(plan) {
+            const select = document.getElementById('surtido-proveedor');
+            if(!select) return;
+            const anterior = select.value || 'todos';
+            const proveedores = SubliNegocioCore.agruparPlanSurtido(plan).map(grupo => grupo.proveedor);
+            const firma = JSON.stringify(proveedores);
+            if(select.dataset.firmaProveedores !== firma) {
+                select.innerHTML = '<option value="todos">Todas las empresas</option>' + proveedores
+                    .map(proveedor => `<option value="${escaparHTML(proveedor)}">${escaparHTML(proveedor)}</option>`)
+                    .join('');
+                select.dataset.firmaProveedores = firma;
+            }
+            select.value = proveedores.includes(anterior) ? anterior : 'todos';
+        }
+
+        function filtrarPlanSurtido(plan) {
+            const proveedor = document.getElementById('surtido-proveedor')?.value || 'todos';
+            const busqueda = document.getElementById('surtido-busqueda')?.value || '';
+            return plan.filter(producto => {
+                if(proveedor !== 'todos' && producto.proveedorSurtido !== proveedor) return false;
+                return busquedaInteligente(`${producto.codigoInventario || ''} ${producto.nombre || ''} ${producto.categoria || ''} ${producto.proveedorSurtido}`, busqueda);
+            });
+        }
+
+        function textoEstadoSurtido(estado) {
+            if(estado === 'agotado') return 'AGOTADO';
+            if(estado === 'bajo') return 'BAJO MÍNIMO';
+            return 'EN EL MÍNIMO';
+        }
+
+        function generarTarjetaProductoSurtido(producto, mostrarProveedor = true) {
+            const unidad = unidadProducto(producto);
+            const moneda = escaparHTML(configuracionNegocio?.moneda || 'Q');
+            const claseEstado = producto.estadoSurtido === 'agotado' ? 'is-out' : (producto.estadoSurtido === 'minimo' ? 'is-minimum' : '');
+            const codigo = esCodigoInventarioValido(producto.codigoInventario) ? `<span class="product-code">CÓD. ${escaparHTML(producto.codigoInventario)}</span>` : '';
+            const proveedor = mostrarProveedor ? `<span class="supply-product-provider">🏭 ${escaparHTML(producto.proveedorSurtido)}</span>` : '';
+            const costoCompra = producto.costoCompraEstimado === null
+                ? 'Revisar costo'
+                : `${moneda}${numeroFinito(producto.costoCompraEstimado).toFixed(2)}`;
+            return `<article class="supply-product ${claseEstado}">
+                <div class="supply-product-head">
+                    <div><h5 class="supply-product-title">${codigo}${escaparHTML(producto.nombre || 'PRODUCTO SIN NOMBRE')}</h5>${proveedor}</div>
+                    <span class="status-badge warning">${textoEstadoSurtido(producto.estadoSurtido)}</span>
+                </div>
+                <div class="supply-product-grid">
+                    <div class="supply-product-data">Stock actual<strong>${escaparHTML(etiquetaUnidadProducto(producto, producto.stockNormalizado))}</strong></div>
+                    <div class="supply-product-data">Mínimo configurado<strong>${escaparHTML(etiquetaUnidadProducto(producto, producto.minimoNormalizado))}</strong></div>
+                    <div class="supply-product-data suggested">Compra mínima sugerida<strong>${escaparHTML(etiquetaUnidadProducto(producto, producto.cantidadSugerida))}</strong></div>
+                    <div class="supply-product-data">Costo estimado<strong>${costoCompra}</strong></div>
+                </div>
+                <span class="supply-product-provider">Objetivo después de comprar: ${escaparHTML(etiquetaUnidadProducto(producto, producto.stockObjetivo))} · Rotación histórica: ${numeroFinito(producto.ventasTotales)} · ${escaparHTML(producto.categoria || 'OTROS')}</span>
+            </article>`;
+        }
+
+        function resumenVisualPlanSurtido(productos) {
+            const grupos = SubliNegocioCore.agruparPlanSurtido(productos);
+            const empresas = grupos.filter(grupo => grupo.proveedor !== SubliNegocioCore.PROVEEDOR_SIN_ASIGNAR).length;
+            const agotados = productos.filter(producto => producto.estadoSurtido === 'agotado').length;
+            let totalCentavos = 0;
+            let totalSeguro = true;
+            grupos.forEach(grupo => {
+                const siguiente = totalCentavos + aCentavos(grupo.costoCompraEstimado);
+                if(!Number.isSafeInteger(siguiente)) totalSeguro = false;
+                else totalCentavos = siguiente;
+            });
+            const moneda = escaparHTML(configuracionNegocio?.moneda || 'Q');
+            const costoTotal = totalSeguro ? `${moneda}${desdeCentavos(totalCentavos).toFixed(2)}` : 'Revisar montos';
+            return `<div class="supply-metric"><span>Productos visibles</span><strong>${productos.length}</strong></div>
+                <div class="supply-metric"><span>Agotados</span><strong>${agotados}</strong></div>
+                <div class="supply-metric"><span>Empresas asignadas</span><strong>${empresas}</strong></div>
+                <div class="supply-metric"><span>Compra mínima conocida</span><strong>${costoTotal}</strong></div>`;
+        }
+
+        function avisosPlanSurtido(productos) {
+            const sinDistribuidor = productos.filter(producto => producto.proveedorSurtido === SubliNegocioCore.PROVEEDOR_SIN_ASIGNAR).length;
+            const sinCosto = productos.filter(producto => !producto.costoValido).length;
+            const avisos = [];
+            if(sinDistribuidor) avisos.push(`${sinDistribuidor} producto(s) necesitan distribuidor asignado`);
+            if(sinCosto) avisos.push(`${sinCosto} producto(s) no tienen costo válido y no entran en la estimación`);
+            return avisos.length ? `<p class="compact-note" style="margin:0 0 12px; color:var(--primary-orange);">⚠️ ${escaparHTML(avisos.join(' · '))}</p>` : '';
+        }
+
         function renderAlertas() {
             const contAlertas = document.getElementById('lista-alertas-surtir');
-            let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0)); 
-            let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
-            
-            if(productosBajos.length === 0) { 
-                contAlertas.innerHTML = '<p class="item-details" style="text-align:center; color: var(--primary-green); font-weight: bold;">¡Todo bien! No hay productos por surtir.</p>'; 
-                return; 
+            const resumen = document.getElementById('resumen-alertas-surtir');
+            if(!contAlertas || !resumen) return;
+            const selectorVista = document.getElementById('surtido-vista');
+            if(selectorVista) selectorVista.value = vistaSurtido;
+
+            const planCompleto = SubliNegocioCore.crearPlanSurtido(inventario, configuracionNegocio);
+            actualizarOpcionesDistribuidorSurtido(planCompleto);
+            const productos = filtrarPlanSurtido(planCompleto);
+            resumen.innerHTML = resumenVisualPlanSurtido(productos);
+
+            if(planCompleto.length === 0) {
+                contAlertas.innerHTML = '<div class="supply-empty" style="color:var(--primary-green); font-weight:800;">✅ Todo bien: no hay productos por surtir.</div>';
+                return;
+            }
+            if(productos.length === 0) {
+                contAlertas.innerHTML = '<div class="supply-empty">No hay productos que coincidan con esta empresa o búsqueda.</div>';
+                return;
             }
 
-            let html = '';
-            productosBajos.forEach(p => {
-                html += `<div class="item-row" style="background: rgba(239, 68, 68, 0.2); border: 1px dashed var(--primary-red); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: block;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--primary-red); padding-bottom: 8px; margin-bottom: 8px;"><p class="item-title" style="color: var(--primary-red); margin: 0;">${escaparHTML(p.nombre)}</p> <span style="color: var(--primary-orange); font-size: 13px; font-weight: bold;">🔥 Rotación: ${numeroFinito(p.ventasTotales)} vendidas</span></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"><span style="color: var(--text-dark);">📉 <b>Stock Actual:</b> <span style="color: var(--primary-red); font-weight: bold; font-size: 15px;">${numeroFinito(p.stock)}</span></span><span style="color: var(--text-light);">🔔 <b>Mínimo:</b> ${numeroFinito(p.min)}</span><span style="color: var(--text-dark);">🏭 <b>Proveedor:</b> ${escaparHTML(p.proveedor || "NO ESPECIFICADO")}</span><span style="color: var(--primary-blue); font-weight: bold;">💰 <b>Costo Inv.:</b> Q${numeroFinito(p.costo).toFixed(2)}</span></div></div>`;
-            });
+            let html = avisosPlanSurtido(productos);
+            if(vistaSurtido === 'distribuidores') {
+                const moneda = escaparHTML(configuracionNegocio?.moneda || 'Q');
+                html += SubliNegocioCore.agruparPlanSurtido(productos).map(grupo => {
+                    const notaSinCosto = grupo.sinCosto ? ` · ${grupo.sinCosto} sin costo válido` : '';
+                    return `<section class="supply-provider-group">
+                        <div class="supply-provider-head">
+                            <h4>🏭 ${escaparHTML(grupo.proveedor)}</h4>
+                            <div class="supply-provider-meta">${grupo.cantidadProductos} producto(s) · ${grupo.agotados} agotado(s)<br>Compra mínima conocida: <strong>${moneda}${numeroFinito(grupo.costoCompraEstimado).toFixed(2)}</strong>${escaparHTML(notaSinCosto)}</div>
+                        </div>
+                        <div class="supply-provider-products">${grupo.productos.map(producto => generarTarjetaProductoSurtido(producto, false)).join('')}</div>
+                    </section>`;
+                }).join('');
+            } else {
+                html += productos.map(producto => generarTarjetaProductoSurtido(producto, true)).join('');
+            }
             contAlertas.innerHTML = html;
         }
 
         function exportarPorSurtirExcel() {
             if(typeof XLSX === 'undefined') return alert('La herramienta de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
-            let invOrdenado = [...inventario].sort((a, b) => (b.ventasTotales || 0) - (a.ventasTotales || 0));
-            let productosBajos = invOrdenado.filter(p => !p.isService && p.stock <= (p.min || 0));
+            const planCompleto = SubliNegocioCore.crearPlanSurtido(inventario, configuracionNegocio);
+            const productos = filtrarPlanSurtido(planCompleto);
+            if(productos.length === 0) return alert('No hay productos pendientes dentro del filtro actual.');
 
-            if (productosBajos.length === 0) {
-                alert("No hay productos pendientes por surtir actualmente."); 
-                return;
-            }
-
-            let dataExp = productosBajos.map(p => ({
-                "Producto": p.nombre,
-                "Ventas Históricas": p.ventasTotales || 0,
-                "Categoría": p.categoria || "OTROS",
-                "Proveedor": p.proveedor || "NO ESPECIFICADO",
-                "Stock Actual": p.stock,
-                "Mínimo de Alerta": p.min || 0,
-                "Costo Unitario (Q)": numeroFinito(p.costo).toFixed(2)
-            }));
+            const moneda = String(configuracionNegocio?.moneda || 'Q');
+            const estadoTexto = { agotado: 'AGOTADO', bajo: 'BAJO MÍNIMO', minimo: 'EN EL MÍNIMO' };
+            const detalle = productos.map(producto => {
+                const unidad = unidadProducto(producto);
+                return {
+                    'Distribuidor / proveedor': producto.proveedorSurtido,
+                    'Producto': producto.nombre || '',
+                    'Código': esCodigoInventarioValido(producto.codigoInventario) ? Number(producto.codigoInventario) : '',
+                    'Estado': estadoTexto[producto.estadoSurtido] || 'POR SURTIR',
+                    'Categoría': producto.categoria || 'OTROS',
+                    'Stock actual': numeroFinito(producto.stockNormalizado),
+                    'Mínimo': numeroFinito(producto.minimoNormalizado),
+                    'Compra mínima sugerida': numeroFinito(producto.cantidadSugerida),
+                    'Stock objetivo': numeroFinito(producto.stockObjetivo),
+                    'Unidad': unidad.abreviatura,
+                    'Ventas históricas': numeroFinito(producto.ventasTotales),
+                    [`Costo unitario (${moneda})`]: producto.costoValido ? numeroFinito(producto.costo) : '',
+                    [`Compra estimada (${moneda})`]: producto.costoCompraEstimado === null ? '' : numeroFinito(producto.costoCompraEstimado)
+                };
+            });
 
             const libro = XLSX.utils.book_new();
-            const hoja = XLSX.utils.json_to_sheet(dataExp);
-            XLSX.utils.book_append_sheet(libro, hoja, "Articulos Por Surtir");
-            
+            if(vistaSurtido === 'distribuidores') {
+                const resumenEmpresas = SubliNegocioCore.agruparPlanSurtido(productos).map(grupo => ({
+                    'Distribuidor / proveedor': grupo.proveedor,
+                    'Productos por surtir': grupo.cantidadProductos,
+                    'Productos agotados': grupo.agotados,
+                    'Productos sin costo válido': grupo.sinCosto,
+                    [`Compra mínima conocida (${moneda})`]: numeroFinito(grupo.costoCompraEstimado)
+                }));
+                const hojaResumen = XLSX.utils.json_to_sheet(resumenEmpresas);
+                hojaResumen['!cols'] = [{ wch: 34 }, { wch: 20 }, { wch: 20 }, { wch: 26 }, { wch: 29 }];
+                hojaResumen['!autofilter'] = { ref: hojaResumen['!ref'] };
+                XLSX.utils.book_append_sheet(libro, hojaResumen, 'Resumen empresas');
+            }
+            const hojaDetalle = XLSX.utils.json_to_sheet(detalle);
+            hojaDetalle['!cols'] = [{ wch: 34 }, { wch: 34 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 23 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 22 }];
+            hojaDetalle['!autofilter'] = { ref: hojaDetalle['!ref'] };
+            XLSX.utils.book_append_sheet(libro, hojaDetalle, 'Productos por surtir');
+
             const fecha = new Date().toLocaleDateString('es-GT').replace(/\//g, '-');
-            const nombreArchivo = String(configuracionNegocio?.nombreNegocio || 'Negocio').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'Negocio';
-            XLSX.writeFile(libro, `${nombreArchivo}_Por_Surtir_${fecha}.xlsx`);
+            const nombreNegocio = String(configuracionNegocio?.nombreNegocio || 'Negocio').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'Negocio';
+            const proveedorElegido = document.getElementById('surtido-proveedor')?.value || 'todos';
+            const sufijoProveedor = proveedorElegido === 'todos' ? '' : '_' + proveedorElegido.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 36);
+            XLSX.writeFile(libro, `${nombreNegocio}_Plan_Surtido${sufijoProveedor}_${fecha}.xlsx`);
         }
 
         // ================= RETIROS Y BITÁCORA =================
@@ -6442,7 +6641,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.4";
+        const APP_VERSION = "1.2.5";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
