@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-modelo-visual="profesional">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script src="./visual-preferences.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -434,6 +435,129 @@
             .management-grid { grid-template-columns: 1fr; }
             .client-options { grid-template-columns: 1fr 1fr; }
         }
+
+        /* Selector de modelo. No comparte estado con los datos del negocio. */
+        .visual-model-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .visual-model-card { position: relative; display: block; min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: 15px; background: rgba(5, 11, 22, .44); color: var(--text-dark); cursor: pointer; transition: border-color .2s ease, background-color .2s ease, transform .2s ease; }
+        .visual-model-card:hover { transform: translateY(-1px); border-color: rgba(96, 165, 250, .48); }
+        .visual-model-card:has(input:checked) { border-color: var(--primary-blue); background: rgba(37, 99, 235, .14); box-shadow: 0 0 0 1px rgba(96, 165, 250, .20); }
+        .visual-model-card input { position: absolute; top: 15px; right: 15px; width: 18px; min-height: 18px; height: 18px; margin: 0; }
+        .visual-model-name { display: block; padding-right: 28px; font-size: 14px; font-weight: 850; color: var(--text-dark); }
+        .visual-model-description { display: block; margin-top: 4px; color: var(--text-light); font-size: 11px; font-weight: 500; line-height: 1.5; }
+        .visual-model-preview { display: grid; grid-template-columns: 28% 1fr; gap: 5px; height: 58px; margin-top: 12px; padding: 6px; border: 1px solid rgba(148, 163, 184, .16); border-radius: 10px; background: #070b14; }
+        .visual-model-preview span { display: block; border-radius: 5px; background: #1f2937; }
+        .visual-model-preview span:last-child { background: linear-gradient(145deg, #1f2937, #111827); }
+        .visual-model-card:first-child .visual-model-preview { grid-template-columns: 22% 1fr; background: #050914; }
+        .visual-model-card:first-child .visual-model-preview span:first-child { background: linear-gradient(180deg, #164e63, #172554); }
+        .visual-model-card:first-child .visual-model-preview span:last-child { background: linear-gradient(145deg, #10223b, #0b1324); }
+
+        /* Modelo Profesional v1.2.4: reglas totalmente acotadas para que Clásico
+           conserve la interfaz anterior sin afectar estructura ni comportamiento. */
+        html[data-modelo-visual="profesional"] {
+            color-scheme: dark;
+            --bg-color: #050914;
+            --card-bg: rgba(10, 20, 37, .92);
+            --surface-bg: #0d1b30;
+            --surface-soft: rgba(20, 38, 63, .70);
+            --primary-blue: #38bdf8;
+            --primary-green: #2dd4bf;
+            --primary-red: #fb7185;
+            --primary-purple: #818cf8;
+            --primary-orange: #f59e0b;
+            --text-dark: #f1f5f9;
+            --text-light: #9fb0c7;
+            --border-color: rgba(125, 159, 196, .20);
+            --shadow: 0 24px 64px -38px rgba(0, 0, 0, .98), 0 1px 0 rgba(255, 255, 255, .025) inset;
+            --focus-ring: 0 0 0 3px rgba(56, 189, 248, .20);
+        }
+        html[data-modelo-visual="profesional"] body {
+            position: relative;
+            background:
+                radial-gradient(circle at 15% -15%, rgba(14, 116, 144, .25), transparent 33rem),
+                radial-gradient(circle at 92% 8%, rgba(30, 64, 175, .18), transparent 34rem),
+                #050914;
+        }
+        html[data-modelo-visual="profesional"] body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: .16;
+            background-image: linear-gradient(rgba(148, 163, 184, .13) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, .13) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, black, transparent 74%);
+        }
+        html[data-modelo-visual="profesional"] .container { max-width: 1180px; }
+        html[data-modelo-visual="profesional"] .tabs {
+            border-radius: 14px;
+            border-color: rgba(125, 211, 252, .18);
+            background: rgba(5, 12, 25, .88);
+            box-shadow: 0 18px 46px -30px #000;
+        }
+        html[data-modelo-visual="profesional"] .tab-btn { border-radius: 9px; letter-spacing: .01em; }
+        html[data-modelo-visual="profesional"] .tab-btn:hover { background: rgba(56, 189, 248, .09); }
+        html[data-modelo-visual="profesional"] .tab-btn.active {
+            border-color: rgba(125, 211, 252, .28);
+            background: linear-gradient(135deg, #075985, #1d4ed8);
+            box-shadow: 0 12px 28px -18px rgba(56, 189, 248, .95);
+        }
+        html[data-modelo-visual="profesional"] .card,
+        html[data-modelo-visual="profesional"] .settings-section,
+        html[data-modelo-visual="profesional"] .fold-card {
+            border-color: rgba(125, 159, 196, .20);
+            background: linear-gradient(145deg, rgba(13, 27, 48, .94), rgba(7, 15, 29, .96));
+            box-shadow: var(--shadow);
+        }
+        html[data-modelo-visual="profesional"] .card { border-radius: 17px; }
+        html[data-modelo-visual="profesional"] .section-title { color: #e6f6ff; border-bottom-color: rgba(125, 211, 252, .18); }
+        html[data-modelo-visual="profesional"] .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        html[data-modelo-visual="profesional"] .dash-card {
+            border-radius: 15px;
+            border: 1px solid rgba(125, 159, 196, .22);
+            background: linear-gradient(145deg, rgba(15, 35, 58, .98), rgba(8, 18, 34, .98));
+            box-shadow: 0 18px 38px -28px #000;
+        }
+        html[data-modelo-visual="profesional"] .dash-card.bg-blue { border-left: 3px solid #38bdf8; }
+        html[data-modelo-visual="profesional"] .dash-card.bg-purple { border-left: 3px solid #818cf8; }
+        html[data-modelo-visual="profesional"] .dash-card.bg-orange { border-left: 3px solid #f59e0b; }
+        html[data-modelo-visual="profesional"] .dash-card.bg-green { border-left: 3px solid #2dd4bf; }
+        html[data-modelo-visual="profesional"] .dash-card.bg-gray,
+        html[data-modelo-visual="profesional"] .dash-card.bg-dark { border-left: 3px solid #64748b; }
+        html[data-modelo-visual="profesional"] .dash-card::after { opacity: .16; }
+        html[data-modelo-visual="profesional"] input,
+        html[data-modelo-visual="profesional"] select,
+        html[data-modelo-visual="profesional"] textarea,
+        html[data-modelo-visual="profesional"] .autocomplete-input {
+            border-radius: 9px;
+            border-color: rgba(125, 159, 196, .24);
+            background: rgba(5, 14, 28, .86);
+        }
+        html[data-modelo-visual="profesional"] button.btn-main {
+            border: 1px solid rgba(125, 211, 252, .16);
+            border-radius: 10px;
+            background: linear-gradient(135deg, #0369a1, #1d4ed8);
+        }
+        html[data-modelo-visual="profesional"] button.btn-green { background: linear-gradient(135deg, #0f766e, #047857); }
+        html[data-modelo-visual="profesional"] .cart-container,
+        html[data-modelo-visual="profesional"] .financial-breakdown,
+        html[data-modelo-visual="profesional"] .management-card,
+        html[data-modelo-visual="profesional"] .smart-card {
+            border-color: rgba(125, 159, 196, .22);
+            background: rgba(5, 14, 28, .62);
+        }
+        html[data-modelo-visual="profesional"] .status-badge.ok { background: rgba(45, 212, 191, .08); }
+        html[data-modelo-visual="profesional"] .status-badge.warning { background: rgba(245, 158, 11, .08); }
+        @media (min-width: 900px) {
+            html[data-modelo-visual="profesional"] body.layout-lateral .tabs { border-radius: 14px; }
+            html[data-modelo-visual="profesional"] body.layout-lateral.menu-compacto #main-app { margin-left: 92px; }
+            html[data-modelo-visual="profesional"] body.layout-lateral.menu-expandido #main-app { margin-left: 252px; }
+        }
+        @media (max-width: 680px) {
+            .visual-model-grid { grid-template-columns: 1fr; }
+            html[data-modelo-visual="profesional"] .dash-grid { grid-template-columns: 1fr; }
+            html[data-modelo-visual="profesional"] .card { padding: 17px; }
+        }
     </style>
 </head>
 <body>
@@ -579,10 +703,25 @@
 
         <div id="sec-ajustes" style="display: none;">
             <details id="ajuste-interfaz" class="settings-section">
-                <summary>🖥️ Interfaz de computadora</summary>
+                <summary>🖥️ Apariencia e interfaz</summary>
                 <div class="settings-section-content">
-                <h3 class="section-title">🖥️ Interfaz de computadora</h3>
-                <p class="settings-note">Cambia únicamente la presentación de este dispositivo. En celular se conserva automáticamente la interfaz actual.</p>
+                <h3 class="section-title">🖥️ Apariencia e interfaz</h3>
+                <p class="settings-note" id="nota-modelo-visual">Elige el modelo visual para este dispositivo. Solo cambia la apariencia; no modifica datos, cálculos ni permisos.</p>
+                <div class="visual-model-grid" role="radiogroup" aria-labelledby="nota-modelo-visual">
+                    <label class="visual-model-card">
+                        <input type="radio" name="modelo-visual" id="modelo-visual-profesional" value="profesional" onchange="previsualizarModeloVisual()">
+                        <span class="visual-model-name">Profesional (nuevo)</span>
+                        <span class="visual-model-description">Más amplitud, jerarquía clara y paneles sobrios para operación diaria.</span>
+                        <span class="visual-model-preview" aria-hidden="true"><span></span><span></span></span>
+                    </label>
+                    <label class="visual-model-card">
+                        <input type="radio" name="modelo-visual" id="modelo-visual-clasico" value="clasico" onchange="previsualizarModeloVisual()">
+                        <span class="visual-model-name">Clásico (anterior)</span>
+                        <span class="visual-model-description">Conserva exactamente la apariencia que ya conoces.</span>
+                        <span class="visual-model-preview" aria-hidden="true"><span></span><span></span></span>
+                    </label>
+                </div>
+                <p class="settings-note">En computadora también puedes elegir dónde aparece el menú. En celular se conserva automáticamente su geometría actual.</p>
                 <div class="settings-choice">
                     <label><input type="radio" name="interfaz-pc" id="ui-superior" value="superior" onchange="actualizarEstadoControlesInteligentes()"> <span>Superior<br><small style="color:var(--text-light);">Pestañas como ahora</small></span></label>
                     <label><input type="radio" name="interfaz-pc" id="ui-lateral" value="lateral" onchange="actualizarEstadoControlesInteligentes()"> <span>Lateral<br><small style="color:var(--text-light);">Aprovecha más ancho</small></span></label>
@@ -594,6 +733,7 @@
                         <option value="expandido">Iconos y nombres</option>
                     </select>
                 </div>
+                <button class="btn-main btn-green" onclick="guardarPreferenciasSistemaDesdeUI()">Guardar apariencia en este dispositivo</button>
                 </div>
             </details>
 
@@ -1754,6 +1894,7 @@
 
         function crearPreferenciasSistemaPorDefecto() {
             return {
+                modeloVisual: 'profesional',
                 interfazPc: 'superior',
                 menuLateral: 'compacto',
                 inteligenciaActiva: true,
@@ -1774,6 +1915,7 @@
             const base = crearPreferenciasSistemaPorDefecto();
             const entrada = valor && typeof valor === 'object' ? valor : {};
             const resultado = {
+                modeloVisual: ['profesional', 'clasico'].includes(entrada.modeloVisual) ? entrada.modeloVisual : base.modeloVisual,
                 interfazPc: ['superior', 'lateral'].includes(entrada.interfazPc) ? entrada.interfazPc : base.interfazPc,
                 menuLateral: ['compacto', 'expandido'].includes(entrada.menuLateral) ? entrada.menuLateral : base.menuLateral,
                 inteligenciaActiva: entrada.inteligenciaActiva === undefined ? base.inteligenciaActiva : Boolean(entrada.inteligenciaActiva),
@@ -1809,9 +1951,13 @@
         }
 
         function sincronizarControlesPreferencias() {
+            const modeloProfesional = document.getElementById('modelo-visual-profesional');
+            const modeloClasico = document.getElementById('modelo-visual-clasico');
             const superior = document.getElementById('ui-superior');
             const lateral = document.getElementById('ui-lateral');
             const menu = document.getElementById('ui-menu-lateral');
+            if(modeloProfesional) modeloProfesional.checked = preferenciasSistema.modeloVisual === 'profesional';
+            if(modeloClasico) modeloClasico.checked = preferenciasSistema.modeloVisual === 'clasico';
             if(superior) superior.checked = preferenciasSistema.interfazPc === 'superior';
             if(lateral) lateral.checked = preferenciasSistema.interfazPc === 'lateral';
             if(menu) menu.value = preferenciasSistema.menuLateral;
@@ -1837,7 +1983,16 @@
             if(grupoMenu && lateral) grupoMenu.style.display = lateral.checked ? 'block' : 'none';
         }
 
+        function previsualizarModeloVisual() {
+            const seleccionado = document.querySelector('input[name="modelo-visual"]:checked');
+            const modelo = seleccionado && ['profesional', 'clasico'].includes(seleccionado.value)
+                ? seleccionado.value
+                : preferenciasSistema.modeloVisual;
+            document.documentElement.dataset.modeloVisual = modelo;
+        }
+
         function aplicarPreferenciasSistema() {
+            document.documentElement.dataset.modeloVisual = preferenciasSistema.modeloVisual;
             document.body.classList.toggle('layout-lateral', preferenciasSistema.interfazPc === 'lateral');
             document.body.classList.toggle('menu-compacto', preferenciasSistema.menuLateral === 'compacto');
             document.body.classList.toggle('menu-expandido', preferenciasSistema.menuLateral === 'expandido');
@@ -1851,8 +2006,10 @@
 
         function guardarPreferenciasSistemaDesdeUI() {
             if(!currentUserData || currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede cambiar estas preferencias.');
+            const modeloVisualSeleccionado = document.querySelector('input[name="modelo-visual"]:checked');
             const interfazSeleccionada = document.querySelector('input[name="interfaz-pc"]:checked');
             const nueva = crearPreferenciasSistemaPorDefecto();
+            nueva.modeloVisual = modeloVisualSeleccionado ? modeloVisualSeleccionado.value : preferenciasSistema.modeloVisual;
             nueva.interfazPc = interfazSeleccionada ? interfazSeleccionada.value : preferenciasSistema.interfazPc;
             nueva.menuLateral = document.getElementById('ui-menu-lateral')?.value || preferenciasSistema.menuLateral;
             nueva.inteligenciaActiva = Boolean(document.getElementById('inteligencia-activa')?.checked);
@@ -2270,15 +2427,21 @@
         }
 
         function redondear(num) {
-            const valor = Number(num);
-            if(!Number.isFinite(valor)) return 0;
-            const correccionBinaria = Math.sign(valor) * Number.EPSILON * Math.max(1, Math.abs(valor));
-            return Math.round((valor + correccionBinaria) * 100) / 100;
+            return SubliNegocioCore.redondearMoneda(num);
         }
 
         function numeroFinito(valor, valorPorDefecto = 0) {
             const numero = Number(valor);
             return Number.isFinite(numero) ? numero : valorPorDefecto;
+        }
+
+        function normalizarCantidadServicio(valor) {
+            return SubliNegocioCore.normalizarCantidad(valor, {
+                nombre: 'Servicio',
+                abreviatura: 'serv',
+                paso: 0.001,
+                divisible: true
+            });
         }
 
         function calcularDesgloseFinanciero(detalleItems = [], costoTinta = 0, costoEnvio = 0, pideFactura = false, costoManoObra = 0, configuracion = null) {
@@ -2296,6 +2459,7 @@
             const gananciaNegativa = desglose.gananciaNeta < 0;
             const margenPorcentaje = desglose.ingresoTotal > 0 ? (desglose.margen * 100).toFixed(1) : '0.0';
             const margenObjetivoPorcentaje = typeof configuracionNegocio === 'object' ? numeroFinito(configuracionNegocio.margenObjetivo, 30) : 30;
+            const simboloMoneda = escaparHTML(typeof configuracionNegocio === 'object' ? (configuracionNegocio.moneda || 'Q') : 'Q');
             const margenAlerta = margenObjetivoPorcentaje / 100;
             let advertencia = '';
             if(gananciaNegativa) {
@@ -2312,7 +2476,7 @@
                         const margenConfigurado = typeof configuracionNegocio === 'object' ? numeroFinito(configuracionNegocio.margenObjetivo, 30) / 100 : 0.30;
                         const precioObjetivo = calcularPrecioObjetivoInteligente(desglose, margenConfigurado);
                         ayudaPrecio = precioObjetivo > desglose.ingresoTotal + 0.009
-                            ? `<div class="smart-price-help">✨ Para buscar el margen configurado, el total sugerido es al menos <strong>Q ${precioObjetivo.toFixed(2)}</strong>. Es una sugerencia; no cambia el cobro.</div>`
+                            ? `<div class="smart-price-help">✨ Para buscar el margen configurado, el total sugerido es al menos <strong>${simboloMoneda} ${precioObjetivo.toFixed(2)}</strong>. Es una sugerencia; no cambia el cobro.</div>`
                             : '<div class="smart-price-help">✨ El total actual ya alcanza el margen configurado o más.</div>';
                     } catch(error) {
                         ayudaPrecio = `<div class="financial-warning">⚠️ No se puede sugerir un precio con la combinación actual de margen y SAT. Reduce el objetivo configurado.</div>`;
@@ -2323,14 +2487,14 @@
             }
 
             return `<div class="financial-breakdown">
-                <div class="financial-row income" style="color:${colorIngreso};"><span>${etiquetaIngreso}</span><span>Q ${desglose.ingresoTotal.toFixed(2)}</span></div>
-                <div class="financial-row expense"><span>(−) Materiales/servicios</span><span>Q ${desglose.costosProductos.toFixed(2)}</span></div>
-                <div class="financial-row expense"><span>(−) ${escaparHTML(desglose.nombreProduccion || 'Producción (luz/tinta)')}</span><span>Q ${desglose.costoTinta.toFixed(2)}</span></div>
-                <div class="financial-row expense"><span>(−) ${escaparHTML(desglose.nombreManoObra || 'Mano de obra / creación')}</span><span>Q ${numeroFinito(desglose.costoManoObra).toFixed(2)}</span></div>
-                <div class="financial-row expense"><span>(−) Mensajero/envío</span><span>Q ${desglose.costoEnvio.toFixed(2)}</span></div>
-                <div class="financial-row expense"><span>(−) SAT (${numeroFinito(desglose.porcentajeSAT, 5)}% con factura)</span><span>Q ${desglose.impuestoSAT.toFixed(2)}</span></div>
-                <div class="financial-row total-expense"><span>GASTOS TOTALES</span><span>Q ${desglose.totalGastos.toFixed(2)}</span></div>
-                <div class="financial-row profit${gananciaNegativa ? ' negative' : ''}"><span>GANANCIA LIBRE</span><span>Q ${desglose.gananciaNeta.toFixed(2)}</span></div>
+                <div class="financial-row income" style="color:${colorIngreso};"><span>${etiquetaIngreso}</span><span>${simboloMoneda} ${desglose.ingresoTotal.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Materiales/servicios</span><span>${simboloMoneda} ${desglose.costosProductos.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) ${escaparHTML(desglose.nombreProduccion || 'Producción (luz/tinta)')}</span><span>${simboloMoneda} ${desglose.costoTinta.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) ${escaparHTML(desglose.nombreManoObra || 'Mano de obra / creación')}</span><span>${simboloMoneda} ${numeroFinito(desglose.costoManoObra).toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) Mensajero/envío</span><span>${simboloMoneda} ${desglose.costoEnvio.toFixed(2)}</span></div>
+                <div class="financial-row expense"><span>(−) SAT (${numeroFinito(desglose.porcentajeSAT, 5)}% con factura)</span><span>${simboloMoneda} ${desglose.impuestoSAT.toFixed(2)}</span></div>
+                <div class="financial-row total-expense"><span>GASTOS TOTALES</span><span>${simboloMoneda} ${desglose.totalGastos.toFixed(2)}</span></div>
+                <div class="financial-row profit${gananciaNegativa ? ' negative' : ''}"><span>GANANCIA LIBRE</span><span>${simboloMoneda} ${desglose.gananciaNeta.toFixed(2)}</span></div>
                 <div class="financial-margin">Margen sobre la venta: ${margenPorcentaje}%</div>
             </div>${advertencia}${ayudaPrecio}`;
         }
@@ -2470,12 +2634,13 @@
             }
 
             const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
+            const margenObjetivoTexto = numeroFinito(configuracionNegocio?.margenObjetivo, 30);
             let html = '';
             if(moduloInteligenteActivo('alertas')) {
                 const mensajes = [];
                 if(analisis.agotados.length) mensajes.push(`${analisis.agotados.length} producto(s) agotado(s)`);
                 if(analisis.stockBajo.length) mensajes.push(`${analisis.stockBajo.length} en stock mínimo o menor`);
-                if(analisis.anomalias.margenesBajos.length) mensajes.push(`${analisis.anomalias.margenesBajos.length} venta(s) disponible(s) con margen menor al 10%`);
+                if(analisis.anomalias.margenesBajos.length) mensajes.push(`${analisis.anomalias.margenesBajos.length} venta(s) disponible(s) con margen menor al ${margenObjetivoTexto}%`);
                 if(!mensajes.length) mensajes.push('No se observan alertas urgentes en los datos disponibles');
                 html += `<div class="smart-card"><h4>🚦 Alertas</h4><ul>${mensajes.map(m => `<li>${escaparHTML(m)}</li>`).join('')}</ul>${botonAyudaInteligente('alertas', 'alertas', 'Ver productos por surtir')}</div>`;
             }
@@ -2504,7 +2669,6 @@
                 html += `<div class="smart-card"><h4>🏷️ Códigos y etiquetas</h4><p>${escaparHTML(texto)}</p>${botonAyudaInteligente('etiquetas', 'inventario', 'Abrir etiquetas')}</div>`;
             }
             if(moduloInteligenteActivo('precios')) {
-                const margenObjetivoTexto = numeroFinito(configuracionNegocio?.margenObjetivo, 30);
                 html += `<div class="smart-card"><h4>📈 Precio y margen</h4><p>${modoModuloInteligente('precios') === 'ayudar' ? `Ventas y cotizaciones mostrarán un total sugerido para buscar ${margenObjetivoTexto}% de margen libre.` : 'Ventas y cotizaciones informarán el margen observado sin sugerir precios.'}</p>${botonAyudaInteligente('precios', 'cotizacion', 'Preparar cotización')}</div>`;
             }
 
@@ -2584,25 +2748,34 @@
         let categoriasExpandidas = {};
 
         function getMesAnioFromDate(fechaString, timestamp) {
-            if (timestamp) {
-                let d = new Date(timestamp);
-                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            const timestampNumero = Number(timestamp);
+            if (timestamp !== null && timestamp !== undefined && timestamp !== '' && Number.isFinite(timestampNumero) && timestampNumero >= 0) {
+                const fechaTimestamp = new Date(timestampNumero);
+                if (!Number.isNaN(fechaTimestamp.getTime())) {
+                    return fechaTimestamp.getFullYear() + '-' + String(fechaTimestamp.getMonth() + 1).padStart(2, '0');
+                }
             }
-            let partes = fechaString.split(' ')[0].split('/');
-            if(partes.length >= 3) {
-                let mes = parseInt(partes[1], 10);
-                let anio = partes[2];
-                if(mes > 12) { mes = parseInt(partes[0], 10); } 
-                return anio + '-' + String(mes).padStart(2, '0');
+            const partes = String(fechaString || '').trim().split(' ')[0].split('/');
+            if(partes.length === 3 && partes.every(parte => /^\d+$/.test(parte))) {
+                const primero = Number(partes[0]);
+                const segundo = Number(partes[1]);
+                const anio = Number(partes[2]);
+                const mes = segundo >= 1 && segundo <= 12 ? segundo : primero;
+                const dia = segundo >= 1 && segundo <= 12 ? primero : segundo;
+                const fechaValida = new Date(Date.UTC(anio, mes - 1, dia));
+                if(anio >= 1900 && anio <= 9999 && mes >= 1 && mes <= 12 && dia >= 1
+                    && fechaValida.getUTCFullYear() === anio && fechaValida.getUTCMonth() === mes - 1 && fechaValida.getUTCDate() === dia) {
+                    return String(anio) + '-' + String(mes).padStart(2, '0');
+                }
             }
             return null;
         }
 
         function formatearMesAnio(ma) {
-            if(!ma) return "";
+            const coincidencia = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(ma || ''));
+            if(!coincidencia) return "";
             const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            let [anio, mes] = ma.split('-');
-            return meses[parseInt(mes, 10) - 1] + " " + anio;
+            return meses[Number(coincidencia[2]) - 1] + " " + coincidencia[1];
         }
 
         function popularSelectMeses(datosArreglo, selectId) {
@@ -2616,7 +2789,7 @@
             });
             let opcionesHTML = '<option value="todos">Todos los meses</option>';
             Array.from(mesesUnicos).sort().reverse().forEach(ma => {
-                opcionesHTML += `<option value="${ma}">${formatearMesAnio(ma)}</option>`;
+                opcionesHTML += `<option value="${escaparHTML(ma)}">${escaparHTML(formatearMesAnio(ma))}</option>`;
             });
             select.innerHTML = opcionesHTML;
             if(Array.from(select.options).some(o => o.value === actualVal)) select.value = actualVal;
@@ -3475,8 +3648,10 @@
                 }
 
                 const transporteTexto = document.getElementById('ingreso-transporte-global').value;
-                const transporteGlobal = transporteTexto === '' ? 0 : Number(transporteTexto);
-                if (!Number.isFinite(transporteGlobal) || transporteGlobal < 0) { alert("⚠️ El transporte debe ser un número válido y no negativo."); return; }
+                let transporteGlobal;
+                try {
+                    transporteGlobal = SubliNegocioCore.normalizarMontoMoneda(transporteTexto === '' ? 0 : transporteTexto, { permitirCero: true });
+                } catch(error) { alert('⚠️ Transporte: ' + error.message); return; }
 
                 const carritoSnapshot = copiarDatos(carritoIngresos).map(item => ({
                     ...item,
@@ -3893,8 +4068,7 @@
                 const stock = Number(document.getElementById('edit-stock').value);
                 const min = Number(document.getElementById('edit-min').value);
                 const tipoCosto = document.getElementById('edit-tipo-costo').value;
-                const costoIngresado = Number(document.getElementById('edit-costo').value);
-                const costo = tipoCosto === 'total' && stock > 0 ? (costoIngresado / stock) : costoIngresado;
+                const costoIngresado = document.getElementById('edit-costo').value;
                 const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase();
                 const unidad = SubliNegocioCore.obtenerUnidad(document.getElementById('edit-unidad').value || 'pieza', configuracionNegocio);
                 
@@ -3904,7 +4078,17 @@
                 let stockValidado, minValidado;
                 try { stockValidado = SubliNegocioCore.normalizarCantidad(stock, unidad); minValidado = SubliNegocioCore.normalizarCantidad(min, unidad); }
                 catch(error) { alert('⚠️ ' + error.message); return; }
-                if(!nombre || !Number.isFinite(costo) || costo < 0) { alert("⚠️ Revisa el nombre, la cantidad, el mínimo y el costo."); return; }
+                let costo;
+                try {
+                    if(tipoCosto === 'total') {
+                        if(stockValidado <= 0) throw new Error('El valor total requiere una existencia mayor que cero.');
+                        const totalInventario = SubliNegocioCore.normalizarMontoMoneda(costoIngresado, { permitirCero: true });
+                        costo = Math.round((totalInventario / stockValidado) * 1000000) / 1000000;
+                    } else {
+                        costo = SubliNegocioCore.normalizarCostoUnitario(costoIngresado);
+                    }
+                } catch(error) { alert('⚠️ ' + error.message); return; }
+                if(!nombre) { alert("⚠️ Revisa el nombre, la cantidad, el mínimo y el costo."); return; }
                 if(!window.db || !navigator.onLine) { alert("📡 Necesitas conexión para editar el producto sin desincronizar el inventario."); return; }
                 
                 const p = inventario.find(x => String(x.id) === String(id));
@@ -4228,7 +4412,7 @@
                         let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${etiquetaUnidadProducto(p, p.stock)})`;
                         const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
                         div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${escaparHTML(stockText)}</span>`;
-                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; const unidad = unidadProducto(p); const qty = document.getElementById('venta-qty'); qty.step = p.isService ? '1' : String(unidad.paso); qty.min = p.isService ? '1' : String(unidad.paso); qty.value = p.isService ? '1' : String(unidad.divisible ? unidad.paso : 1); };
+                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; const unidad = unidadProducto(p); const qty = document.getElementById('venta-qty'); qty.step = p.isService ? '0.001' : String(unidad.paso); qty.min = p.isService ? '0.001' : String(unidad.paso); qty.value = p.isService ? '1' : String(unidad.divisible ? unidad.paso : 1); };
                         box.appendChild(div);
                     }
                 });
@@ -4263,7 +4447,12 @@
             const idProd = document.getElementById('venta-producto').value; 
             const rol = document.getElementById('venta-rol').value; 
             const qtyEntrada = Number(document.getElementById('venta-qty').value);
-            const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('venta-precio').value) || 0) : 0;
+            let precioCobrado = 0;
+            try {
+                precioCobrado = rol === 'principal'
+                    ? SubliNegocioCore.normalizarMontoMoneda(document.getElementById('venta-precio').value || 0, { permitirCero: true })
+                    : 0;
+            } catch(error) { alert('⚠️ ' + error.message); return; }
             
             if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || !Number.isFinite(qtyEntrada) || qtyEntrada <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
@@ -4271,7 +4460,7 @@
             const prod = inventario.find(p => String(p.id) === String(idProd));
             if(!prod) { alert("⚠️ El producto seleccionado ya no existe. Vuelve a buscarlo."); return; }
             let qty;
-            try { qty = prod.isService ? qtyEntrada : validarCantidadProducto(qtyEntrada, prod); }
+            try { qty = prod.isService ? normalizarCantidadServicio(qtyEntrada) : validarCantidadProducto(qtyEntrada, prod); }
             catch(error) { alert('⚠️ ' + error.message); return; }
             let nombreVenta = prod.nombre; let costoVenta = prod.costo;
 
@@ -4281,15 +4470,15 @@
                 nombreVenta = "🎨 " + customName.trim().toUpperCase(); 
                 const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
-                costoVenta = Number(customCostoStr);
-                if(!Number.isFinite(costoVenta) || costoVenta < 0) { alert("⚠️ El costo interno debe ser un número válido y no negativo."); return; }
+                try { costoVenta = SubliNegocioCore.normalizarCostoUnitario(customCostoStr); }
+                catch(error) { alert('⚠️ ' + error.message); return; }
             } else {
                 const stockLibre = getStockDisponible(idProd);
                 if(aMilesimas(stockLibre) < aMilesimas(qty)) { alert(`❌ No puedes agregar ${qty}. Solo te quedan ${stockLibre} disponibles.`); return; }
             }
             
             const unidad = unidadProducto(prod);
-            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false, unidadId: prod.isService ? 'servicio' : unidad.id, unidadNombre: prod.isService ? 'Servicio' : unidad.nombre, unidadAbreviatura: prod.isService ? 'serv' : unidad.abreviatura, unidadPaso: prod.isService ? 1 : unidad.paso });
+            carritoVentas.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, categoria: prod.categoria || 'OTROS', rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false, unidadId: prod.isService ? 'servicio' : unidad.id, unidadNombre: prod.isService ? 'Servicio' : unidad.nombre, unidadAbreviatura: prod.isService ? 'serv' : unidad.abreviatura, unidadPaso: prod.isService ? 0.001 : unidad.paso, unidadDivisible: prod.isService ? true : Boolean(unidad.divisible) });
             
             document.getElementById('venta-qty').value = '1'; document.getElementById('venta-precio').value = ''; document.getElementById('buscador-venta-producto').value = ''; document.getElementById('venta-producto').value = ''; document.getElementById('venta-rol').value = ''; cambiarRolVenta();
             renderCarritoVentas();
@@ -4345,8 +4534,11 @@
                 const configActual = typeof configuracionNegocio === 'object' ? configuracionNegocio : null;
                 const desglose = calcularDesgloseFinanciero(carritoVentas, costoTinta, costoEnvio, pideFactura, costoManoObra, configActual);
                 const tipoCobro = document.getElementById('venta-tipo-cobro')?.value || 'contado';
-                const anticipoAplicado = Math.max(0, numeroFinito(document.getElementById('venta-aplicar-anticipo')?.value));
-                const pagoDinero = tipoCobro === 'contado' ? Math.max(0, redondear(desglose.ingresoTotal - anticipoAplicado)) : Math.max(0, numeroFinito(document.getElementById('venta-pago-inicial')?.value));
+                const anticipoAplicado = SubliNegocioCore.normalizarMontoMoneda(document.getElementById('venta-aplicar-anticipo')?.value || 0, { permitirCero: true });
+                const pagoDinero = tipoCobro === 'contado'
+                    ? Math.max(0, redondear(desglose.ingresoTotal - anticipoAplicado))
+                    : SubliNegocioCore.normalizarMontoMoneda(document.getElementById('venta-pago-inicial')?.value || 0, { permitirCero: true });
+                if(SubliNegocioCore.aCentavos(pagoDinero + anticipoAplicado) > SubliNegocioCore.aCentavos(desglose.ingresoTotal)) throw new Error('La suma del pago y el anticipo supera el total de la venta.');
                 const saldo = Math.max(0, redondear(desglose.ingresoTotal - pagoDinero - anticipoAplicado));
                 vistaPrevia.innerHTML = generarHTMLDesgloseFinanciero(desglose, 'TOTAL A COBRAR', 'var(--primary-green)') + `<div class="financial-breakdown" style="margin-top:8px;"><div class="financial-row"><span>Pago recibido ahora</span><span>Q ${pagoDinero.toFixed(2)}</span></div><div class="financial-row"><span>Anticipo aplicado</span><span>Q ${anticipoAplicado.toFixed(2)}</span></div><div class="financial-row ${saldo > 0 ? 'expense' : 'income'}"><span>Saldo pendiente</span><span>Q ${saldo.toFixed(2)}</span></div></div>`;
             } catch(error) {
@@ -4366,21 +4558,27 @@
 
                 const tintaTexto = document.getElementById('venta-tinta').value;
                 const envioTexto = document.getElementById('venta-envio').value;
-                const costoTinta = tintaTexto === '' ? 0 : Number(tintaTexto);
-                const costoEnvio = envioTexto === '' ? 0 : Number(envioTexto);
+                let costoTinta;
+                let costoEnvio;
                 const manoObraTexto = document.getElementById('venta-mano-obra').value;
-                const costoManoObra = manoObraTexto === '' ? 0 : Number(manoObraTexto);
+                let costoManoObra;
                 const pideFactura = document.getElementById('venta-factura').checked;
                 const tipoCobroSeleccionado = document.getElementById('venta-tipo-cobro').value || 'contado';
                 const metodoPago = document.getElementById('venta-metodo-pago').value || 'efectivo';
                 const ubicacionPago = SubliNegocioCore.ubicacionMetodoPago(metodoPago);
                 const clienteId = document.getElementById('venta-cliente-id').value || null;
-                let pagoInicialSolicitado = Number(document.getElementById('venta-pago-inicial').value || 0);
-                let anticipoSolicitado = Number(document.getElementById('venta-aplicar-anticipo').value || 0);
+                let pagoInicialSolicitado = document.getElementById('venta-pago-inicial').value || 0;
+                let anticipoSolicitado = document.getElementById('venta-aplicar-anticipo').value || 0;
                 const clienteNombre = document.getElementById('venta-nombre').value.trim().toUpperCase() || 'C/F';
                 const clienteNit = document.getElementById('venta-nit').value.trim() || 'C/F';
                 const saldoCreditoLocalAntes = clienteId ? saldoCreditoCalculadoCliente(clienteId) : 0;
-                if (!Number.isFinite(costoTinta) || !Number.isFinite(costoEnvio) || !Number.isFinite(costoManoObra) || costoTinta < 0 || costoEnvio < 0 || costoManoObra < 0) { alert("⚠️ Los gastos de producción, trabajo y envío deben ser números válidos y no negativos."); return; }
+                try {
+                    costoTinta = SubliNegocioCore.normalizarMontoMoneda(tintaTexto === '' ? 0 : tintaTexto, { permitirCero: true });
+                    costoEnvio = SubliNegocioCore.normalizarMontoMoneda(envioTexto === '' ? 0 : envioTexto, { permitirCero: true });
+                    costoManoObra = SubliNegocioCore.normalizarMontoMoneda(manoObraTexto === '' ? 0 : manoObraTexto, { permitirCero: true });
+                    pagoInicialSolicitado = SubliNegocioCore.normalizarMontoMoneda(pagoInicialSolicitado, { permitirCero: true });
+                    anticipoSolicitado = SubliNegocioCore.normalizarMontoMoneda(anticipoSolicitado, { permitirCero: true });
+                } catch(error) { alert('⚠️ Revisa gastos, pago inicial y anticipo: ' + error.message); return; }
 
                 const carritoSnapshot = copiarDatos(carritoVentas);
                 for(const item of carritoSnapshot) {
@@ -4388,17 +4586,15 @@
                         alert(`⚠️ Revisa cantidad, precio y costo de "${item.nombre}". No se permiten valores negativos o inválidos.`);
                         return;
                     }
+                    try {
+                        item.qty = item.isService ? normalizarCantidadServicio(item.qty) : validarCantidadProducto(item.qty, item);
+                        item.precioCobrado = SubliNegocioCore.normalizarMontoMoneda(item.precioCobrado, { permitirCero: true });
+                    } catch(error) { alert(`⚠️ Revisa "${item.nombre}": ${error.message}`); return; }
                 }
 
                 const ingresoPrevisto = carritoSnapshot.reduce((total, item) => total + (numeroFinito(item.qty) * numeroFinito(item.precioCobrado)), 0);
                 if(ingresoPrevisto <= 0 && !confirm("⚠️ El total de esta venta es Q0.00. ¿Realmente deseas registrarla sin cobro?")) return;
                 if(tipoCobroSeleccionado === 'credito' && !clienteId) { alert('⚠️ Una venta a crédito requiere seleccionar un cliente guardado.'); return; }
-                if(!Number.isFinite(pagoInicialSolicitado) || pagoInicialSolicitado < 0 || !Number.isFinite(anticipoSolicitado) || anticipoSolicitado < 0) { alert('⚠️ El pago inicial y el anticipo deben ser números válidos no negativos.'); return; }
-                const pagoNormalizado = desdeCentavos(aCentavos(pagoInicialSolicitado));
-                const anticipoNormalizado = desdeCentavos(aCentavos(anticipoSolicitado));
-                if(Math.abs(pagoInicialSolicitado - pagoNormalizado) > 1e-9 || Math.abs(anticipoSolicitado - anticipoNormalizado) > 1e-9) { alert('⚠️ El pago inicial y el anticipo admiten como máximo dos decimales.'); return; }
-                pagoInicialSolicitado = pagoNormalizado;
-                anticipoSolicitado = anticipoNormalizado;
                 if(aCentavos(anticipoSolicitado) > aCentavos(totalAnticiposCliente(clienteId))) { alert('⚠️ El anticipo solicitado supera el saldo disponible del cliente.'); return; }
                 const pagoDineroPrevisto = tipoCobroSeleccionado === 'contado' ? redondear(ingresoPrevisto - anticipoSolicitado) : redondear(pagoInicialSolicitado);
                 if(pagoDineroPrevisto < 0 || aCentavos(pagoDineroPrevisto + anticipoSolicitado) > aCentavos(ingresoPrevisto)) { alert('⚠️ La suma del pago y el anticipo no puede superar el total de la venta.'); return; }
@@ -4455,7 +4651,7 @@
                     (ventaAnterior?.detalleItems || []).forEach(item => {
                         if(item.isService) return;
                         const clave = String(item.idProd);
-                        const actual = cantidadesAnteriores.get(clave) || { qty: 0, valor: 0, nombre: item.nombre, categoria: item.categoria, codigoInventario: item.codigoInventario };
+                        const actual = cantidadesAnteriores.get(clave) || { qty: 0, valor: 0, nombre: item.nombre, categoria: item.categoria, codigoInventario: item.codigoInventario, unidadId: item.unidadId || 'pieza', unidadNombre: item.unidadNombre || 'Pieza', unidadAbreviatura: item.unidadAbreviatura || 'pza', unidadPaso: numeroFinito(item.unidadPaso, 1), unidadDivisible: Boolean(item.unidadDivisible) };
                         const costoReal = numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase));
                         actual.qty = desdeMilesimas(aMilesimas(actual.qty) + aMilesimas(item.qty));
                         actual.valor += numeroFinito(item.qty) * costoReal;
@@ -4475,11 +4671,12 @@
                     const configSnap = await t.get(configRef);
                     if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
                     const configuracionVenta = SubliNegocioCore.normalizarConfiguracionNegocio(configSnap.data().negocio || configuracionNegocio);
-                    const fechaContable = ventaAnterior?.timestamp || timestampActual;
-                    const mesAnio = getMesAnioFromDate(ventaAnterior?.fecha || '', fechaContable) || (new Date(fechaContable).getFullYear() + '-' + String(new Date(fechaContable).getMonth() + 1).padStart(2, '0'));
+                    const fechaContable = ventaAnterior ? ventaAnterior.timestamp : timestampActual;
+                    const mesAnio = getMesAnioFromDate(ventaAnterior?.fecha || '', fechaContable);
+                    if(!mesAnio) throw new Error('No se pudo identificar el mes contable; la venta no se modificó.');
                     const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                     const resumenSnap = await t.get(resumenRef);
-                    if(ventaAnterior?.resumenMensualContabilizado === true && !resumenSnap.exists()) throw new Error('No se encontró el resumen mensual original; el reemplazo se canceló para evitar un descuadre.');
+                    if(ventaAnterior && !resumenSnap.exists()) throw new Error('No se encontró el resumen mensual original; el reemplazo se canceló para evitar un descuadre.');
 
                     const anticiposLeidos = [];
                     let anticipoPendienteCentavos = ventaAnterior ? 0 : aCentavos(anticipoSolicitado);
@@ -4514,7 +4711,12 @@
                             min: 0,
                             proveedor: 'RECUPERADO DE VENTA EDITADA',
                             categoria: entrada.anterior.categoria || 'OTROS',
-                            codigoInventario: entrada.anterior.codigoInventario || null
+                            codigoInventario: entrada.anterior.codigoInventario || null,
+                            unidadId: entrada.anterior.unidadId || 'pieza',
+                            unidadNombre: entrada.anterior.unidadNombre || 'Pieza',
+                            unidadAbreviatura: entrada.anterior.unidadAbreviatura || 'pza',
+                            unidadPaso: numeroFinito(entrada.anterior.unidadPaso, 1),
+                            unidadDivisible: Boolean(entrada.anterior.unidadDivisible)
                         };
                         if(entrada.anterior) {
                             const costoDevuelto = entrada.anterior.qty > 0 ? entrada.anterior.valor / entrada.anterior.qty : 0;
@@ -4599,7 +4801,7 @@
                     const pagoInicial = pagoDinero > 0 ? { id: pagoInicialId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), monto: pagoDinero, metodo: metodoPago, ubicacion: ubicacionPago, tipo: ventaAnterior ? 'pago_legacy' : 'pago_inicial' } : null;
                     const nuevaVenta = {
                         id: nuevaVentaId,
-                        timestamp: ventaAnterior?.timestamp || timestampActual,
+                        timestamp: ventaAnterior ? (ventaAnterior.timestamp ?? null) : timestampActual,
                         fecha: ventaAnterior?.fecha || (new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'})),
                         editadoEn: ventaAnterior ? timestampActual : null,
                         resumenItems: itemsResumen.join(' + '),
@@ -4742,11 +4944,11 @@
             }
         }
 
-        async function revertirVentaAtomica(id, ubicacionReembolso = 'efectivo') {
+        async function revertirVentaAtomica(id, ubicacionReembolso = 'efectivo', revisionEsperada = null) {
             if(!window.db || !navigator.onLine) throw new Error("Necesitas conexión para deshacer una venta de forma segura.");
             const timestampActual = Date.now();
             const devolucionId = generarIDSeguro();
-            const movimientoId = generarIDSeguro();
+            const movimientoIds = { efectivo: generarIDSeguro(), banco: generarIDSeguro() };
 
             return window.runTransaction(window.db, async (t) => {
                 const ventaRef = window.doc(window.db, "ventas", String(id));
@@ -4755,6 +4957,12 @@
                 const venta = ventaSnap.data();
                 if(venta.anulada) throw new Error("La venta ya fue anulada desde otro dispositivo.");
                 if(Number(venta.versionCalculo) < 2) throw new Error("Esta venta pertenece al historial anterior. Para proteger inventario, fondos y resumen mensual no puede revertirse automáticamente.");
+                if(revisionEsperada !== null && Math.trunc(numeroFinito(venta.revision)) !== Math.trunc(numeroFinito(revisionEsperada))) {
+                    throw new Error('La venta cambió desde otro dispositivo. Actualiza la pantalla, revisa los cobros y vuelve a confirmar.');
+                }
+                if(Array.isArray(venta.devoluciones) && venta.devoluciones.length > 0) {
+                    throw new Error('Esta venta ya tiene devoluciones parciales. Para conservar SAT, gastos y bitácora, devuelve el resto desde Caja en lugar de usar Deshacer.');
+                }
 
                 let clienteRef = null;
                 let clienteServidor = null;
@@ -4768,7 +4976,18 @@
                 (venta.detalleItems || []).forEach(item => {
                     if(item.isService) return;
                     const clave = String(item.idProd);
-                    const actual = productosAgrupados.get(clave) || { qty: 0, valor: 0, nombre: item.nombre };
+                    const actual = productosAgrupados.get(clave) || {
+                        qty: 0,
+                        valor: 0,
+                        nombre: item.nombre,
+                        codigoInventario: item.codigoInventario || null,
+                        categoria: item.categoria || 'OTROS',
+                        unidadId: item.unidadId || 'pieza',
+                        unidadNombre: item.unidadNombre || 'Pieza',
+                        unidadAbreviatura: item.unidadAbreviatura || 'pza',
+                        unidadPaso: numeroFinito(item.unidadPaso, 1),
+                        unidadDivisible: Boolean(item.unidadDivisible)
+                    };
                     const costoReal = numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase));
                     actual.qty = desdeMilesimas(aMilesimas(actual.qty) + aMilesimas(item.qty));
                     actual.valor += numeroFinito(item.qty) * costoReal;
@@ -4788,7 +5007,8 @@
                 const mesAnio = getMesAnioFromDate(venta.fecha || '', venta.timestamp);
                 let resumenRef = null;
                 let resumenSnap = null;
-                if(venta.resumenMensualContabilizado === true && mesAnio) {
+                if(venta.resumenMensualContabilizado === true) {
+                    if(!mesAnio) throw new Error("No se pudo identificar el resumen mensual de esta venta; la anulación se detuvo para revisión.");
                     resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                     resumenSnap = await t.get(resumenRef);
                     if(!resumenSnap.exists()) throw new Error("No se encontró el resumen mensual asociado a esta venta.");
@@ -4805,7 +5025,7 @@
                         producto.ventasTotales = desdeMilesimas(Math.max(0, aMilesimas(producto.ventasTotales) - aMilesimas(entrada.agrupado.qty)));
                         producto.lastModified = timestampActual;
                     } else {
-                        producto = { id: entrada.clave, nombre: `${entrada.agrupado.nombre} (DEVUELTO)`.toUpperCase(), stock: entrada.agrupado.qty, costo: entrada.agrupado.qty > 0 ? entrada.agrupado.valor / entrada.agrupado.qty : 0, ventasTotales: 0, min: 0, proveedor: "RECUPERADO DE VENTA ANULADA", categoria: "OTROS", lastModified: timestampActual };
+                        producto = { id: entrada.clave, nombre: `${entrada.agrupado.nombre} (DEVUELTO)`.toUpperCase(), stock: entrada.agrupado.qty, costo: entrada.agrupado.qty > 0 ? entrada.agrupado.valor / entrada.agrupado.qty : 0, ventasTotales: 0, min: 0, proveedor: "RECUPERADO DE VENTA ANULADA", categoria: entrada.agrupado.categoria || "OTROS", unidadId: entrada.agrupado.unidadId, unidadNombre: entrada.agrupado.unidadNombre, unidadAbreviatura: entrada.agrupado.unidadAbreviatura, unidadPaso: entrada.agrupado.unidadPaso, unidadDivisible: entrada.agrupado.unidadDivisible, lastModified: timestampActual };
                     }
                     productosActualizados.push({ ref: entrada.ref, datos: producto });
                 });
@@ -4816,18 +5036,49 @@
                 let anticipoRestaurado = null;
                 let clienteActualizado = null;
                 let devolucionTotal = null;
-                let movimientoReembolso = null;
+                let movimientosReembolso = [];
                 if(Number(venta.versionCalculo) >= 3) {
-                    fondosBase = SubliNegocioCore.sumarAsignacion(fondosBase, venta.asignacionFondosCobrado || {}, -1);
+                    const montoCobrado = redondear(venta.montoCobradoTotal ?? venta.ingresoTotal);
+                    let asignacionVenta;
+                    if(venta.asignacionFondosCobrado) {
+                        asignacionVenta = SubliNegocioCore.validarAsignacionFondos(venta.asignacionFondosCobrado, montoCobrado);
+                    } else if(Number(venta.versionCalculo) >= 4) {
+                        throw new Error('La venta no conserva su huella de fondos; la anulación se detuvo para revisión.');
+                    } else {
+                        asignacionVenta = SubliNegocioCore.calcularAsignacionFondos({ ingresoTotal: venta.ingresoTotal, costosProductos: venta.costosProductos, costoTinta: venta.costoTinta, costoEnvio: venta.costoEnvio, costoManoObra: venta.costoManoObra, impuestoSAT: venta.impuestoSAT, gananciaNeta: venta.ganancia }, montoCobrado);
+                    }
+                    fondosBase = SubliNegocioCore.sumarAsignacion(fondosBase, asignacionVenta, -1);
                     SubliNegocioCore.CLAVES_FONDOS.forEach(clave => {
                         if(aCentavos(fondosBase[clave]) < 0) throw new Error('Ya se retiró parte del dinero asignado a esta venta. Repón los fondos antes de anularla.');
                     });
                     const reembolsoDinero = Math.max(0, numeroFinito(venta.montoPagadoDinero));
-                    const ubicacion = ubicacionReembolso === 'banco' ? 'banco' : 'efectivo';
-                    if(aCentavos(reembolsoDinero) > aCentavos(saldosBase[ubicacion])) throw new Error(`No hay suficiente saldo en ${ubicacion} para el reembolso final.`);
-                    saldosBase[ubicacion] = desdeCentavos(aCentavos(saldosBase[ubicacion]) - aCentavos(reembolsoDinero));
+                    let desgloseReembolso = null;
+                    try {
+                        if(Number(venta.versionCalculo) >= 4 || (Array.isArray(venta.pagos) && venta.pagos.length > 0)) {
+                            desgloseReembolso = SubliNegocioCore.calcularReembolsoPagos(venta.pagos, reembolsoDinero);
+                        }
+                    } catch(errorPagos) {
+                        if(Number(venta.versionCalculo) >= 4) throw errorPagos;
+                    }
+                    if(!desgloseReembolso) {
+                        const ubicacionLegacy = ubicacionReembolso === 'banco' ? 'banco' : 'efectivo';
+                        desgloseReembolso = { efectivo: 0, banco: 0, total: reembolsoDinero, [ubicacionLegacy]: reembolsoDinero };
+                    }
+                    ['efectivo', 'banco'].forEach(ubicacion => {
+                        const montoUbicacion = numeroFinito(desgloseReembolso[ubicacion]);
+                        if(aCentavos(montoUbicacion) > aCentavos(saldosBase[ubicacion])) throw new Error(`No hay suficiente saldo en ${ubicacion} para completar su parte del reembolso final.`);
+                        saldosBase[ubicacion] = desdeCentavos(aCentavos(saldosBase[ubicacion]) - aCentavos(montoUbicacion));
+                        if(montoUbicacion > 0) {
+                            movimientosReembolso.push({ id: movimientoIds[ubicacion], timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), tipo: 'reembolso_anulacion', monto: montoUbicacion, ubicacion, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo: 'ANULACIÓN TOTAL DE VENTA', usuarioNombre: currentUserData?.nombre || 'Dueño' });
+                        }
+                    });
+                    const ubicacionesReembolso = ['efectivo', 'banco'].filter(ubicacion => aCentavos(desgloseReembolso[ubicacion]) > 0);
+                    const ubicacion = ubicacionesReembolso.length > 1 ? 'mixto' : (ubicacionesReembolso[0] || 'sin_reembolso');
                     if(numeroFinito(venta.anticipoAplicado) > 0) {
-                        anticipoRestaurado = { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: numeroFinito(venta.anticipoAplicado), saldoPendiente: numeroFinito(venta.anticipoAplicado), aplicadoTotal: 0, devueltoTotal: 0, metodo: ubicacionReembolso === 'banco' ? 'transferencia' : 'efectivo', ubicacion: ubicacionReembolso === 'banco' ? 'banco' : 'efectivo', motivo: `RESTAURADO POR ANULACIÓN DE VENTA ${venta.id}`, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), estado: 'pendiente', origenVentaAnuladaId: String(venta.id), versionCalculo: 1 };
+                        const ubicacionAnticipo = venta.metodoPagoInicial && SubliNegocioCore.METODOS_PAGO[venta.metodoPagoInicial]
+                            ? SubliNegocioCore.ubicacionMetodoPago(venta.metodoPagoInicial)
+                            : 'efectivo';
+                        anticipoRestaurado = { id: generarIDSeguro(), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', montoOriginal: numeroFinito(venta.anticipoAplicado), saldoPendiente: numeroFinito(venta.anticipoAplicado), aplicadoTotal: 0, devueltoTotal: 0, metodo: ubicacionAnticipo === 'banco' ? 'transferencia' : 'efectivo', ubicacion: ubicacionAnticipo, motivo: `RESTAURADO POR ANULACIÓN DE VENTA ${venta.id}`, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), estado: 'pendiente', origenVentaAnuladaId: String(venta.id), versionCalculo: 1 };
                     }
                     if(clienteServidor) {
                         const saldoBaseCliente = Number.isFinite(Number(clienteServidor.saldoCredito)) ? redondear(clienteServidor.saldoCredito) : saldoCreditoCalculadoCliente(venta.clienteId);
@@ -4840,8 +5091,7 @@
                             ultimaOperacionAnticipoEn: aCentavos(venta.anticipoAplicado) > 0 ? timestampActual : clienteServidor.ultimaOperacionAnticipoEn || null
                         };
                     }
-                    devolucionTotal = { id: devolucionId, ventaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', tipo: 'anulacion_total', ingresoDevuelto: numeroFinito(venta.ingresoTotal), creditoReducido: numeroFinito(venta.saldoPendiente), reembolsoDinero, anticipoRestaurado: numeroFinito(venta.anticipoAplicado), ubicacion, motivo: 'ANULACIÓN TOTAL DE VENTA', timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual) };
-                    if(reembolsoDinero > 0) movimientoReembolso = { id: movimientoId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), tipo: 'reembolso_anulacion', monto: reembolsoDinero, ubicacion, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo: 'ANULACIÓN TOTAL DE VENTA', usuarioNombre: currentUserData?.nombre || 'Dueño' };
+                    devolucionTotal = { id: devolucionId, ventaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', tipo: 'anulacion_total', ingresoDevuelto: numeroFinito(venta.ingresoTotal), creditoReducido: numeroFinito(venta.saldoPendiente), reembolsoDinero, desgloseReembolso: { efectivo: desgloseReembolso.efectivo, banco: desgloseReembolso.banco }, anticipoRestaurado: numeroFinito(venta.anticipoAplicado), ubicacion, motivo: 'ANULACIÓN TOTAL DE VENTA', timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual) };
                 } else {
                     const asignacionLegacy = { costoProducto: venta.costosProductos, costoLuzTinta: venta.costoTinta, gananciaLibre: venta.ganancia, fondoImpuestos: venta.impuestoSAT };
                     fondosBase = SubliNegocioCore.sumarAsignacion(fondosBase, asignacionLegacy, -1);
@@ -4853,7 +5103,7 @@
                     if(aCentavos(reembolsoDinero) > aCentavos(saldosBase[ubicacion])) throw new Error(`No hay suficiente saldo en ${ubicacion} para revertir el importe contable de la venta antigua.`);
                     saldosBase[ubicacion] = desdeCentavos(aCentavos(saldosBase[ubicacion]) - aCentavos(reembolsoDinero));
                     devolucionTotal = { id: devolucionId, ventaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', tipo: 'anulacion_total_legacy', ingresoDevuelto: numeroFinito(venta.ingresoTotal), creditoReducido: 0, reembolsoDinero, anticipoRestaurado: 0, ubicacion, motivo: 'ANULACIÓN TOTAL DE VENTA ANTERIOR', timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), versionOrigen: numeroFinito(venta.versionCalculo) };
-                    if(reembolsoDinero > 0) movimientoReembolso = { id: movimientoId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), tipo: 'reembolso_anulacion_legacy', monto: reembolsoDinero, ubicacion, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo: 'ANULACIÓN TOTAL DE VENTA ANTERIOR', usuarioNombre: currentUserData?.nombre || 'Dueño' };
+                    if(reembolsoDinero > 0) movimientosReembolso = [{ id: movimientoIds[ubicacion], timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), tipo: 'reembolso_anulacion_legacy', monto: reembolsoDinero, ubicacion, referenciaId: String(venta.id), clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', motivo: 'ANULACIÓN TOTAL DE VENTA ANTERIOR', usuarioNombre: currentUserData?.nombre || 'Dueño' }];
                 }
 
                 productosActualizados.forEach(entrada => t.set(entrada.ref, entrada.datos));
@@ -4862,7 +5112,7 @@
                 if(clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 if(anticipoRestaurado) t.set(window.doc(window.db, 'anticipos', String(anticipoRestaurado.id)), anticipoRestaurado);
                 if(devolucionTotal) t.set(window.doc(window.db, 'devoluciones', String(devolucionTotal.id)), devolucionTotal);
-                if(movimientoReembolso) t.set(window.doc(window.db, 'movimientos_caja', String(movimientoReembolso.id)), movimientoReembolso);
+                movimientosReembolso.forEach(movimiento => t.set(window.doc(window.db, 'movimientos_caja', String(movimiento.id)), movimiento));
 
                 if(resumenRef && resumenSnap?.exists()) {
                     const resumenActualizado = aplicarVentaAResumen(resumenSnap.data(), venta, -1);
@@ -4870,7 +5120,7 @@
                     t.set(resumenRef, resumenActualizado);
                 }
 
-                return { venta: { ...venta, anulada: true, anuladaEn: timestampActual, revision: Math.trunc(numeroFinito(venta.revision)) + 1 }, clienteActualizado, fondosActualizados: fondosBase, saldosActualizados: saldosBase, anticipoRestaurado, devolucionTotal, movimientoReembolso, productosActualizados: productosActualizados.map(x => x.datos) };
+                return { venta: { ...venta, anulada: true, anuladaEn: timestampActual, revision: Math.trunc(numeroFinito(venta.revision)) + 1 }, clienteActualizado, fondosActualizados: fondosBase, saldosActualizados: saldosBase, anticipoRestaurado, devolucionTotal, movimientosReembolso, movimientoReembolso: movimientosReembolso[0] || null, productosActualizados: productosActualizados.map(x => x.datos) };
             });
         }
 
@@ -4917,6 +5167,10 @@
                 alert("⚠️ Esta venta pertenece al historial anterior. Para no alterar tus datos reales no puede deshacerse automáticamente.");
                 return;
             }
+            if(Array.isArray(ventaLocal.devoluciones) && ventaLocal.devoluciones.length > 0) {
+                alert('⚠️ Esta venta ya tiene devoluciones parciales. Para conservar correctamente SAT, gastos y bitácora, devuelve el resto desde Caja; no uses Deshacer.');
+                return;
+            }
             const asignacionARetirar = Number(ventaLocal.versionCalculo) >= 3 ? (ventaLocal.asignacionFondosCobrado || {}) : { costoProducto: ventaLocal.costosProductos, costoLuzTinta: ventaLocal.costoTinta, gananciaLibre: ventaLocal.ganancia, fondoImpuestos: ventaLocal.impuestoSAT };
             const fondosInsuficientes = SubliNegocioCore.CLAVES_FONDOS.some(clave => aCentavos(fondos[clave]) < Math.max(0, aCentavos(asignacionARetirar[clave])));
             if(fondosInsuficientes) return alert("⚠️ Ya se retiró parte del dinero asignado a esta venta. Repón los fondos antes de anularla para no crear saldos negativos.");
@@ -4924,7 +5178,17 @@
             const reembolsoPendiente = Number(ventaLocal.versionCalculo) >= 3
                 ? Math.max(0, numeroFinito(ventaLocal.montoPagadoDinero))
                 : Math.max(0, SubliNegocioCore.totalAsignacion(asignacionARetirar));
-            if(reembolsoPendiente > 0) {
+            let desgloseReembolso = null;
+            if(reembolsoPendiente > 0 && Number(ventaLocal.versionCalculo) >= 3) {
+                try {
+                    if(Number(ventaLocal.versionCalculo) >= 4 || (Array.isArray(ventaLocal.pagos) && ventaLocal.pagos.length > 0)) {
+                        desgloseReembolso = SubliNegocioCore.calcularReembolsoPagos(ventaLocal.pagos, reembolsoPendiente);
+                    }
+                } catch(errorPagos) {
+                    if(Number(ventaLocal.versionCalculo) >= 4) return alert('⚠️ ' + errorPagos.message);
+                }
+            }
+            if(reembolsoPendiente > 0 && !desgloseReembolso) {
                 const ultimoPago = [...(ventaLocal.pagos || [])].reverse().find(p => numeroFinito(p.monto) > 0);
                 const metodoPredeterminado = ultimoPago?.metodo || ventaLocal.metodoPagoInicial || 'efectivo';
                 const detalleLegacy = Number(ventaLocal.versionCalculo) < 3 ? ' como reversión del importe contable disponible de esta venta anterior' : '';
@@ -4935,19 +5199,22 @@
                 ubicacionReembolso = SubliNegocioCore.ubicacionMetodoPago(metodoNormal);
             }
             const anticipoARestaurar = Number(ventaLocal.versionCalculo) >= 3 ? Math.max(0, numeroFinito(ventaLocal.anticipoAplicado)) : 0;
-            const mensaje = `¿Deshacer la venta completa?\n\nSe reingresará el inventario restante, se reducirán los fondos y el resumen mensual${reembolsoPendiente ? `, se reembolsará ${configuracionNegocio.moneda} ${reembolsoPendiente.toFixed(2)} desde ${ubicacionReembolso}` : ''}${anticipoARestaurar ? ` y se restaurará ${configuracionNegocio.moneda} ${anticipoARestaurar.toFixed(2)} como anticipo` : ''}.`;
+            const textoReembolso = desgloseReembolso
+                ? `, se reembolsará ${configuracionNegocio.moneda} ${reembolsoPendiente.toFixed(2)} respetando el cobro original (${configuracionNegocio.moneda} ${desgloseReembolso.efectivo.toFixed(2)} efectivo y ${configuracionNegocio.moneda} ${desgloseReembolso.banco.toFixed(2)} banco)`
+                : (reembolsoPendiente ? `, se reembolsará ${configuracionNegocio.moneda} ${reembolsoPendiente.toFixed(2)} desde ${ubicacionReembolso}` : '');
+            const mensaje = `¿Deshacer la venta completa?\n\nSe reingresará el inventario restante, se reducirán los fondos y el resumen mensual${textoReembolso}${anticipoARestaurar ? ` y se restaurará ${configuracionNegocio.moneda} ${anticipoARestaurar.toFixed(2)} como anticipo` : ''}.`;
             if(!confirm(mensaje)) return;
 
             if(isProcessingTransaction) return;
             isProcessingTransaction = true;
             try {
-                const resultado = await revertirVentaAtomica(id, ubicacionReembolso);
+                const resultado = await revertirVentaAtomica(id, ubicacionReembolso, Math.trunc(numeroFinito(ventaLocal.revision)));
                 fondos = resultado.fondosActualizados;
                 saldosDinero = resultado.saldosActualizados;
                 if(resultado.anticipoRestaurado) anticipos = fusionarPorId(anticipos, [resultado.anticipoRestaurado]);
                 if(resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
                 if(resultado.devolucionTotal) devoluciones = fusionarPorId(devoluciones, [resultado.devolucionTotal]);
-                if(resultado.movimientoReembolso) movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimientoReembolso]);
+                if(resultado.movimientosReembolso?.length) movimientosCaja = fusionarPorId(movimientosCaja, resultado.movimientosReembolso);
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
                 ventas = fusionarPorId(ventas, [resultado.venta]);
                 ventasCreditoPendiente = ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.venta.id));
@@ -4979,11 +5246,12 @@
                         hayResultados = true;
                         const div = document.createElement('div'); div.className = 'sugerencia-item';
                         let stockText = p.isService ? `(Servicio / Infinito)` : `(Hay ${etiquetaUnidadProducto(p, p.stock)})`;
-                        if (!p.isService && p.stock === 0) stockText = `<span style="color:var(--primary-red); font-weight:bold;">(Sin Stock)</span>`;
+                        if (!p.isService && p.stock === 0) stockText = '(Sin Stock)';
                         
                         const codigo = esCodigoInventarioValido(p.codigoInventario) ? `<span class="product-code">${escaparHTML(p.codigoInventario)}</span>` : '';
-                        div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);">${stockText}</span>`;
-                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; const unidad = unidadProducto(p); const qty = document.getElementById('cotiza-qty'); qty.step = p.isService ? '1' : String(unidad.paso); qty.min = p.isService ? '1' : String(unidad.paso); qty.value = p.isService ? '1' : String(unidad.divisible ? unidad.paso : 1); };
+                        const estiloStock = !p.isService && p.stock === 0 ? ' color:var(--primary-red); font-weight:bold;' : '';
+                        div.innerHTML = `<span>${codigo}${escaparHTML(p.nombre)}</span> <span style="font-size:11px; color:var(--text-light);${estiloStock}">${escaparHTML(stockText)}</span>`;
+                        div.onclick = function() { input.value = p.nombre; hiddenId.value = p.id; box.style.display = 'none'; const unidad = unidadProducto(p); const qty = document.getElementById('cotiza-qty'); qty.step = p.isService ? '0.001' : String(unidad.paso); qty.min = p.isService ? '0.001' : String(unidad.paso); qty.value = p.isService ? '1' : String(unidad.divisible ? unidad.paso : 1); };
                         box.appendChild(div);
                     }
                 });
@@ -5005,14 +5273,19 @@
             const idProd = document.getElementById('cotiza-producto').value;
             const rol = document.getElementById('cotiza-rol').value; 
             const qtyEntrada = Number(document.getElementById('cotiza-qty').value);
-            const precioCobrado = rol === 'principal' ? (parseFloat(document.getElementById('cotiza-precio').value) || 0) : 0;
+            let precioCobrado = 0;
+            try {
+                precioCobrado = rol === 'principal'
+                    ? SubliNegocioCore.normalizarMontoMoneda(document.getElementById('cotiza-precio').value || 0, { permitirCero: true })
+                    : 0;
+            } catch(error) { alert('⚠️ ' + error.message); return; }
             
             if(!rol) { alert("⚠️ Por favor, selecciona la función (Artículo Principal, Combo o Material)."); return; }
             if(!idProd || !Number.isFinite(qtyEntrada) || qtyEntrada <= 0 || precioCobrado < 0) { alert("⚠️ Revisa los datos."); return; }
             const prod = inventario.find(p => String(p.id) === String(idProd));
             if(!prod) { alert("⚠️ El producto seleccionado ya no existe. Vuelve a buscarlo."); return; }
             let qty;
-            try { qty = prod.isService ? qtyEntrada : validarCantidadProducto(qtyEntrada, prod); }
+            try { qty = prod.isService ? normalizarCantidadServicio(qtyEntrada) : validarCantidadProducto(qtyEntrada, prod); }
             catch(error) { alert('⚠️ ' + error.message); return; }
             
             if (!prod.isService) {
@@ -5032,12 +5305,12 @@
                 nombreVenta = "🎨 " + customName.trim().toUpperCase(); 
                 const customCostoStr = prompt(`¿Deseas registrar un Costo Interno para "${customName.trim().toUpperCase()}"? (Ej. pago a un diseñador externo o materiales extra).\n\nDéjalo en 0 si es pura ganancia libre.`, "0");
                 if (customCostoStr === null) return;
-                costoVenta = Number(customCostoStr);
-                if(!Number.isFinite(costoVenta) || costoVenta < 0) { alert("⚠️ El costo interno debe ser un número válido y no negativo."); return; }
+                try { costoVenta = SubliNegocioCore.normalizarCostoUnitario(customCostoStr); }
+                catch(error) { alert('⚠️ ' + error.message); return; }
             }
 
             const unidad = unidadProducto(prod);
-            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false, unidadId: prod.isService ? 'servicio' : unidad.id, unidadNombre: prod.isService ? 'Servicio' : unidad.nombre, unidadAbreviatura: prod.isService ? 'serv' : unidad.abreviatura, unidadPaso: prod.isService ? 1 : unidad.paso });
+            carritoCotizacion.push({ tempId: Date.now(), idProd: prod.id, codigoInventario: prod.codigoInventario || null, nombre: nombreVenta, categoria: prod.categoria || 'OTROS', rol: rol, qty: qty, precioCobrado: precioCobrado, costoBase: costoVenta, isService: prod.isService || false, unidadId: prod.isService ? 'servicio' : unidad.id, unidadNombre: prod.isService ? 'Servicio' : unidad.nombre, unidadAbreviatura: prod.isService ? 'serv' : unidad.abreviatura, unidadPaso: prod.isService ? 0.001 : unidad.paso, unidadDivisible: prod.isService ? true : Boolean(unidad.divisible) });
             
             document.getElementById('cotiza-qty').value = '1'; document.getElementById('cotiza-precio').value = ''; document.getElementById('buscador-cotiza-producto').value = ''; document.getElementById('cotiza-producto').value = ''; document.getElementById('cotiza-rol').value = ''; cambiarRolCotizacion();
             renderCarritoCotizacion();
@@ -5100,24 +5373,32 @@
                 }
                 const tintaTexto = document.getElementById('cotiza-tinta').value.trim();
                 const envioTexto = document.getElementById('cotiza-envio').value.trim();
-                const costoTinta = tintaTexto === '' ? 0 : Number(tintaTexto);
-                const costoEnvio = envioTexto === '' ? 0 : Number(envioTexto);
+                let costoTinta;
+                let costoEnvio;
                 const manoObraTexto = document.getElementById('cotiza-mano-obra').value.trim();
-                const costoManoObra = manoObraTexto === '' ? 0 : Number(manoObraTexto);
+                let costoManoObra;
                 const pideFactura = document.getElementById('cotiza-factura').checked;
                 const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F';
                 const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
                 const anticipoTexto = document.getElementById('cotiza-anticipo').value.trim();
-                const anticipoCotizado = anticipoTexto === '' ? 0 : redondear(Number(anticipoTexto));
+                let anticipoCotizado;
                 const metodoAnticipoCotizado = document.getElementById('cotiza-metodo-anticipo').value === 'transferencia' ? 'transferencia' : 'efectivo';
 
-                if (!Number.isFinite(costoTinta) || !Number.isFinite(costoEnvio) || !Number.isFinite(costoManoObra) || costoTinta < 0 || costoEnvio < 0 || costoManoObra < 0) { alert("⚠️ Los gastos de producción, trabajo y envío deben ser números válidos y no negativos."); return; }
-                if (!Number.isFinite(anticipoCotizado) || anticipoCotizado < 0) { alert("⚠️ El anticipo acordado debe ser un número válido no negativo."); return; }
+                try {
+                    costoTinta = SubliNegocioCore.normalizarMontoMoneda(tintaTexto === '' ? 0 : tintaTexto, { permitirCero: true });
+                    costoEnvio = SubliNegocioCore.normalizarMontoMoneda(envioTexto === '' ? 0 : envioTexto, { permitirCero: true });
+                    costoManoObra = SubliNegocioCore.normalizarMontoMoneda(manoObraTexto === '' ? 0 : manoObraTexto, { permitirCero: true });
+                    anticipoCotizado = SubliNegocioCore.normalizarMontoMoneda(anticipoTexto === '' ? 0 : anticipoTexto, { permitirCero: true });
+                } catch(error) { alert('⚠️ Importes de la cotización: ' + error.message); return; }
                 for(const item of carritoCotizacion) {
                     if(!Number.isFinite(Number(item.qty)) || numeroFinito(item.qty) <= 0 || !Number.isFinite(Number(item.precioCobrado)) || numeroFinito(item.precioCobrado) < 0 || !Number.isFinite(Number(item.costoBase)) || numeroFinito(item.costoBase) < 0) {
                         alert(`⚠️ Revisa cantidad, precio y costo de "${item.nombre}".`);
                         return;
                     }
+                    try {
+                        item.qty = item.isService ? normalizarCantidadServicio(item.qty) : validarCantidadProducto(item.qty, item);
+                        item.precioCobrado = SubliNegocioCore.normalizarMontoMoneda(item.precioCobrado, { permitirCero: true });
+                    } catch(error) { alert(`⚠️ Revisa "${item.nombre}": ${error.message}`); return; }
                 }
                 
                 let resumen = `📄 RESUMEN DE COTIZACIÓN - ${configuracionNegocio.nombreNegocio.toUpperCase()}\n\n`;
@@ -5173,7 +5454,10 @@
 
             let clienteNombre = document.getElementById('cotiza-nombre').value.trim(); let clienteNit = document.getElementById('cotiza-nit').value.trim();
             if(clienteNit === '') clienteNit = 'C/F';
-            const anticipoCotizado = Math.max(0, numeroFinito(document.getElementById('cotiza-anticipo').value));
+            let anticipoCotizado;
+            try {
+                anticipoCotizado = SubliNegocioCore.normalizarMontoMoneda(document.getElementById('cotiza-anticipo').value || 0, { permitirCero: true });
+            } catch(error) { alert('⚠️ Anticipo: ' + error.message); return; }
             const metodoAnticipoCotizado = document.getElementById('cotiza-metodo-anticipo').value === 'transferencia' ? 'TRANSFERENCIA' : 'EFECTIVO';
 
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
@@ -5346,20 +5630,22 @@
         async function convertirCotizacionAVenta() {
             if(isProcessingTransaction) return;
             if(carritoCotizacion.length === 0) return alert("⚠️ La cotización está vacía.");
-            const leerMonto = id => Number(document.getElementById(id).value || 0);
-            const datosVenta = {
-                detalleItems: copiarDatos(carritoCotizacion),
-                costoTinta: leerMonto('cotiza-tinta'),
-                costoManoObra: leerMonto('cotiza-mano-obra'),
-                costoEnvio: leerMonto('cotiza-envio'),
-                factura: document.getElementById('cotiza-factura').checked,
-                anticipoCotizado: leerMonto('cotiza-anticipo'),
-                metodoAnticipoCotizado: document.getElementById('cotiza-metodo-anticipo').value,
-                clienteId: document.getElementById('cotiza-cliente-id').value || null,
-                clienteNombre: document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F',
-                clienteNit: document.getElementById('cotiza-nit').value.trim() || 'C/F'
-            };
-            if([datosVenta.costoTinta, datosVenta.costoManoObra, datosVenta.costoEnvio, datosVenta.anticipoCotizado].some(valor => !Number.isFinite(valor) || valor < 0)) return alert('⚠️ Revisa los gastos y el anticipo acordado de la cotización.');
+            const leerMonto = id => SubliNegocioCore.normalizarMontoMoneda(document.getElementById(id).value || 0, { permitirCero: true });
+            let datosVenta;
+            try {
+                datosVenta = {
+                    detalleItems: copiarDatos(carritoCotizacion),
+                    costoTinta: leerMonto('cotiza-tinta'),
+                    costoManoObra: leerMonto('cotiza-mano-obra'),
+                    costoEnvio: leerMonto('cotiza-envio'),
+                    factura: document.getElementById('cotiza-factura').checked,
+                    anticipoCotizado: leerMonto('cotiza-anticipo'),
+                    metodoAnticipoCotizado: document.getElementById('cotiza-metodo-anticipo').value,
+                    clienteId: document.getElementById('cotiza-cliente-id').value || null,
+                    clienteNombre: document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F',
+                    clienteNit: document.getElementById('cotiza-nit').value.trim() || 'C/F'
+                };
+            } catch(error) { return alert('⚠️ Revisa los gastos y el anticipo: ' + error.message); }
             const totalCotizado = carritoCotizacion.reduce((total, item) => total + numeroFinito(item.qty) * numeroFinito(item.precioCobrado), 0);
             if(aCentavos(datosVenta.anticipoCotizado) > aCentavos(totalCotizado)) return alert('⚠️ El anticipo acordado no puede ser mayor que el total cotizado.');
             if(!confirm('La cotización se cargará en Ventas. Podrás elegir forma de pago, crédito o anticipo antes de confirmarla.')) return;
@@ -5419,13 +5705,12 @@
         async function procesarRetiro(tipo, val, fondoKey) {
             if(isProcessingTransaction) return false;
             if(!currentUserData || currentUserData.rol !== 'dueno') { alert('Solo el Dueño puede registrar retiros.'); return false; }
-            const centavosSolicitados = aCentavos(val);
-            const valorNormalizado = desdeCentavos(centavosSolicitados);
-            if(!Number.isFinite(val) || centavosSolicitados <= 0 || Math.abs(val - valorNormalizado) > 1e-9) {
-                alert("Ingrese un monto válido de al menos Q 0.01 y máximo dos decimales");
+            try {
+                val = SubliNegocioCore.normalizarMontoMoneda(val);
+            } catch(error) {
+                alert("Ingrese un monto válido de al menos Q 0.01 y máximo dos decimales. " + error.message);
                 return false;
             }
-            val = valorNormalizado;
             if(!window.db || !navigator.onLine) {
                 alert("⚠️ Necesitas conexión para registrar un retiro sin arriesgar los fondos ni la bitácora.");
                 return false;
@@ -5489,8 +5774,12 @@
 
         async function solicitarRetiroDesdeCampo(campoId, tipo, fondoKey, pregunta, nombreFondo) {
             const campo = document.getElementById(campoId);
-            const val = Number(campo.value);
-            if(!Number.isFinite(val) || val <= 0) return alert("Ingrese un monto válido mayor a 0");
+            let val;
+            try {
+                val = SubliNegocioCore.normalizarMontoMoneda(campo.value);
+            } catch(error) {
+                return alert(error.message);
+            }
             const disponibleLocal = Math.max(0, aCentavos(fondos[fondoKey]));
             if(aCentavos(val) > disponibleLocal) return alert(`El monto a retirar supera el fondo disponible${nombreFondo ? ' en ' + nombreFondo : ''}`);
             if(!confirm(pregunta.replace('{monto}', val.toFixed(2)))) return;
@@ -5506,14 +5795,11 @@
         async function retirarImpuesto() { await solicitarRetiroDesdeCampo('ret-impuesto', 'Pago Impuestos (SAT)', 'fondoImpuestos', '¿Retirar Q {monto} para pago de impuestos?', 'SAT'); }
 
         function aCentavos(valor) {
-            const numero = Number(valor);
-            if(!Number.isFinite(numero)) return 0;
-            const correccionBinaria = Math.sign(numero) * Number.EPSILON * Math.max(1, Math.abs(numero));
-            return Math.round((numero + correccionBinaria) * 100);
+            return SubliNegocioCore.aCentavos(valor);
         }
 
         function desdeCentavos(centavos) {
-            return centavos / 100;
+            return SubliNegocioCore.desdeCentavos(centavos);
         }
 
         function calcularDesgloseRetiroInteligente(montoSolicitado, fondosDisponibles, modo = 'inteligente') {
@@ -5528,9 +5814,9 @@
             let montoCentavos;
             if(modo === 'total') {
                 montoCentavos = claves.reduce((total, clave) => total + saldos[clave], 0);
+                if(!Number.isSafeInteger(montoCentavos)) throw new Error("Los fondos son demasiado grandes para calcular el retiro de forma segura.");
             } else {
-                const montoNumero = Number(montoSolicitado);
-                if(!Number.isFinite(montoNumero) || montoNumero <= 0) throw new Error("Ingrese un monto válido mayor a Q 0.00.");
+                const montoNumero = SubliNegocioCore.normalizarMontoMoneda(montoSolicitado);
                 montoCentavos = aCentavos(montoNumero);
             }
             if(montoCentavos <= 0) throw new Error("No hay un monto disponible para retirar.");
@@ -5581,7 +5867,7 @@
 
         function obtenerSolicitudRetiroInteligente() {
             const modo = document.getElementById('ret-int-modo').value;
-            const monto = modo === 'total' ? null : Number(document.getElementById('ret-int-monto').value);
+            const monto = modo === 'total' ? null : document.getElementById('ret-int-monto').value;
             return { modo, monto };
         }
 
@@ -5628,12 +5914,11 @@
         }
 
         function aMilesimas(valor) {
-            const numero = Number(valor);
-            return Number.isFinite(numero) ? Math.round(numero * 1000) : 0;
+            return SubliNegocioCore.aMilesimas(valor);
         }
 
         function desdeMilesimas(milesimas) {
-            return numeroFinito(milesimas) / 1000;
+            return SubliNegocioCore.desdeMilesimas(milesimas);
         }
 
         function abrirRetiroInteligente() {
@@ -6157,7 +6442,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.3";
+        const APP_VERSION = "1.2.4";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);

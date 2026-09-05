@@ -17,13 +17,7 @@
     }
 
     function normalizarMontoMoneda(valor) {
-        const numero = Number(valor);
-        if (!Number.isFinite(numero)) throw new Error('El monto debe ser un número válido.');
-        const centavos = core.aCentavos(numero);
-        const normalizado = core.desdeCentavos(centavos);
-        if (centavos <= 0) throw new Error('El monto mínimo es Q 0.01.');
-        if (Math.abs(numero - normalizado) > 1e-9) throw new Error('El monto admite como máximo dos decimales.');
-        return normalizado;
+        return core.normalizarMontoMoneda(valor);
     }
 
     function movimientoCaja(tipo, monto, ubicacion, detalles = {}) {
@@ -56,9 +50,10 @@
     }
 
     function asignacionVentaActual(venta) {
-        return venta?.asignacionFondosCobrado
-            ? core.normalizarFondos(venta.asignacionFondosCobrado)
-            : core.calcularAsignacionFondos(desgloseVenta(venta), Number(venta?.montoCobradoTotal ?? venta?.ingresoTotal));
+        const montoCobrado = core.redondearMoneda(venta?.montoCobradoTotal ?? venta?.ingresoTotal);
+        if (venta?.asignacionFondosCobrado) return core.validarAsignacionFondos(venta.asignacionFondosCobrado, montoCobrado);
+        if (Number(venta?.versionCalculo) >= 4) throw new Error('La venta no conserva su huella de fondos; la operación se detuvo para revisión.');
+        return core.calcularAsignacionFondos(desgloseVenta(venta), montoCobrado);
     }
 
     function calcularDesgloseRetiroConSAT(monto, fondosEntrada) {
@@ -478,7 +473,7 @@
         select.innerHTML = (venta.detalleItems || []).map((item, indice) => `<option value="${indice}">${escaparHTML(item.nombre)} · ${numeroFinito(item.qty)} ${escaparHTML(item.unidadAbreviatura || 'unid')}</option>`).join('');
         const item = venta.detalleItems?.[0];
         const campo = document.getElementById('devolucion-cantidad');
-        if (campo && item) { campo.value = item.qty; campo.max = item.qty; campo.step = item.unidadPaso || 1; }
+        if (campo && item) { campo.value = item.qty; campo.max = item.qty; campo.step = item.isService ? 0.001 : (item.unidadPaso || 1); }
         actualizarPreviewDevolucion();
     }
 
@@ -487,12 +482,15 @@
         const indice = Number(document.getElementById('devolucion-item')?.value);
         const item = venta?.detalleItems?.[indice];
         if (!venta || !item) throw new Error('Selecciona una venta y un artículo.');
-        const cantidad = Number(document.getElementById('devolucion-cantidad')?.value);
-        if (!Number.isFinite(cantidad) || cantidad <= 0 || cantidad > Number(item.qty)) throw new Error('Cantidad devuelta inválida.');
-        if (!item.isService) {
+        let cantidad = Number(document.getElementById('devolucion-cantidad')?.value);
+        if (!Number.isFinite(cantidad) || cantidad <= 0) throw new Error('Cantidad devuelta inválida.');
+        if (item.isService) {
+            cantidad = normalizarCantidadServicio(cantidad);
+        } else {
             const producto = inventario.find(p => String(p.id) === String(item.idProd));
-            validarCantidadProducto(cantidad, producto || { unidadId: item.unidadId || 'pieza' });
+            cantidad = validarCantidadProducto(cantidad, producto || { unidadId: item.unidadId || 'pieza' });
         }
+        if (core.aMilesimas(cantidad) > core.aMilesimas(item.qty)) throw new Error('Cantidad devuelta inválida.');
         const calculoLinea = core.calcularDevolucionLinea(item, cantidad);
         const ingresoDevuelto = calculoLinea.ingresoDevuelto;
         const saldoAntes = core.redondearMoneda(venta.saldoPendiente || 0);
@@ -558,29 +556,37 @@
                     const clienteSnap = await t.get(clienteRef);
                     if (clienteSnap.exists()) clienteServidor = clienteSnap.data();
                 }
-                const ingresoAnterior = Number(venta.ingresoTotal || 0);
+                const ingresoAnterior = core.redondearMoneda(venta.ingresoTotal || 0);
                 const ingresoDevuelto = calculoLinea.ingresoDevuelto;
-                const proporcion = ingresoAnterior > 0 ? ingresoDevuelto / ingresoAnterior : 0;
-                const ingresoDevueltoAntes = (venta.devoluciones || []).reduce((total, devolucion) => total + Number(devolucion.ingresoDevuelto || 0), 0);
-                const ingresoBaseGastos = ingresoAnterior + ingresoDevueltoAntes;
-                const proporcionGastos = ingresoBaseGastos > 0 ? ingresoDevuelto / ingresoBaseGastos : 0;
+                const ingresoDevueltoAntes = core.desdeCentavos((venta.devoluciones || []).reduce((total, devolucion) => total + core.aCentavos(devolucion.ingresoDevuelto), 0));
+                const ingresoBaseGastos = core.desdeCentavos(core.aCentavos(ingresoAnterior) + core.aCentavos(ingresoDevueltoAntes));
                 const costoLinea = calculoLinea.costoDevuelto;
                 const costoReversado = reingresar ? costoLinea : 0;
-                const produccionNoRecuperada = core.redondearMoneda(Number(venta.costoTinta || 0) * proporcionGastos);
-                const envioNoRecuperado = core.redondearMoneda(Number(venta.costoEnvio || 0) * proporcionGastos);
-                const manoObraNoRecuperada = core.redondearMoneda(Number(venta.costoManoObra || 0) * proporcionGastos);
+                const produccionNoRecuperada = core.calcularTramoProporcionalMoneda(venta.costoTinta || 0, ingresoBaseGastos, ingresoDevueltoAntes, ingresoDevuelto).tramo;
+                const envioNoRecuperado = core.calcularTramoProporcionalMoneda(venta.costoEnvio || 0, ingresoBaseGastos, ingresoDevueltoAntes, ingresoDevuelto).tramo;
+                const manoObraNoRecuperada = core.calcularTramoProporcionalMoneda(venta.costoManoObra || 0, ingresoBaseGastos, ingresoDevueltoAntes, ingresoDevuelto).tramo;
                 const tintaReversada = 0;
                 const envioReversado = 0;
                 const manoReversada = 0;
-                const satReversado = core.redondearMoneda(Number(venta.impuestoSAT || 0) * proporcion);
-                const gananciaReversada = core.redondearMoneda(ingresoDevuelto - costoReversado - tintaReversada - envioReversado - manoReversada - satReversado);
+                const tasaGuardada = venta.tasaSAT === null || venta.tasaSAT === '' || venta.tasaSAT === undefined ? NaN : Number(venta.tasaSAT);
+                const porcentajeGuardado = venta.porcentajeSAT === null || venta.porcentajeSAT === '' || venta.porcentajeSAT === undefined ? NaN : Number(venta.porcentajeSAT);
+                const tasaSAT = Number.isFinite(tasaGuardada) && tasaGuardada >= 0 && tasaGuardada <= 1
+                    ? tasaGuardada
+                    : (Number.isFinite(porcentajeGuardado) && porcentajeGuardado >= 0 && porcentajeGuardado <= 100 ? porcentajeGuardado / 100 : 0.05);
+                const impuestoOriginal = venta.factura ? core.redondearMoneda(ingresoBaseGastos * tasaSAT) : 0;
+                const tramoImpuesto = core.calcularTramoProporcionalMoneda(impuestoOriginal, ingresoBaseGastos, ingresoDevueltoAntes, ingresoDevuelto);
+                const impuestoSATNuevo = tramoImpuesto.restante;
+                // Se usa el saldo actual para corregir también registros creados por la
+                // fórmula anterior, que podía dejar SAT residual al devolver por partes.
+                const impuestoReversado = core.desdeCentavos(core.aCentavos(venta.impuestoSAT) - core.aCentavos(impuestoSATNuevo));
+                const gananciaReversada = core.redondearMoneda(ingresoDevuelto - costoReversado - tintaReversada - envioReversado - manoReversada - impuestoReversado);
                 const nuevoDesglose = {
                     ingresoTotal: core.desdeCentavos(Math.max(0, core.aCentavos(ingresoAnterior) - calculoLinea.ingresoDevueltoCentavos)),
                     costosProductos: core.desdeCentavos(Math.max(0, core.aCentavos(venta.costosProductos) - core.aCentavos(costoReversado))),
                     costoTinta: core.redondearMoneda(Number(venta.costoTinta || 0) - tintaReversada),
                     costoEnvio: core.redondearMoneda(Number(venta.costoEnvio || 0) - envioReversado),
                     costoManoObra: core.redondearMoneda(Number(venta.costoManoObra || 0) - manoReversada),
-                    impuestoSAT: core.redondearMoneda(Number(venta.impuestoSAT || 0) - satReversado),
+                    impuestoSAT: impuestoSATNuevo,
                     gananciaNeta: core.redondearMoneda(Number(venta.ganancia || 0) - gananciaReversada),
                     pideFactura: Boolean(venta.factura)
                 };
@@ -623,14 +629,23 @@
                         ultimaOperacionAnticipoEn: anticipoRestaurado > 0 ? timestamp : clienteServidor.ultimaOperacionAnticipoEn || null
                     };
                 }
-                const devolucion = { id: devolucionId, ventaId: String(venta.id), lineId: item.lineId || null, clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', productoId: item.idProd || null, productoNombre: item.nombre, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), unidadId: item.unidadId || 'pieza', ingresoDevuelto, creditoReducido, reembolsoDinero, anticipoRestaurado, metodo, ubicacion, reingresadoInventario: reingresar, costoReversado, produccionNoRecuperada, envioNoRecuperado, manoObraNoRecuperada, motivo, timestamp, fecha: fechaHoraNegocio(timestamp) };
+                const devolucion = { id: devolucionId, ventaId: String(venta.id), lineId: item.lineId || null, clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', productoId: item.idProd || null, productoNombre: item.nombre, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), unidadId: item.unidadId || 'pieza', ingresoDevuelto, creditoReducido, reembolsoDinero, anticipoRestaurado, metodo, ubicacion, reingresadoInventario: reingresar, costoReversado, impuestoReversado, produccionNoRecuperada, envioNoRecuperado, manoObraNoRecuperada, motivo, timestamp, fecha: fechaHoraNegocio(timestamp) };
                 const actualizada = { ...venta, ingresoTotal: nuevoDesglose.ingresoTotal, costosProductos: nuevoDesglose.costosProductos, costoTinta: nuevoDesglose.costoTinta, costoEnvio: nuevoDesglose.costoEnvio, costoManoObra: nuevoDesglose.costoManoObra, impuestoSAT: nuevoDesglose.impuestoSAT, ganancia: nuevoDesglose.gananciaNeta, detalleItems: detalleNuevo, montoPagadoDinero: core.redondearMoneda(Math.max(0, Number(venta.montoPagadoDinero || 0) - reembolsoDinero)), montoCobradoTotal: cobradoNuevo, saldoPendiente, anticipoAplicado: core.redondearMoneda(anticipoAplicado - anticipoRestaurado), asignacionFondosCobrado: asignacionNueva, estadoCobro: saldoPendiente > 0 ? 'credito' : 'pagado', devoluciones: [...(venta.devoluciones || []), devolucion], revision: Math.trunc(Number(venta.revision || 0)) + 1, editadoEn: timestamp };
                 let productoNuevo = null;
-                if (reingresar) {
-                    if (!productoSnap?.exists()) throw new Error('El producto ya no existe para reingresarlo.');
+                if (!item.isService && productoSnap?.exists()) {
                     const producto = productoSnap.data();
                     const cantidadDevuelta = core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas);
-                    productoNuevo = { ...producto, costo: calcularCostoPromedioPonderado(producto.stock, producto.costo, cantidadDevuelta, Number(item.costoUnitarioReal ?? item.costoBase ?? 0)), stock: core.desdeMilesimas(core.aMilesimas(producto.stock) + calculoLinea.cantidadDevueltaMilesimas), ventasTotales: core.desdeMilesimas(Math.max(0, core.aMilesimas(producto.ventasTotales) - calculoLinea.cantidadDevueltaMilesimas)), lastModified: timestamp };
+                    productoNuevo = {
+                        ...producto,
+                        ventasTotales: core.desdeMilesimas(Math.max(0, core.aMilesimas(producto.ventasTotales) - calculoLinea.cantidadDevueltaMilesimas)),
+                        lastModified: timestamp
+                    };
+                    if (reingresar) {
+                        productoNuevo.costo = calcularCostoPromedioPonderado(producto.stock, producto.costo, cantidadDevuelta, Number(item.costoUnitarioReal ?? item.costoBase ?? 0));
+                        productoNuevo.stock = core.desdeMilesimas(core.aMilesimas(producto.stock) + calculoLinea.cantidadDevueltaMilesimas);
+                    }
+                } else if (reingresar) {
+                    throw new Error('El producto ya no existe para reingresarlo.');
                 }
                 const mes = getMesAnioFromDate(venta.fecha || '', venta.timestamp);
                 let resumenRef = null; let resumenSnap = null;
@@ -650,7 +665,7 @@
                 if (anticipoNuevo) t.set(global.doc(global.db, 'anticipos', String(anticipoNuevo.id)), anticipoNuevo);
                 if (movimientoReembolso) t.set(global.doc(global.db, 'movimientos_caja', String(movimientoReembolso.id)), movimientoReembolso);
                 if (resumenRef && resumenSnap) {
-                    const ajuste = { ingresoTotal: ingresoDevuelto, ganancia: gananciaReversada, costosProductos: costoReversado, costoTinta: tintaReversada, costoEnvio: envioReversado, costoManoObra: manoReversada, impuestoSAT: satReversado, detalleItems: [{ qty: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), rol: item.rol }] };
+                    const ajuste = { ingresoTotal: ingresoDevuelto, ganancia: gananciaReversada, costosProductos: costoReversado, costoTinta: tintaReversada, costoEnvio: envioReversado, costoManoObra: manoReversada, impuestoSAT: impuestoReversado, detalleItems: [{ qty: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), rol: item.rol }] };
                     t.set(resumenRef, aplicarVentaAResumen(resumenSnap.data(), ajuste, -1));
                 }
                 return { fondosNuevos, saldos, actualizada, productoNuevo, devolucion, anticipoNuevo, clienteActualizado, movimientoReembolso };
@@ -713,7 +728,7 @@
         const selectPerdida = document.getElementById('perdida-producto');
         if (selectPerdida) {
             const anterior = selectPerdida.value;
-            selectPerdida.innerHTML = '<option value="">Selecciona un producto</option>' + productos.map(p => `<option value="${escaparHTML(p.id)}">${escaparHTML(p.nombre)} · ${etiquetaUnidadProducto(p, p.stock)}</option>`).join('');
+            selectPerdida.innerHTML = '<option value="">Selecciona un producto</option>' + productos.map(p => `<option value="${escaparHTML(p.id)}">${escaparHTML(p.nombre)} · ${escaparHTML(etiquetaUnidadProducto(p, p.stock))}</option>`).join('');
             if (productos.some(p => String(p.id) === String(anterior))) selectPerdida.value = anterior;
         }
         const selectVenta = document.getElementById('devolucion-venta');

@@ -16,6 +16,8 @@ test('los importes con mitad de centavo redondean simétricamente', () => {
   assert.equal(core.aCentavos(-1.005), -101);
   assert.equal(core.redondearMoneda(10.075), 10.08);
   assert.equal(core.redondearMoneda(-10.075), -10.08);
+  assert.equal(core.aCentavos(45000000000000), 4500000000000000);
+  assert.equal(core.redondearCostoUnitario(4500000000), 4500000000);
 });
 
 test('las cantidades respetan el paso y el contenido de cada lote', () => {
@@ -161,5 +163,6 @@ test('operaciones sensibles fallan cerradas y los importes exigen centavos váli
   assert.match(html, /if\(pinCrudo\.length < 4\)/);
   assert.match(gestion, /if \(!exigirDueno\('Solo el Dueño puede crear o modificar fichas de clientes\.'/);
   assert.match(finanzas, /function normalizarMontoMoneda\(valor\)/);
-  assert.match(finanzas, /Math\.abs\(numero - normalizado\) > 1e-9/);
+  assert.match(finanzas, /return core\.normalizarMontoMoneda\(valor\)/);
+  assert.match(leer('negocio-core.js'), /Math\.abs\(numero - normalizado\) > 1e-9/);
 });
