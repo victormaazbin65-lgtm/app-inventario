@@ -12,7 +12,7 @@ service cloud.firestore {
         .get('authPropietario', {});
     }
 
-    function proteccionActivada() {
+    function propietarioConfigurado() {
       return exists(configPath())
         && authPropietario().get('habilitado', false) == true
         && authPropietario().get('uid', '') != '';
@@ -20,46 +20,15 @@ service cloud.firestore {
 
     function esPropietarioAutenticado() {
       return request.auth != null
-        && proteccionActivada()
+        && propietarioConfigurado()
         && request.auth.uid == authPropietario().get('uid', '');
     }
 
-    function accesoPermitido() {
-      // Transición compatible: la base permanece como antes hasta que el Dueño
-      // active su cuenta real. Desde ese instante solo acepta ese UID de Firebase.
-      return !proteccionActivada() || esPropietarioAutenticado();
-    }
-
-    function proteccionSolicitadaEnEscritura() {
-      return request.resource != null
-        && request.resource.data
-          .get('negocio', {})
-          .get('authPropietario', {})
-          .get('habilitado', false) == true;
-    }
-
-    function activacionPropiaValida() {
-      return request.auth != null
-        && request.resource != null
-        && request.resource.data
-          .get('negocio', {})
-          .get('authPropietario', {})
-          .get('uid', '') == request.auth.uid;
-    }
-
-    function escrituraPermitida() {
-      // La primera activación no puede adjudicar un UID anónimo o distinto.
-      // Una vez protegida, accesoPermitido ya exige al propietario actual.
-      return request.path != configPath()
-        || (request.resource != null
-          && (proteccionActivada()
-            || !proteccionSolicitadaEnEscritura()
-            || activacionPropiaValida()));
-    }
-
+    // Cerrado por defecto: no existe acceso público ni adjudicación automática
+    // del primer UID. El propietario debe quedar vinculado antes de desplegar
+    // estas reglas, siguiendo SEGURIDAD_FIREBASE.md.
     match /{document=**} {
-      allow read: if accesoPermitido();
-      allow write: if accesoPermitido() && escrituraPermitida();
+      allow read, write: if esPropietarioAutenticado();
     }
   }
 }

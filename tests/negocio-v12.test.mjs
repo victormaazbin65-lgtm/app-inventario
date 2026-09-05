@@ -188,10 +188,11 @@ test('los abonos de préstamo restauran exactamente el desglose original', () =>
 });
 
 test('las fichas de clientes validan identidad y límite de crédito', () => {
-  const cliente = core.validarCliente({ id: 'c1', nombres: ' Ana ', apellidos: ' López ', nit: '', limiteCredito: '250.505' });
+  const cliente = core.validarCliente({ id: 'c1', nombres: ' Ana ', apellidos: ' López ', nit: '', limiteCredito: '250.50' });
   assert.equal(cliente.nombreCompleto, 'ANA LÓPEZ');
   assert.equal(cliente.nit, 'C/F');
-  assert.equal(cliente.limiteCredito, 250.51);
+  assert.equal(cliente.limiteCredito, 250.50);
+  assert.throws(() => core.validarCliente({ nombres: 'Ana', limiteCredito: '250.505' }), /máximo dos decimales/);
   assert.throws(() => core.validarCliente({ nombres: '', apellidos: '' }), /nombre o apellido/);
 });
 
@@ -260,14 +261,15 @@ test('la copia completa valida, crea punto previo y conserva el UID actual', () 
   assert.doesNotMatch(respaldoSource, /lote\.delete/);
 });
 
-test('reglas, PWA y versión 1.2.2 quedan listas para activación controlada', () => {
+test('reglas, PWA y versión 1.2.4 quedan coordinadas', () => {
   const reglas = leer('firestore.rules');
   assert.match(reglas, /request\.auth\.uid == authPropietario\(\)\.get\('uid'/);
-  assert.match(reglas, /activacionPropiaValida/);
-  assert.match(reglas, /!proteccionActivada\(\) \|\| esPropietarioAutenticado\(\)/);
+  assert.match(reglas, /allow read, write: if esPropietarioAutenticado\(\)/);
+  assert.doesNotMatch(reglas, /!proteccionActivada\(\)/);
+  assert.doesNotMatch(reglas, /activacionPropiaValida/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.2' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.2');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.2/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.4' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.4');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.4/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });

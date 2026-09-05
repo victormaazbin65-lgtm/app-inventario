@@ -74,7 +74,8 @@
     }
 
     function validarCopiaSeguridad(copia) {
-        if (!copia || copia.formato !== 'sublicosturas-backup' || Number(copia.schemaVersion) < 1) {
+        const schemaVersion = Number(copia?.schemaVersion);
+        if (!copia || copia.formato !== 'sublicosturas-backup' || !Number.isInteger(schemaVersion) || schemaVersion < 1 || schemaVersion > 3) {
             throw new Error('El archivo no es una copia compatible de esta aplicación.');
         }
         if (!copia.colecciones || typeof copia.colecciones !== 'object') throw new Error('La copia no contiene colecciones.');
@@ -85,6 +86,10 @@
             if (!Array.isArray(documentos)) throw new Error(`La colección ${coleccion} no es válida.`);
             const ids = new Set();
             normalizada.colecciones[coleccion] = documentos.map(doc => validarDocumentoRespaldo(doc, coleccion, ids));
+            if (copia.conteos && Object.prototype.hasOwnProperty.call(copia.conteos, coleccion)
+                && Number(copia.conteos[coleccion]) !== documentos.length) {
+                throw new Error(`El conteo declarado de ${coleccion} no coincide con el contenido del archivo.`);
+            }
             total += documentos.length;
         });
         if (!normalizada.colecciones.inventario) throw new Error('La copia no contiene la colección de inventario.');

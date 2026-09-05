@@ -1,7 +1,8 @@
-const CACHE_NAME = 'sublicosturas-v1.2.2';
+const CACHE_NAME = 'sublicosturas-v1.2.4';
 const APP_SHELL = [
   './',
   './index.html',
+  './visual-preferences.js',
   './negocio-core.js',
   './gestion-negocio.js',
   './finanzas-negocio.js',
@@ -44,8 +45,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => {
-          const copia = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copia));
+          const tipo = response.headers.get('content-type') || '';
+          if(response.ok && tipo.includes('text/html')) {
+            const copia = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copia));
+          }
           return response;
         })
         .catch(() => caches.match('./index.html'))
@@ -63,7 +67,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(request, copia));
         }
         return response;
-      });
+      }).catch(() => cacheada || Response.error());
       return cacheada || actualizacion;
     })
   );
