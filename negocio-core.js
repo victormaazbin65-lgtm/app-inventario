@@ -604,6 +604,125 @@
         };
     }
 
+    const PROVEEDOR_SIN_ASIGNAR = 'SIN DISTRIBUIDOR ASIGNADO';
+
+    function normalizarProveedorSurtido(valor) {
+        const proveedor = String(valor === undefined || valor === null ? '' : valor)
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toUpperCase()
+            .slice(0, 120);
+        return !proveedor || proveedor === 'NO ESPECIFICADO' ? PROVEEDOR_SIN_ASIGNAR : proveedor;
+    }
+
+    function obtenerPasoSurtidoMilesimas(producto, configuracion) {
+        const unidadConfigurada = obtenerUnidad(producto?.unidadId || 'pieza', configuracion);
+        const divisible = producto?.unidadDivisible === undefined
+            ? Boolean(unidadConfigurada.divisible)
+            : Boolean(producto.unidadDivisible);
+        if (!divisible) return 1000;
+        const pasoDeclarado = producto?.unidadPaso === undefined ? unidadConfigurada.paso : producto.unidadPaso;
+        const pasoMilesimas = aMilesimas(pasoDeclarado);
+        return pasoMilesimas >= 1 && pasoMilesimas <= 1000 ? pasoMilesimas : 1;
+    }
+
+    function crearPlanSurtido(productos, configuracion) {
+        const plan = [];
+        for (const productoOriginal of Array.isArray(productos) ? productos : []) {
+            if (!productoOriginal || typeof productoOriginal !== 'object' || productoOriginal.isService) continue;
+            const stock = Number(productoOriginal.stock);
+            const minimoEntrada = productoOriginal.min === undefined ? 0 : Number(productoOriginal.min);
+            if (!Number.isFinite(stock) || !Number.isFinite(minimoEntrada)) continue;
+            const minimo = Math.max(0, minimoEntrada);
+            const stockMilesimas = aMilesimas(stock);
+            const minimoMilesimas = aMilesimas(minimo);
+            if (!Number.isSafeInteger(stockMilesimas) || !Number.isSafeInteger(minimoMilesimas)) continue;
+            if (stockMilesimas > minimoMilesimas) continue;
+
+            const pasoMilesimas = obtenerPasoSurtidoMilesimas(productoOriginal, configuracion);
+            const faltanteMilesimas = minimoMilesimas + pasoMilesimas - stockMilesimas;
+            const cantidadSugeridaMilesimas = Math.ceil(faltanteMilesimas / pasoMilesimas) * pasoMilesimas;
+            if (!Number.isSafeInteger(cantidadSugeridaMilesimas) || cantidadSugeridaMilesimas <= 0) continue;
+            const stockObjetivoMilesimas = stockMilesimas + cantidadSugeridaMilesimas;
+            if (!Number.isSafeInteger(stockObjetivoMilesimas)) continue;
+
+            const costo = Number(productoOriginal.costo);
+            const cantidadSugerida = desdeMilesimas(cantidadSugeridaMilesimas);
+            const costoEstimadoCentavos = Number.isFinite(costo) && costo >= 0
+                ? aCentavos(cantidadSugerida * costo)
+                : NaN;
+            const costoValido = Number.isSafeInteger(costoEstimadoCentavos) && costoEstimadoCentavos >= 0;
+            const estadoSurtido = stockMilesimas <= 0
+                ? 'agotado'
+                : (stockMilesimas < minimoMilesimas ? 'bajo' : 'minimo');
+
+            plan.push({
+                ...productoOriginal,
+                proveedorSurtido: normalizarProveedorSurtido(productoOriginal.proveedor),
+                stockNormalizado: desdeMilesimas(stockMilesimas),
+                minimoNormalizado: desdeMilesimas(minimoMilesimas),
+                cantidadSugerida,
+                stockObjetivo: desdeMilesimas(stockObjetivoMilesimas),
+                costoCompraEstimado: costoValido ? desdeCentavos(costoEstimadoCentavos) : null,
+                costoValido,
+                estadoSurtido
+            });
+        }
+
+        const prioridad = { agotado: 0, bajo: 1, minimo: 2 };
+        return plan.sort((a, b) =>
+            (prioridad[a.estadoSurtido] - prioridad[b.estadoSurtido])
+            || (numeroFinito(b.ventasTotales) - numeroFinito(a.ventasTotales))
+            || String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es')
+        );
+    }
+
+    function agruparPlanSurtido(productosPlan) {
+        const grupos = new Map();
+        for (const producto of Array.isArray(productosPlan) ? productosPlan : []) {
+            if (!producto || typeof producto !== 'object') continue;
+            const proveedor = normalizarProveedorSurtido(producto.proveedorSurtido || producto.proveedor);
+            if (!grupos.has(proveedor)) {
+                grupos.set(proveedor, {
+                    proveedor,
+                    productos: [],
+                    agotados: 0,
+                    sinCosto: 0,
+                    costoEstimadoCentavos: 0
+                });
+            }
+            const grupo = grupos.get(proveedor);
+            grupo.productos.push(producto);
+            if (producto.estadoSurtido === 'agotado') grupo.agotados += 1;
+            if (!producto.costoValido || producto.costoCompraEstimado === null) {
+                grupo.sinCosto += 1;
+                continue;
+            }
+            const costoCentavos = aCentavos(producto.costoCompraEstimado);
+            const totalNuevo = grupo.costoEstimadoCentavos + costoCentavos;
+            if (!Number.isSafeInteger(costoCentavos) || !Number.isSafeInteger(totalNuevo)) {
+                grupo.sinCosto += 1;
+                continue;
+            }
+            grupo.costoEstimadoCentavos = totalNuevo;
+        }
+
+        return Array.from(grupos.values())
+            .map(grupo => ({
+                proveedor: grupo.proveedor,
+                productos: grupo.productos,
+                cantidadProductos: grupo.productos.length,
+                agotados: grupo.agotados,
+                sinCosto: grupo.sinCosto,
+                costoCompraEstimado: desdeCentavos(grupo.costoEstimadoCentavos)
+            }))
+            .sort((a, b) => {
+                if (a.proveedor === PROVEEDOR_SIN_ASIGNAR) return 1;
+                if (b.proveedor === PROVEEDOR_SIN_ASIGNAR) return -1;
+                return a.proveedor.localeCompare(b.proveedor, 'es');
+            });
+    }
+
     function validarCliente(cliente) {
         const fuente = cliente && typeof cliente === 'object' ? cliente : {};
         const nombres = textoSeguro(fuente.nombres, '', 80);
@@ -626,6 +745,7 @@
         CLAVES_FONDOS,
         CONFIGURACION_PREDETERMINADA,
         METODOS_PAGO,
+        PROVEEDOR_SIN_ASIGNAR,
         UNIDADES_BASE,
         aCentavos,
         desdeCentavos,
@@ -659,6 +779,9 @@
         sumarAsignacion,
         totalAsignacion,
         calcularRestitucionPrestamo,
+        normalizarProveedorSurtido,
+        crearPlanSurtido,
+        agruparPlanSurtido,
         validarCliente
     });
 

@@ -241,8 +241,8 @@ test('fechas inválidas no pueden crear meses ni HTML en los filtros', () => {
 });
 
 test('la versión profesional mantiene coordinados aplicación y caché', () => {
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.4');
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.4' });
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.4/);
-  assert.match(html, /const APP_VERSION = "1\.2\.4"/);
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.5/);
+  assert.match(html, /const APP_VERSION = "1\.2\.5"/);
 });
