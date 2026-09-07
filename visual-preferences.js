@@ -11,6 +11,12 @@
     // Mejoras incrementales: se cargan separadas del archivo principal para no
     // duplicar ni reescribir la lógica contable ya probada.
     function cargarMejorasV126() {
+        // Las pruebas de arranque usan un documento mínimo. En navegador real
+        // estas funciones existen; si no existen, se conserva únicamente la
+        // preferencia visual y no se intenta manipular el DOM.
+        if(!document || typeof document.getElementById !== 'function'
+            || typeof document.createElement !== 'function'
+            || !document.head || typeof document.head.appendChild !== 'function') return;
         if(document.getElementById('subli-mejoras-core-v126')) return;
         const core = document.createElement('script');
         core.id = 'subli-mejoras-core-v126';
