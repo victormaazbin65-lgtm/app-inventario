@@ -33,11 +33,18 @@
                 asistenteCore.id = 'subli-asistente-core-v127';
                 asistenteCore.src = './asistente-core.js';
                 asistenteCore.onload = () => {
-                    if(document.getElementById('subli-mejoras-ui-v127')) return;
-                    const ui127 = document.createElement('script');
-                    ui127.id = 'subli-mejoras-ui-v127';
-                    ui127.src = './mejoras-v127.js';
-                    document.head.appendChild(ui127);
+                    if(document.getElementById('subli-asistente-ajustes-v127')) return;
+                    const ajustes = document.createElement('script');
+                    ajustes.id = 'subli-asistente-ajustes-v127';
+                    ajustes.src = './asistente-ajustes-v127.js';
+                    ajustes.onload = () => {
+                        if(document.getElementById('subli-mejoras-ui-v127')) return;
+                        const ui127 = document.createElement('script');
+                        ui127.id = 'subli-mejoras-ui-v127';
+                        ui127.src = './mejoras-v127.js';
+                        document.head.appendChild(ui127);
+                    };
+                    document.head.appendChild(ajustes);
                 };
                 document.head.appendChild(asistenteCore);
             };
