@@ -13,7 +13,7 @@
         }
     }
 
-    // Las preferencias visuales son locales al dispositivo: nunca escriben en Firebase.
+    // Las preferencias visuales son locales al dispositivo y nunca escriben datos remotos.
     try {
         const guardada = JSON.parse(localStorage.getItem('subli_preferencias_sistema_v1') || 'null');
         document.documentElement.dataset.modeloVisual = guardada?.modeloVisual === 'clasico' ? 'clasico' : 'profesional';
@@ -36,6 +36,8 @@ html[data-modelo-visual][data-tema-visual="grafito"]{color-scheme:dark;--bg-colo
 html[data-modelo-visual][data-tema-visual="contraste"]{color-scheme:dark;--bg-color:#000;--card-bg:#090909;--surface-bg:#111;--surface-soft:#181818;--surface-elevated:#0b0b0b;--input-bg:#000;--nav-bg:#050505;--primary-blue:#64c8ff;--primary-green:#58ff9d;--primary-red:#ff6b80;--primary-purple:#cbb7ff;--primary-orange:#ffd24a;--text-dark:#fff;--text-light:#e2e8f0;--border-color:#f8fafc;--shadow:none;--focus-ring:0 0 0 4px #ffd24a;--app-background:#000;}
 html[data-modelo-visual][data-tema-visual="sistema"]{color-scheme:light;--bg-color:#f3f6fb;--card-bg:rgba(255,255,255,.97);--surface-bg:#eef3f9;--surface-soft:rgba(226,233,243,.78);--surface-elevated:#fff;--input-bg:#fff;--nav-bg:rgba(255,255,255,.94);--primary-blue:#2563eb;--primary-green:#059669;--primary-red:#dc2626;--primary-purple:#7c3aed;--primary-orange:#d97706;--text-dark:#172033;--text-light:#64748b;--border-color:#d9e2ec;--shadow:0 18px 50px -34px rgba(15,23,42,.35);--focus-ring:0 0 0 3px rgba(37,99,235,.18);--app-background:linear-gradient(180deg,#f8fbff,#f1f5f9);}
 @media(prefers-color-scheme:dark){html[data-modelo-visual][data-tema-visual="sistema"]{color-scheme:dark;--bg-color:#050914;--card-bg:rgba(10,20,37,.94);--surface-bg:#0d1b30;--surface-soft:rgba(20,38,63,.72);--surface-elevated:#0d1b30;--input-bg:rgba(5,14,28,.90);--nav-bg:rgba(5,12,25,.92);--primary-blue:#38bdf8;--primary-green:#2dd4bf;--primary-red:#fb7185;--primary-purple:#a78bfa;--primary-orange:#f59e0b;--text-dark:#f2f9ff;--text-light:#9fb0c7;--border-color:rgba(125,159,196,.22);--shadow:0 24px 64px -38px rgba(0,0,0,.98);--focus-ring:0 0 0 3px rgba(56,189,248,.22);--app-background:#050914;}}
+html[data-modelo-visual][data-tema-visual] .v127-loan-state.ok{border-color:var(--primary-green)!important;}
+html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:var(--primary-red)!important;color:var(--primary-red)!important;}
         `;
         document.head.appendChild(style);
     }
