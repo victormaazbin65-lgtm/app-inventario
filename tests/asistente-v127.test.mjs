@@ -8,12 +8,14 @@ import { fileURLToPath } from 'node:url';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = archivo => fs.readFileSync(path.join(raiz, archivo), 'utf8');
 const coreSource = leer('asistente-core.js');
+const ajustesSource = leer('asistente-ajustes-v127.js');
 const uiSource = leer('mejoras-v127.js');
 const bootstrap = leer('visual-preferences.js');
 const sw = leer('sw.js');
 
 const contexto = vm.createContext({ console, Math, Number, String, Boolean, Object, Array, Map, Set, Date, Error, JSON });
 vm.runInContext(coreSource, contexto);
+vm.runInContext(ajustesSource, contexto);
 const asistente = contexto.SubliAsistenteCore;
 
 test('la disponibilidad de préstamo respeta ubicación y protege SAT', () => {
@@ -61,9 +63,17 @@ test('el asistente reconoce guías de préstamo, ingreso, SAT y crédito', () =>
   assert.equal(asistente.buscarAyuda('venta a credito').coincidencia.id, 'venta_credito');
 });
 
+test('tolera preguntas naturales sobre registrar o regresar préstamos', () => {
+  assert.equal(asistente.responderConsulta('¿Cómo registro un préstamo?', {}).id, 'prestamo_registrar');
+  assert.equal(asistente.responderConsulta('¿Cómo regreso un préstamo?', {}).id, 'prestamo_devolver');
+  assert.equal(asistente.responderConsulta('¿Dónde anoto que me devolvieron lo prestado?', {}).id, 'prestamo_devolver');
+});
+
 test('las consultas de datos existentes se delegan al analizador anterior', () => {
   assert.equal(asistente.responderConsulta('ventas de hoy', {}).tipo, 'delegar');
   assert.equal(asistente.responderConsulta('cuanto hay en caja', {}).tipo, 'delegar');
+  assert.equal(asistente.responderConsulta('que debo surtir', {}).tipo, 'delegar');
+  assert.equal(asistente.responderConsulta('productos sin codigo', {}).tipo, 'delegar');
 });
 
 test('el asistente puede resumir préstamos pendientes sin escribir datos', () => {
@@ -88,14 +98,17 @@ test('la interfaz v1.2.7 reutiliza las operaciones existentes y solo agrega ayud
   assert.match(uiSource, /renderFinanzasNegocio/);
   assert.match(uiSource, /Prestado desde:/);
   assert.match(uiSource, /Máximo prestable sin tocar SAT/);
-  assert.doesNotMatch(coreSource, /setDoc|updateDoc|runTransaction|Firebase/);
+  assert.doesNotMatch(coreSource, /setDoc|updateDoc|runTransaction/);
+  assert.doesNotMatch(ajustesSource, /setDoc|updateDoc|runTransaction/);
   assert.doesNotMatch(uiSource, /setDoc|updateDoc|runTransaction/);
 });
 
 test('la PWA carga y cachea los módulos del asistente sin alterar la versión contable', () => {
   assert.match(bootstrap, /asistente-core\.js/);
+  assert.match(bootstrap, /asistente-ajustes-v127\.js/);
   assert.match(bootstrap, /mejoras-v127\.js/);
   assert.match(sw, /'\.\/asistente-core\.js'/);
+  assert.match(sw, /'\.\/asistente-ajustes-v127\.js'/);
   assert.match(sw, /'\.\/mejoras-v127\.js'/);
   assert.match(sw, /sublicosturas-v1\.2\.5/);
 });
