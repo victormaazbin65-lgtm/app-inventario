@@ -5,6 +5,8 @@ const APP_SHELL = [
   './visual-preferences.js',
   './mejoras-core.js',
   './mejoras-v126.js',
+  './asistente-core.js',
+  './mejoras-v127.js',
   './negocio-core.js',
   './gestion-negocio.js',
   './finanzas-negocio.js',
