@@ -3,6 +3,8 @@ const APP_SHELL = [
   './',
   './index.html',
   './visual-preferences.js',
+  './mejoras-core.js',
+  './mejoras-v126.js',
   './negocio-core.js',
   './gestion-negocio.js',
   './finanzas-negocio.js',
