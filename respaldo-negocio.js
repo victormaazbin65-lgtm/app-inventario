@@ -55,6 +55,7 @@
         const brandingSnap = await global.getDoc(global.doc(global.db, 'sistema', 'branding'));
         const copia = {
             formato: 'sublicosturas-backup',
+            // Compatibilidad: las copias antiguas con schemaVersion: 3 siguen aceptándose al restaurar.
             schemaVersion: 4,
             appVersion: typeof APP_VERSION === 'string' ? APP_VERSION : '1.3.0-interno',
             creadoEnISO: new Date().toISOString(),
