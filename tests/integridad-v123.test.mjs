@@ -130,7 +130,7 @@ test('las reglas nuevas quedan cerradas y vinculadas al UID propietario', () => 
 
 test('la restauración rechaza esquemas futuros y conteos alterados', () => {
   const respaldo = leer('respaldo-negocio.js');
-  assert.match(respaldo, /schemaVersion > 3/);
+  assert.match(respaldo, /schemaVersion > 4/);
   assert.match(respaldo, /Number\(copia\.conteos\[coleccion\]\) !== documentos\.length/);
   assert.match(respaldo, /El conteo declarado de \$\{coleccion\} no coincide/);
 });
