@@ -10,6 +10,14 @@ const APP_SHELL = [
   './asistente-ajustes-v128.js',
   './mejoras-v127.js',
   './mejoras-v128.js',
+  './profesional-core-v130.js',
+  './profesional-core-ajustes-v130.js',
+  './profesional-ui-v130.js',
+  './profesional-operaciones-v130.js',
+  './profesional-compat-v130.js',
+  './asistente-ajustes-v130.js',
+  './vendor-cache-v130.js',
+  './build-info.json',
   './negocio-core.js',
   './gestion-negocio.js',
   './finanzas-negocio.js',
@@ -21,6 +29,11 @@ const APP_SHELL = [
   './logo-512.png',
   './apple-touch-icon.png'
 ];
+
+const VENDOR_URLS = new Set([
+  'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+]);
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -60,6 +73,24 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Dependencias externas fijadas: no hacen fallar la instalación de la PWA,
+  // pero una vez descargadas quedan disponibles para usos posteriores sin red.
+  if(VENDOR_URLS.has(url.href)) {
+    event.respondWith(
+      caches.match(request).then(cacheada => {
+        if(cacheada) return cacheada;
+        return fetch(request).then(response => {
+          if(response && (response.ok || response.type === 'opaque')) {
+            const copia = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, copia));
+          }
+          return response;
+        }).catch(() => cacheada || Response.error());
+      })
     );
     return;
   }
