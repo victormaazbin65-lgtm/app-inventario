@@ -1,0 +1,7 @@
+{
+  "build": "1.3.0",
+  "basePublica": "1.2.5",
+  "canal": "profesionalizacion",
+  "fecha": "2026-09-07",
+  "descripcion": "Buscador global, sincronizacion visible, borradores, auditoria, ordenes de compra, agenda de cobros, cierre diario, CRM, etiquetas, respaldo v4 y modularizacion incremental."
+}
