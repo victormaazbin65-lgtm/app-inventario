@@ -11,6 +11,7 @@ const APP_SHELL = [
   './mejoras-v127.js',
   './mejoras-v128.js',
   './profesional-core-v130.js',
+  './profesional-core-ajustes-v130.js',
   './profesional-ui-v130.js',
   './profesional-operaciones-v130.js',
   './profesional-compat-v130.js',
