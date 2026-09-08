@@ -10,6 +10,7 @@ const leer = archivo => fs.readFileSync(path.join(raiz, archivo), 'utf8');
 
 const negocioSrc = leer('negocio-core.js');
 const coreSrc = leer('profesional-core-v130.js');
+const coreAjustesSrc = leer('profesional-core-ajustes-v130.js');
 const ui = leer('profesional-ui-v130.js');
 const ops = leer('profesional-operaciones-v130.js');
 const assistant = leer('asistente-ajustes-v130.js');
@@ -22,8 +23,10 @@ const build = JSON.parse(leer('build-info.json'));
 
 function crearCore() {
   const contexto = vm.createContext({ console, Math, Number, String, Boolean, Object, Array, Map, Set, Date, Error, JSON });
+  contexto.window = contexto;
   vm.runInContext(negocioSrc, contexto);
   vm.runInContext(coreSrc, contexto);
+  vm.runInContext(coreAjustesSrc, contexto);
   return contexto.SubliProfesionalCore;
 }
 
@@ -87,7 +90,7 @@ test('historial de costos y orden de compra conservan fechas, proveedor y centav
     { timestamp:10, items:[{ idFinal:'a', costoDespues:9.9, proveedor:'Proveedor 1' }] },
     { timestamp:20, items:[{ idFinal:'a', costoDespues:10.25, proveedor:'Proveedor 2' }] }
   ], 'a');
-  assert.deepEqual(historial.map(x => x.costo), [10.25, 9.9]);
+  assert.deepEqual(JSON.parse(JSON.stringify(historial.map(x => x.costo))), [10.25, 9.9]);
   const orden = core.crearOrdenCompra([
     { id:'a', nombre:'Taza', proveedorSurtido:'DIST A', cantidadSugerida:3, costo:9.9, stockNormalizado:0, minimoNormalizado:2 },
     { id:'b', nombre:'Playera', proveedorSurtido:'DIST B', cantidadSugerida:2, costo:12.5, stockNormalizado:1, minimoNormalizado:2 }
@@ -127,7 +130,7 @@ test('los borradores locales caducan y las capas visuales no escriben a Firebase
   assert.equal(core.borradorValido({ timestamp:ahora - 73 * 3600000 }, ahora), false);
   assert.match(ui, /subli_borrador_v130_/);
   assert.match(ui, /beforeunload/);
-  assert.doesNotMatch(coreSrc + ui, /runTransaction|setDoc|updateDoc|deleteDoc|writeBatch/);
+  assert.doesNotMatch(coreSrc + coreAjustesSrc + ui, /runTransaction|setDoc|updateDoc|deleteDoc|writeBatch/);
 });
 
 test('auditoría, cierre, órdenes y errores usan colecciones separadas y serverTimestamp', () => {
@@ -176,7 +179,7 @@ test('las dependencias quedan fijadas y se cachean después de su primera carga'
 });
 
 test('la PWA carga todos los módulos v1.3.0 y conserva el corte público coordinado', () => {
-  for (const archivo of ['profesional-core-v130.js','profesional-ui-v130.js','profesional-operaciones-v130.js','profesional-compat-v130.js','asistente-ajustes-v130.js','vendor-cache-v130.js','build-info.json']) {
+  for (const archivo of ['profesional-core-v130.js','profesional-core-ajustes-v130.js','profesional-ui-v130.js','profesional-operaciones-v130.js','profesional-compat-v130.js','asistente-ajustes-v130.js','vendor-cache-v130.js','build-info.json']) {
     assert.match(visual + sw, new RegExp(archivo.replaceAll('.', '\\.')));
     assert.ok(fs.existsSync(path.join(raiz, archivo)));
   }
@@ -196,13 +199,13 @@ test('el respaldo v4 firma SHA-256, valida tipos y rechaza esquemas posteriores'
 });
 
 test('la profesionalización respeta las dos funciones expresamente descartadas', () => {
-  const nuevos = [coreSrc, ui, ops, assistant, compat, vendor].join('\n').toLowerCase();
+  const nuevos = [coreSrc, coreAjustesSrc, ui, ops, assistant, compat, vendor].join('\n').toLowerCase();
   assert.doesNotMatch(nuevos, /createuserwithemailandpassword|firebasecreateuser|empleado.*firebase auth|auth individual por empleado/);
   assert.doesNotMatch(nuevos, /favoritos|producto favorito|repetir última venta|repetir ultima venta/);
 });
 
 test('los módulos nuevos tienen sintaxis válida como scripts clásicos', () => {
-  for (const archivo of ['profesional-core-v130.js','profesional-ui-v130.js','profesional-operaciones-v130.js','profesional-compat-v130.js','asistente-ajustes-v130.js','vendor-cache-v130.js']) {
+  for (const archivo of ['profesional-core-v130.js','profesional-core-ajustes-v130.js','profesional-ui-v130.js','profesional-operaciones-v130.js','profesional-compat-v130.js','asistente-ajustes-v130.js','vendor-cache-v130.js']) {
     assert.doesNotThrow(() => new vm.Script(leer(archivo), { filename:archivo }));
   }
 });
