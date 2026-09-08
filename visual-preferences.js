@@ -72,11 +72,13 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
                             cargarScript('subli-mejoras-ui-v127', './mejoras-v127.js', () => {
                                 cargarScript('subli-mejoras-ui-v128', './mejoras-v128.js', () => {
                                     cargarScript('subli-profesional-core-v130', './profesional-core-v130.js', () => {
-                                        cargarScript('subli-vendor-v130', './vendor-cache-v130.js', () => {
-                                            cargarScript('subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', () => {
-                                                cargarScript('subli-profesional-ui-v130', './profesional-ui-v130.js', () => {
-                                                    cargarScript('subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', () => {
-                                                        cargarScript('subli-profesional-compat-v130', './profesional-compat-v130.js');
+                                        cargarScript('subli-profesional-core-ajustes-v130', './profesional-core-ajustes-v130.js', () => {
+                                            cargarScript('subli-vendor-v130', './vendor-cache-v130.js', () => {
+                                                cargarScript('subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', () => {
+                                                    cargarScript('subli-profesional-ui-v130', './profesional-ui-v130.js', () => {
+                                                        cargarScript('subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', () => {
+                                                            cargarScript('subli-profesional-compat-v130', './profesional-compat-v130.js');
+                                                        });
                                                     });
                                                 });
                                             });
