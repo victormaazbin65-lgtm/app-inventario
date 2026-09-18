@@ -51,6 +51,6 @@ test('las capas profesionales solo actualizan trabajo pesado de la pestaña visi
 });
 
 test('la PWA obliga a descargar este hotfix sin borrar datos del negocio', () => {
-  assert.match(sw, /sublicosturas-v1\.2\.5-hotfix-20260918-2/);
+  assert.match(sw, /sublicosturas-v1\.2\.6-estable-20260918-1/);
   assert.match(sw, /names\.filter\(name => name\.startsWith\('sublicosturas-v'\)/);
 });

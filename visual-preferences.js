@@ -1,6 +1,7 @@
 (function aplicarModeloVisualAntesDelRender() {
     'use strict';
 
+    const entornoGlobal = typeof window !== 'undefined' ? window : globalThis;
     const TEMA_KEY = 'subli_tema_visual_v1';
     const TEMAS = new Set(['sistema', 'noche', 'claro', 'grafito', 'contraste']);
 
@@ -53,8 +54,49 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
         document.head.appendChild(script);
     }
 
-    // Mejoras incrementales: se cargan separadas del archivo principal para no
-    // duplicar ni reescribir la lógica contable ya probada.
+    // Mejoras incrementales: las capas base se preparan al cargar la página.
+    // La capa profesional v1.3.0 se difiere hasta que el usuario entra al sistema,
+    // evitando concentrar parseo, DOM y cálculos durante la sincronización inicial.
+    let mejorasBaseListas = false;
+    let profesionalSolicitado = false;
+    let profesionalCargando = false;
+
+    function appPrincipalVisible() {
+        const app = document.getElementById('main-app');
+        return Boolean(app && app.style.display !== 'none');
+    }
+
+    function programarCargaLigera(funcion) {
+        if(typeof entornoGlobal.requestIdleCallback === 'function') {
+            entornoGlobal.requestIdleCallback(funcion, { timeout: 1200 });
+        } else {
+            setTimeout(funcion, 250);
+        }
+    }
+
+    function cargarProfesionalV130() {
+        profesionalSolicitado = true;
+        if(!mejorasBaseListas || profesionalCargando || document.getElementById('subli-profesional-core-v130')) return;
+        profesionalCargando = true;
+        programarCargaLigera(() => {
+            cargarScript('subli-profesional-core-v130', './profesional-core-v130.js', () => {
+                cargarScript('subli-profesional-core-ajustes-v130', './profesional-core-ajustes-v130.js', () => {
+                    cargarScript('subli-vendor-v130', './vendor-cache-v130.js', () => {
+                        cargarScript('subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', () => {
+                            cargarScript('subli-profesional-ui-v130', './profesional-ui-v130.js', () => {
+                                cargarScript('subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', () => {
+                                    cargarScript('subli-profesional-compat-v130', './profesional-compat-v130.js');
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    entornoGlobal.addEventListener?.('subli:app-activa', cargarProfesionalV130);
+
     function cargarMejoras() {
         // Las pruebas de arranque usan un documento mínimo. En navegador real
         // estas funciones existen; si no existen, se conserva únicamente la
@@ -71,19 +113,8 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
                         cargarScript('subli-asistente-ajustes-v128', './asistente-ajustes-v128.js', () => {
                             cargarScript('subli-mejoras-ui-v127', './mejoras-v127.js', () => {
                                 cargarScript('subli-mejoras-ui-v128', './mejoras-v128.js', () => {
-                                    cargarScript('subli-profesional-core-v130', './profesional-core-v130.js', () => {
-                                        cargarScript('subli-profesional-core-ajustes-v130', './profesional-core-ajustes-v130.js', () => {
-                                            cargarScript('subli-vendor-v130', './vendor-cache-v130.js', () => {
-                                                cargarScript('subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', () => {
-                                                    cargarScript('subli-profesional-ui-v130', './profesional-ui-v130.js', () => {
-                                                        cargarScript('subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', () => {
-                                                            cargarScript('subli-profesional-compat-v130', './profesional-compat-v130.js');
-                                                        });
-                                                    });
-                                                });
-                                            });
-                                        });
-                                    });
+                                    mejorasBaseListas = true;
+                                    if(profesionalSolicitado || appPrincipalVisible()) cargarProfesionalV130();
                                 });
                             });
                         });

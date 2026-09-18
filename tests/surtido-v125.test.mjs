@@ -103,10 +103,10 @@ test('Por Surtir permite alternar productos y distribuidores sin escribir datos'
   assert.doesNotMatch(coreSource.slice(coreSource.indexOf('function crearPlanSurtido'), coreSource.indexOf('function validarCliente')), /setDoc|updateDoc|deleteDoc|runTransaction|Firebase/);
 });
 
-test('la versión 1.2.5 y la regla de facturación permanecen coordinadas', () => {
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.5/);
-  assert.match(html, /const APP_VERSION = "1\.2\.5"/);
+test('la versión 1.2.6 y la regla de facturación permanecen coordinadas', () => {
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.6');
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.6' });
+  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.6/);
+  assert.match(html, /const APP_VERSION = "1\.2\.6"/);
   assert.match(coreSource, /const tasaSAT = pideFactura \? config\.porcentajeSAT \/ 100 : 0/);
 });

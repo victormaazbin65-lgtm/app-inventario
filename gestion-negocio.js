@@ -470,13 +470,18 @@
 
     function renderSelectoresClientes() {
         const activos = clientesActivos();
+        const firma = activos.map(c => `${c.id}|${c.nombreCompleto}|${c.telefono || ''}|${c.nit || ''}`).join('§');
         const datalist = document.getElementById('lista-clientes');
-        if (datalist) datalist.innerHTML = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+        if (datalist && datalist.dataset.firmaClientes !== firma) {
+            datalist.innerHTML = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+            datalist.dataset.firmaClientes = firma;
+        }
         const selectAnticipo = document.getElementById('anticipo-cliente');
-        if (selectAnticipo) {
+        if (selectAnticipo && selectAnticipo.dataset.firmaClientes !== firma) {
             const anterior = selectAnticipo.value;
             selectAnticipo.innerHTML = '<option value="">Selecciona un cliente</option>' + activos.map(c => `<option value="${escaparHTML(c.id)}">${escaparHTML(c.nombreCompleto)}</option>`).join('');
             if (activos.some(c => String(c.id) === String(anterior))) selectAnticipo.value = anterior;
+            selectAnticipo.dataset.firmaClientes = firma;
         }
     }
 
@@ -533,8 +538,8 @@
         }
     }
 
-    function renderGestionClientes() {
-        renderSelectoresClientes();
+    function renderGestionClientes(actualizarSelectores = true) {
+        if (actualizarSelectores) renderSelectoresClientes();
         const cont = document.getElementById('lista-clientes-gestion');
         if (!cont) return;
         const consulta = normalizarTexto(document.getElementById('buscar-cliente')?.value || '');
@@ -550,10 +555,26 @@
         }).join('');
     }
 
+    function pestañaNegocioActiva(nombre) {
+        const tab = document.getElementById('tab-' + nombre);
+        const seccion = document.getElementById('sec-' + nombre);
+        return Boolean(tab?.classList.contains('active') || seccion?.style.display === 'block');
+    }
+
+    function clientesGestionVisibles() {
+        if (!pestañaNegocioActiva('ajustes')) return false;
+        const seccion = document.getElementById('ajuste-clientes');
+        return !seccion || Boolean(seccion.open);
+    }
+
     function renderGestionNegocio() {
-        renderGestionClientes();
+        // Los selectores de clientes sí deben mantenerse actualizados para ventas y anticipos.
+        // La lista completa de clientes y las listas financieras pesadas solo se construyen
+        // cuando el usuario realmente está viendo esas pantallas.
+        renderSelectoresClientes();
+        if (clientesGestionVisibles()) renderGestionClientes(false);
         if (typeof global.renderFinanzasNegocio === 'function') global.renderFinanzasNegocio();
-        actualizarCamposCobroVenta();
+        if (pestañaNegocioActiva('ventas') || pestañaNegocioActiva('caja')) actualizarCamposCobroVenta();
     }
 
     function unidadProducto(producto) {

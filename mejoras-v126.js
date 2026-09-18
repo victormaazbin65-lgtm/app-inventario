@@ -13,9 +13,15 @@
         return Boolean(document.getElementById('tab-' + nombre)?.classList.contains('active'));
     }
 
+    function appPrincipalVisibleV126() {
+        const app = document.getElementById('main-app');
+        return Boolean(app && app.style.display !== 'none');
+    }
+
     function programarActualizacionV126() {
         clearTimeout(timerActualizacionV126);
         timerActualizacionV126 = setTimeout(() => {
+            if(!appPrincipalVisibleV126()) return;
             if(pestañaActivaV126('inicio')) {
                 renderResumenRango();
                 renderAlertasPrestamosCentro();
@@ -291,7 +297,7 @@
             document.getElementById(id).addEventListener('change', () => { actualizarControlesResumen(); renderResumenRango(); });
         });
         actualizarControlesResumen();
-        renderResumenRango();
+        if(appPrincipalVisibleV126() && pestañaActivaV126('inicio')) renderResumenRango();
     }
 
     function fechaInputLocal(fecha) {
@@ -764,6 +770,7 @@
         observarHistoriales();
         envolverActualizacionUI();
         instalarRefrescoPestanas();
+        global.addEventListener('subli:app-activa', programarActualizacionV126);
         programarActualizacionV126();
     }
 
