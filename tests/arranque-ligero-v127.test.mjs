@@ -49,6 +49,13 @@ test('el respaldo grande local no se parsea antes del acceso', () => {
   assert.match(html, /if\(!datosNegocioCargadosDeLaNube\) cargarRespaldoLocalPostAcceso\(\)/);
 });
 
+test('lectura y guardado local ceden el hilo entre bloques grandes', () => {
+  assert.match(html, /async function cargarDatosLocales\(\)/);
+  assert.match(html, /\(indice \+ 1\) % 3 === 0/);
+  assert.match(html, /let secuenciaGuardadoLocal = 0/);
+  assert.match(html, /requestIdleCallback\(siguiente/);
+});
+
 test('las mejoras se solicitan por evento después del login y se escalonan', () => {
   assert.match(visual, /addEventListener\?\.\('subli:app-activa', cargarMejoras\)/);
   assert.match(visual, /programarCargaLigera/);
