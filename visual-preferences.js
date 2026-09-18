@@ -1,6 +1,7 @@
 (function aplicarModeloVisualAntesDelRender() {
     'use strict';
 
+    const entornoGlobal = typeof window !== 'undefined' ? window : globalThis;
     const TEMA_KEY = 'subli_tema_visual_v1';
     const TEMAS = new Set(['sistema', 'noche', 'claro', 'grafito', 'contraste']);
 
@@ -66,8 +67,8 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
     }
 
     function programarCargaLigera(funcion) {
-        if(typeof window.requestIdleCallback === 'function') {
-            window.requestIdleCallback(funcion, { timeout: 1200 });
+        if(typeof entornoGlobal.requestIdleCallback === 'function') {
+            entornoGlobal.requestIdleCallback(funcion, { timeout: 1200 });
         } else {
             setTimeout(funcion, 250);
         }
@@ -94,7 +95,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
         });
     }
 
-    window.addEventListener('subli:app-activa', cargarProfesionalV130);
+    entornoGlobal.addEventListener?.('subli:app-activa', cargarProfesionalV130);
 
     function cargarMejoras() {
         // Las pruebas de arranque usan un documento mínimo. En navegador real
