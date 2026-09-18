@@ -6,7 +6,6 @@
     if(!core || !negocio) return;
 
     const ERROR_KEY = 'subli_errores_locales_v130';
-    const BUILD_INTERNO = '1.3.1';
     let firmaOrden = '';
     let serverTimestampPromise = null;
 
@@ -70,7 +69,7 @@
                 tipo:String(tipo||'evento').slice(0,80), timestamp,
                 servidorEn:servidorEn || null,
                 usuarioId:u?.id || null, usuarioNombre:u?.nombre || 'Usuario', usuarioRol:u?.rol || 'desconocido',
-                detalles:JSON.parse(JSON.stringify(detalles||{})), build:BUILD_INTERNO
+                detalles:JSON.parse(JSON.stringify(detalles||{})), build:'1.3.0'
             };
             await global.setDoc(global.doc(global.db,'auditoria_sistema',idSeguro('aud')),registro);
             return true;
@@ -116,7 +115,7 @@
         const errores=leerErrores(); if(!errores.length) return alert('No hay errores locales para guardar.');
         try{
             const servidorEn=await valorServerTimestamp();
-            await global.setDoc(global.doc(global.db,'errores_sistema',idSeguro('diag')),{timestamp:Date.now(),servidorEn:servidorEn||null,usuario:usuario()?.nombre||'Dueño',build:BUILD_INTERNO,errores});
+            await global.setDoc(global.doc(global.db,'errores_sistema',idSeguro('diag')),{timestamp:Date.now(),servidorEn:servidorEn||null,usuario:usuario()?.nombre||'Dueño',build:'1.3.0',errores});
             alert('✅ Diagnóstico guardado. No modifica datos del negocio.');
             registrarAuditoria('diagnostico_guardado',{errores:errores.length});
         }catch(error){alert('No se pudo guardar el diagnóstico. '+error.message);}
@@ -135,12 +134,7 @@
         if(!navigator.onLine||!global.db){salida.innerHTML='<small>Sin conexión.</small>';return;}
         salida.innerHTML='<small>Cargando…</small>';
         try{
-            const coleccion=global.collection(global.db,'auditoria_sistema');
-            const referencia=(typeof global.query==='function'&&typeof global.orderBy==='function'&&typeof global.limit==='function')
-                ? global.query(coleccion,global.orderBy('timestamp','desc'),global.limit(50))
-                : coleccion;
-            const snap=await global.getDocs(referencia); const filas=[]; snap.forEach(x=>filas.push({id:x.id,...x.data()}));
-            if(referencia===coleccion) filas.sort((a,b)=>core.numero(b.timestamp)-core.numero(a.timestamp));
+            const snap=await global.getDocs(global.collection(global.db,'auditoria_sistema')); const filas=[]; snap.forEach(x=>filas.push({id:x.id,...x.data()})); filas.sort((a,b)=>core.numero(b.timestamp)-core.numero(a.timestamp));
             salida.innerHTML=filas.length?filas.slice(0,50).map(x=>`<div class="v130-log-row"><strong>${escapar(x.tipo)}</strong> · ${escapar(x.usuarioNombre||'Usuario')}<small>${escapar(x.timestamp?new Date(x.timestamp).toLocaleString('es-GT'):'Sin fecha')}</small></div>`).join(''):'<small>No hay actividad registrada por esta capa todavía.</small>';
         }catch(error){salida.innerHTML=`<small>No se pudo cargar: ${escapar(error.message)}</small>`;}
     }
@@ -184,7 +178,7 @@
 
     function renderCierre(){const d=document.getElementById('v130-cierre-diario'),salida=document.getElementById('v130-cierre-resultado');if(!d||!salida)return;d.style.display=esDueno()?'':'none';if(!esDueno())return;const c=contextoDatos();const ef=document.getElementById('v130-cierre-efectivo'),ba=document.getElementById('v130-cierre-banco');if(!ef.value)ef.placeholder=core.numero(c.saldosDinero.efectivo).toFixed(2);if(!ba.value)ba.placeholder=core.numero(c.saldosDinero.banco).toFixed(2);const conteo={efectivo:ef.value===''?c.saldosDinero.efectivo:ef.value,banco:ba.value===''?c.saldosDinero.banco:ba.value};const r=core.calcularCierre(c.saldosDinero,conteo);salida.innerHTML=`<div class="v130-op-grid"><div class="v130-diff ${negocio.aCentavos(r.diferenciaEfectivo)===0?'ok':'bad'}"><small>Efectivo esperado ${dinero(r.esperadoEfectivo)}</small><br><strong>Diferencia ${dinero(r.diferenciaEfectivo)}</strong></div><div class="v130-diff ${negocio.aCentavos(r.diferenciaBanco)===0?'ok':'bad'}"><small>Banco esperado ${dinero(r.esperadoBanco)}</small><br><strong>Diferencia ${dinero(r.diferenciaBanco)}</strong></div></div>`;return r;}
 
-    async function guardarCierre(){if(!esDueno())return alert('Solo el Dueño puede registrar el cierre.');if(!navigator.onLine||!global.db)return alert('Necesitas conexión para registrar el cierre.');const ef=document.getElementById('v130-cierre-efectivo'),ba=document.getElementById('v130-cierre-banco');if(!ef?.value||!ba?.value)return alert('Escribe el efectivo contado y el saldo bancario comprobado.');let e,b;try{e=negocio.normalizarMontoMoneda(ef.value,{permitirCero:true});b=negocio.normalizarMontoMoneda(ba.value,{permitirCero:true});}catch(error){return alert(error.message);}const c=contextoDatos();const r=core.calcularCierre(c.saldosDinero,{efectivo:e,banco:b});if(!confirm(`Registrar cierre con diferencia total de ${dinero(r.diferenciaTotal)}? Esto NO modifica los saldos del sistema.`))return;try{const desde=core.inicioDia(Date.now()),hasta=desde+core.MS_DIA-1;const resumen=global.SubliMejorasCore?.resumenVentasRango?global.SubliMejorasCore.resumenVentasRango(c.ventas,desde,hasta):null;const servidorEn=await valorServerTimestamp();const id=`${new Date().toISOString().slice(0,10)}_${Date.now()}`;await global.setDoc(global.doc(global.db,'cierres_diarios',id),{id,timestamp:Date.now(),servidorEn:servidorEn||null,usuarioId:usuario()?.id||null,usuarioNombre:usuario()?.nombre||'Dueño',...r,resumenDia:resumen,cobrosPendientes:core.agendaCobros(c.ventas,c.prestamos).length,build:BUILD_INTERNO});await registrarAuditoria('cierre_diario',{id,diferenciaTotal:r.diferenciaTotal,cuadra:r.cuadra});alert(r.cuadra?'✅ Cierre registrado y cuadrado.':'✅ Cierre registrado con diferencia para revisión.');}catch(error){alert('No se registró el cierre. '+error.message);}}
+    async function guardarCierre(){if(!esDueno())return alert('Solo el Dueño puede registrar el cierre.');if(!navigator.onLine||!global.db)return alert('Necesitas conexión para registrar el cierre.');const ef=document.getElementById('v130-cierre-efectivo'),ba=document.getElementById('v130-cierre-banco');if(!ef?.value||!ba?.value)return alert('Escribe el efectivo contado y el saldo bancario comprobado.');let e,b;try{e=negocio.normalizarMontoMoneda(ef.value,{permitirCero:true});b=negocio.normalizarMontoMoneda(ba.value,{permitirCero:true});}catch(error){return alert(error.message);}const c=contextoDatos();const r=core.calcularCierre(c.saldosDinero,{efectivo:e,banco:b});if(!confirm(`Registrar cierre con diferencia total de ${dinero(r.diferenciaTotal)}? Esto NO modifica los saldos del sistema.`))return;try{const desde=core.inicioDia(Date.now()),hasta=desde+core.MS_DIA-1;const resumen=global.SubliMejorasCore?.resumenVentasRango?global.SubliMejorasCore.resumenVentasRango(c.ventas,desde,hasta):null;const servidorEn=await valorServerTimestamp();const id=`${new Date().toISOString().slice(0,10)}_${Date.now()}`;await global.setDoc(global.doc(global.db,'cierres_diarios',id),{id,timestamp:Date.now(),servidorEn:servidorEn||null,usuarioId:usuario()?.id||null,usuarioNombre:usuario()?.nombre||'Dueño',...r,resumenDia:resumen,cobrosPendientes:core.agendaCobros(c.ventas,c.prestamos).length,build:'1.3.0'});await registrarAuditoria('cierre_diario',{id,diferenciaTotal:r.diferenciaTotal,cuadra:r.cuadra});alert(r.cuadra?'✅ Cierre registrado y cuadrado.':'✅ Cierre registrado con diferencia para revisión.');}catch(error){alert('No se registró el cierre. '+error.message);}}
 
     function asegurarEtiquetas(){const sec=document.getElementById('sec-inventario');if(!sec||document.getElementById('v130-etiquetas'))return;const d=document.createElement('details');d.id='v130-etiquetas';d.className='fold-card';d.innerHTML=`<summary>🏷️ Etiqueta con código de barras</summary><div class="fold-card-content"><p class="v130-op-note">Usa el código permanente de inventario. Puedes imprimir la etiqueta y después escribir o escanear ese código para identificar el producto.</p><div class="form-group"><label>Producto</label><select id="v130-etiqueta-producto"></select></div><div id="v130-etiqueta-preview"></div><div class="v130-op-actions"><button onclick="imprimirEtiquetaV130()">Imprimir etiqueta</button></div></div>`;sec.appendChild(d);document.getElementById('v130-etiqueta-producto').addEventListener('change',renderEtiqueta);actualizarEtiquetas();}
 
@@ -204,18 +198,7 @@
 
     function refrescar(){asegurarOrdenCompra();actualizarOrdenCompra();asegurarCierreDiario();renderCierre();asegurarEtiquetas();actualizarEtiquetas();asegurarPanelAuditoria();}
 
-    function refrescarSiVisible(){
-        if(document.visibilityState==='hidden') return;
-        refrescar();
-    }
-
-    function init(){
-        inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();asegurarOrdenCompra();asegurarCierreDiario();asegurarEtiquetas();asegurarPanelAuditoria();
-        setInterval(refrescarSiVisible,3000);
-        document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='hidden')refrescar();});
-        global.addEventListener('pageshow',refrescar);
-        refrescar();
-    }
+    function init(){inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();asegurarOrdenCompra();asegurarCierreDiario();asegurarEtiquetas();asegurarPanelAuditoria();setInterval(refrescar,3000);refrescar();}
 
     global.registrarAuditoriaV130=registrarAuditoria;global.cargarAuditoriaV130=cargarAuditoria;global.subirDiagnosticoV130=subirDiagnosticoErrores;global.limpiarErroresV130=limpiarErrores;
     global.renderOrdenV130=renderOrdenCompra;global.imprimirOrdenV130=imprimirOrden;global.exportarOrdenV130=exportarOrden;global.guardarOrdenV130=guardarOrden;global.calcularCierreV130=renderCierre;global.guardarCierreV130=guardarCierre;global.imprimirEtiquetaV130=imprimirEtiqueta;
