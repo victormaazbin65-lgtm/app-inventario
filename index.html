@@ -3128,17 +3128,26 @@
             }
         }
 
+        const MAX_HISTORIAL_LOCAL = 80;
+        const MAX_TAMANO_CACHE_HISTORIAL = 900000;
+
+        function historialLocalReciente(valor, maximo = MAX_HISTORIAL_LOCAL) {
+            if(!Array.isArray(valor)) return [];
+            return valor.slice().sort((a,b) => numeroFinito(b?.timestamp || b?.id) - numeroFinito(a?.timestamp || a?.id)).slice(0, maximo);
+        }
+
         function cargarDatosLocales() {
+            const clavesHistorial = new Set([KEY_VENTAS, KEY_INGRESOS, KEY_COTIZ_HIST, KEY_RETIROS]);
             const asignaciones = [
                 [KEY_INV, valor => inventario = valor],
                 [KEY_VENTAS, valor => {
-                    ventas = Array.isArray(valor) ? valor : [];
+                    ventas = historialLocalReciente(valor);
                     ventasCreditoPendiente = ventas.filter(v => !v.anulada && SubliNegocioCore.aCentavos(v.saldoPendiente) > 0);
                 }],
                 [KEY_FONDOS, valor => fondos = valor],
-                [KEY_INGRESOS, valor => historialIngresos = valor],
-                [KEY_COTIZ_HIST, valor => historialCotizaciones = valor],
-                [KEY_RETIROS, valor => historialRetiros = valor],
+                [KEY_INGRESOS, valor => historialIngresos = historialLocalReciente(valor)],
+                [KEY_COTIZ_HIST, valor => historialCotizaciones = historialLocalReciente(valor)],
+                [KEY_RETIROS, valor => historialRetiros = historialLocalReciente(valor)],
                 [KEY_CODIGOS_INV, valor => estadoCodigosInventario = normalizarEstadoCodigosInventario(valor)],
                 [KEY_NEGOCIO, valor => configuracionNegocio = SubliNegocioCore.normalizarConfiguracionNegocio(valor)],
                 [KEY_SALDOS_DINERO, valor => saldosDinero = SubliNegocioCore.normalizarSaldosDinero(valor, SubliNegocioCore.totalFondos(fondos))],
@@ -3153,7 +3162,13 @@
             asignaciones.forEach(([clave, asignar]) => {
                 try {
                     const contenido = localStorage.getItem(clave);
-                    if (contenido) asignar(JSON.parse(contenido));
+                    if (!contenido) return;
+                    if(clavesHistorial.has(clave) && contenido.length > MAX_TAMANO_CACHE_HISTORIAL) {
+                        localStorage.removeItem(clave);
+                        console.warn(`Se descartó una copia local demasiado grande de ${clave}; Firebase conserva los datos sincronizados.`);
+                        return;
+                    }
+                    asignar(JSON.parse(contenido));
                 } catch (error) {
                     console.warn(`No se pudo leer el respaldo local ${clave}.`, error);
                 }
@@ -3228,11 +3243,11 @@
 
         function guardarDatos() {
             try { localStorage.setItem(KEY_INV, JSON.stringify(inventario)); } catch (e) { console.warn("Límite de cuota en Inventario", e); }
-            try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas)); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
+            try { localStorage.setItem(KEY_VENTAS, JSON.stringify(historialLocalReciente(ventas))); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
             try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (e) { console.warn("Límite de cuota en Fondos", e); }
-            try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos)); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
-            try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones)); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
-            try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros)); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
+            try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialLocalReciente(historialIngresos))); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
+            try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialLocalReciente(historialCotizaciones))); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
+            try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialLocalReciente(historialRetiros))); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
             try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (e) { console.warn("Límite de cuota en Códigos de inventario", e); }
             try { localStorage.setItem(KEY_NEGOCIO, JSON.stringify(configuracionNegocio)); } catch (e) { console.warn("Límite de cuota en Configuración", e); }
             try { localStorage.setItem(KEY_SALDOS_DINERO, JSON.stringify(saldosDinero)); } catch (e) { console.warn("Límite de cuota en Saldos", e); }
@@ -3414,8 +3429,9 @@
             if(pestaña === 'inicio') actualizarUI(); 
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
             if(pestaña === 'inventario') renderInventario();
+            if(pestaña === 'ventas') actualizarUI();
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
-            if(pestaña === 'caja') renderGestionNegocio();
+            if(pestaña === 'caja') { renderGestionNegocio(); renderHistorialRetiros(); }
             if(pestaña === 'alertas') renderAlertas();
             if(pestaña === 'buscador' && window.renderBuscadorDisenos) window.renderBuscadorDisenos();
             if(pestaña === 'ajustes') { prepararSeccionesConfiguracion(); renderUsuarios(); sincronizarControlesPreferencias(); }
@@ -6431,11 +6447,17 @@
 
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
+        let firmaGraficoVentas = '';
         function actualizarGraficoVentas() {
-            if(typeof Chart === 'undefined') return; 
-            if(!document.getElementById('graficoVentas')) return; let conteo = {};
+            if(typeof Chart === 'undefined' || document.visibilityState === 'hidden') return;
+            const canvasGrafico = document.getElementById('graficoVentas');
+            if(!canvasGrafico) return; let conteo = {};
             ventas.forEach(v => { if(v.anulada) return; if(v.detalleItems) { v.detalleItems.forEach(item => { if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty; }); } });
-            let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5); let ctx = document.getElementById('graficoVentas').getContext('2d');
+            let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5);
+            const firmaNueva = JSON.stringify(ordenados.map(n => [n, numeroFinito(conteo[n])]));
+            if(chartVentas && firmaNueva === firmaGraficoVentas) return;
+            firmaGraficoVentas = firmaNueva;
+            let ctx = canvasGrafico.getContext('2d');
             if(chartVentas) chartVentas.destroy();
             chartVentas = new Chart(ctx, { type: 'bar', data: { labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n), datasets: [{ label: 'Cantidad vendida', data: ordenados.map(n => conteo[n]), backgroundColor: '#3b82f6', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
         }
@@ -6570,6 +6592,10 @@
         }
 
         // --- SOLUCIÓN 2 Y 3: EMBOUDO DE RENDERIZADO Y OPTIMIZACIÓN DE CHART.JS ---
+        function pestañaActiva(nombre) {
+            return Boolean(document.getElementById('tab-' + nombre)?.classList.contains('active'));
+        }
+
         function renderizarTodo() {
 
             let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
@@ -6580,19 +6606,20 @@
             document.getElementById('dash-fondo-impuestos').innerText = simboloMoneda + ' ' + numeroFinito(fondos.fondoImpuestos).toFixed(2);
             document.getElementById('dash-ganancia').innerText = simboloMoneda + ' ' + numeroFinito(fondos.gananciaLibre).toFixed(2);
 
-            actualizarListaCategorias(); renderInventario(); 
+            actualizarListaCategorias(); if(pestañaActiva('inventario')) renderInventario(); 
             
             // OPTIMIZACIÓN: Solo dibuja el gráfico si el panel de finanzas está visible
-            if (document.getElementById('tab-inicio').classList.contains('active')) {
+            if (pestañaActiva('inicio')) {
                 actualizarGraficoVentas();
             }
             
-            renderResumenMensual();
-            renderHistorialRetiros();
-            renderPanelInteligente();
+            if(pestañaActiva('inicio')) renderResumenMensual();
+            if(pestañaActiva('caja')) renderHistorialRetiros();
+            if(pestañaActiva('inicio')) renderPanelInteligente();
             aplicarConfiguracionNegocio();
 
             // RENDER HISTORIAL VENTAS
+            if(pestañaActiva('ventas')) {
             const contVentas = document.getElementById('lista-ventas');
             
             popularSelectMeses(ventas, 'filtro-mes-ventas');
@@ -6631,8 +6658,10 @@
                 contVentas.innerHTML = htmlVentas;
             }
 
-            renderHistorialCotizaciones(); renderHistorialIngresos();
-            if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
+            }
+            if(pestañaActiva('cotizacion')) renderHistorialCotizaciones();
+            if(pestañaActiva('ingreso')) renderHistorialIngresos();
+            if (pestañaActiva('alertas')) renderAlertas();
         }
 
         function actualizarUI() {
