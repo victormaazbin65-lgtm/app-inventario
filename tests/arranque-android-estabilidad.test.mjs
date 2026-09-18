@@ -29,7 +29,8 @@ test('el catálogo de surtido oculto no construye cientos de filas durante el ar
   const inicio = v126.indexOf('function renderCatalogoSurtido');
   const fin = v126.indexOf('function inyectarCodigoIngreso', inicio);
   const bloque = v126.slice(inicio, fin);
-  assert.match(bloque, /!pestañaActivaV126\('alertas'\)/);\n  assert.match(bloque, /v126-catalogo-surtido.*open/);
+  assert.match(bloque, /!pestañaActivaV126\('alertas'\)/);
+  assert.match(bloque, /v126-catalogo-surtido.*open/);
   assert.match(v126, /pestañaActivaV126\\('alertas'\\).*v126-catalogo-surtido.*open/);
 });
 
