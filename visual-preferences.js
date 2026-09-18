@@ -89,7 +89,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
                     }), 180);
                 }), 180);
             });
-        }, 700);
+        }, 1400);
     }
 
     function cargarMejoras() {
@@ -118,7 +118,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
                     }), 160);
                 }), 160);
             });
-        }, 350);
+        }, 900);
     }
 
     entornoGlobal.addEventListener?.('subli:app-activa', cargarMejoras);
