@@ -15,7 +15,7 @@ const sw = leer('sw.js');
 test('v1.2.7 no ejecuta los paneles pesados sin respetar el debounce y la pestaña activa', () => {
   assert.match(v126, /function programarActualizacionV126\(\)/);
   assert.match(v126, /if\(pestañaActivaV126\('inicio'\)\)/);
-  assert.match(v126, /pestañaActivaV126\\('alertas'\\).*v126-catalogo-surtido.*open/);
+  assert.match(v126, /pestañaActivaV126\('alertas'\).*v126-catalogo-surtido.*open/);
 
   const inicio = v126.indexOf('function envolverActualizacionUI');
   const fin = v126.indexOf('function instalarRefrescoPestanas', inicio);
@@ -31,7 +31,7 @@ test('el catálogo de surtido oculto no construye cientos de filas durante el ar
   const bloque = v126.slice(inicio, fin);
   assert.match(bloque, /!pestañaActivaV126\('alertas'\)/);
   assert.match(bloque, /v126-catalogo-surtido.*open/);
-  assert.match(v126, /pestañaActivaV126\\('alertas'\\).*v126-catalogo-surtido.*open/);
+  assert.match(v126, /pestañaActivaV126\('alertas'\).*v126-catalogo-surtido.*open/);
 });
 
 test('el gráfico financiero no se destruye y recrea si sus datos no cambiaron', () => {
