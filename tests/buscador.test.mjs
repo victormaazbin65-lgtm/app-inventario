@@ -60,7 +60,7 @@ test('la pestaña está en la navegación principal y Studio externo fue retirad
   const html = leer('index.html');
   assert.match(html, /id="tab-buscador"[^>]+cambiarPestaña\('buscador'\)/);
   assert.match(html, /id="sec-buscador"/);
-  assert.match(html, /script type="module" src="\.\/buscador\.js"/);
+  assert.match(html, /import\('\.\/buscador\.js'\)/);
   assert.doesNotMatch(html, /href="\.\/studio\/"|Abrir Studio/);
   assert.equal(fs.existsSync(path.join(raiz, 'studio', 'index.html')), false);
 });

@@ -13,8 +13,9 @@ test('el arranque limita historiales locales para evitar bloquear Android', () =
   assert.match(html, /ventas = historialLocalReciente\(valor\)/);
   assert.match(html, /KEY_INGRESOS, valor => historialIngresos = historialLocalReciente\(valor\)/);
   assert.match(html, /localStorage\.removeItem\(clave\)/);
-  assert.match(html, /JSON\.stringify\(historialLocalReciente\(ventas\)\)/);
-  assert.match(html, /JSON\.stringify\(historialLocalReciente\(historialIngresos\)\)/);
+  assert.match(html, /KEY_VENTAS, \(\) => historialLocalReciente\(ventas\)/);
+  assert.match(html, /KEY_INGRESOS, \(\) => historialLocalReciente\(historialIngresos\)/);
+  assert.match(html, /requestIdleCallback\(siguiente/);
 });
 
 test('el render global no reconstruye pestañas pesadas que están ocultas', () => {

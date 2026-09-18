@@ -107,8 +107,9 @@ test('la PWA carga y cachea los módulos del asistente sin alterar la versión c
   assert.match(bootstrap, /asistente-core\.js/);
   assert.match(bootstrap, /asistente-ajustes-v127\.js/);
   assert.match(bootstrap, /mejoras-v127\.js/);
-  assert.match(sw, /'\.\/asistente-core\.js'/);
-  assert.match(sw, /'\.\/asistente-ajustes-v127\.js'/);
-  assert.match(sw, /'\.\/mejoras-v127\.js'/);
-  assert.match(sw, /sublicosturas-v1\.2\.6/);
+  assert.doesNotMatch(sw, /'\.\/asistente-core\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v127\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v127\.js'/);
+  assert.match(sw, /return cacheada \|\| actualizacion/);
+  assert.match(sw, /sublicosturas-v1\.2\.7/);
 });

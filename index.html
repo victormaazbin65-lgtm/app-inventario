@@ -12,8 +12,6 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script src="./visual-preferences.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             /* TEMA OSCURO APLICADO */
@@ -276,6 +274,16 @@
         .sugerencias-box { border-radius: 13px; background: #101827; }
         .sugerencia-item:hover { background: #1d4ed8; }
         .modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+        /* Android/móvil: evita capas GPU costosas que no cambian la lógica del sistema. */
+        @media (max-width: 700px) {
+            body { background-attachment: scroll; }
+            .tabs, .card, .modal-overlay {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .tab-btn { transition: background-color .12s ease, color .12s ease; }
+        }
         .modal-card { border-radius: 20px; background: #101827; }
         .financial-breakdown { background: rgba(5, 11, 22, .55); border-radius: 13px; }
         .inventory-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 15px; }
@@ -1623,8 +1631,6 @@
             </div>
         </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="./negocio-core.js"></script>
     <script src="./gestion-negocio.js"></script>
     <script src="./finanzas-negocio.js"></script>
@@ -1685,6 +1691,68 @@
             clearTimeout(debounceTimers[idTimer]);
             debounceTimers[idTimer] = setTimeout(funcion, delay);
         }
+
+        const URL_CHART_JS = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';
+        const URL_XLSX = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        let promesaChartJS = null;
+        let promesaXLSX = null;
+        let promesaBuscadorDisenos = null;
+
+        function cargarScriptBajoDemanda(id, url, listo) {
+            if(typeof listo === 'function' && listo()) return Promise.resolve(true);
+            const existente = document.getElementById(id);
+            if(existente) {
+                return new Promise((resolve, reject) => {
+                    if(typeof listo === 'function' && listo()) return resolve(true);
+                    existente.addEventListener('load', () => resolve(true), { once:true });
+                    existente.addEventListener('error', () => reject(new Error('No se pudo cargar ' + url)), { once:true });
+                });
+            }
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.id = id;
+                script.src = url;
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                script.onload = () => resolve(true);
+                script.onerror = () => {
+                    script.remove();
+                    reject(new Error('No se pudo cargar ' + url));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        function asegurarChartJS() {
+            if(typeof window.Chart !== 'undefined') return Promise.resolve(true);
+            if(!promesaChartJS) {
+                promesaChartJS = cargarScriptBajoDemanda('subli-chart-runtime', URL_CHART_JS, () => typeof window.Chart !== 'undefined')
+                    .catch(error => { promesaChartJS = null; throw error; });
+            }
+            return promesaChartJS;
+        }
+
+        function asegurarXLSX() {
+            if(typeof window.XLSX !== 'undefined') return Promise.resolve(true);
+            if(!promesaXLSX) {
+                promesaXLSX = cargarScriptBajoDemanda('subli-xlsx-runtime', URL_XLSX, () => typeof window.XLSX !== 'undefined')
+                    .catch(error => { promesaXLSX = null; throw error; });
+            }
+            return promesaXLSX;
+        }
+
+        function asegurarBuscadorDisenos() {
+            if(window.renderBuscadorDisenos) return Promise.resolve(true);
+            if(!promesaBuscadorDisenos) {
+                promesaBuscadorDisenos = import('./buscador.js')
+                    .then(() => true)
+                    .catch(error => { promesaBuscadorDisenos = null; throw error; });
+            }
+            return promesaBuscadorDisenos;
+        }
+
+        window.asegurarChartJS = asegurarChartJS;
+        window.asegurarXLSX = asegurarXLSX;
         // ===============================================================
 
         function normalizarTexto(texto) {
@@ -2065,6 +2133,8 @@
             const botonRetiro = document.getElementById('btn-retiro-inteligente');
             if(botonRetiro) botonRetiro.style.display = moduloInteligenteActivo('retiros') ? '' : 'none';
             sincronizarControlesPreferencias();
+            const appPrincipal = document.getElementById('main-app');
+            if(!appPrincipal || appPrincipal.style.display === 'none') return;
             renderPanelInteligente();
             renderCarritoVentas();
             renderCarritoCotizacion();
@@ -2134,7 +2204,8 @@
 
         let appActivaNotificada = false;
         function notificarAplicacionActiva() {
-            debouncedEjecucion('render_post_login', () => actualizarUI(), 60);
+            debouncedEjecucion('render_post_login', () => actualizarUI(), 80);
+            activarDatosPostAcceso();
             if(appActivaNotificada) return;
             appActivaNotificada = true;
             try { window.dispatchEvent(new Event('subli:app-activa')); } catch (_) {}
@@ -3146,7 +3217,7 @@
             return valor.slice().sort((a,b) => numeroFinito(b?.timestamp || b?.id) - numeroFinito(a?.timestamp || a?.id)).slice(0, maximo);
         }
 
-        function cargarDatosLocales() {
+        async function cargarDatosLocales() {
             const clavesHistorial = new Set([KEY_VENTAS, KEY_INGRESOS, KEY_COTIZ_HIST, KEY_RETIROS]);
             const asignaciones = [
                 [KEY_INV, valor => inventario = valor],
@@ -3169,20 +3240,23 @@
                 [KEY_PERDIDAS, valor => perdidasInventario = Array.isArray(valor) ? valor : []]
             ];
 
-            asignaciones.forEach(([clave, asignar]) => {
+            for(let indice = 0; indice < asignaciones.length; indice++) {
+                const [clave, asignar] = asignaciones[indice];
                 try {
                     const contenido = localStorage.getItem(clave);
-                    if (!contenido) return;
-                    if(clavesHistorial.has(clave) && contenido.length > MAX_TAMANO_CACHE_HISTORIAL) {
-                        localStorage.removeItem(clave);
-                        console.warn(`Se descartó una copia local demasiado grande de ${clave}; Firebase conserva los datos sincronizados.`);
-                        return;
+                    if (contenido) {
+                        if(clavesHistorial.has(clave) && contenido.length > MAX_TAMANO_CACHE_HISTORIAL) {
+                            localStorage.removeItem(clave);
+                            console.warn(`Se descartó una copia local demasiado grande de ${clave}; Firebase conserva los datos sincronizados.`);
+                        } else {
+                            asignar(JSON.parse(contenido));
+                        }
                     }
-                    asignar(JSON.parse(contenido));
                 } catch (error) {
                     console.warn(`No se pudo leer el respaldo local ${clave}.`, error);
                 }
-            });
+                if((indice + 1) % 3 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
 
         function fusionarPorId(actuales, nuevos) {
@@ -3251,171 +3325,281 @@
             actualizarUI();
         }
 
+        let secuenciaGuardadoLocal = 0;
+
+        function escribirLocalSeguro(clave, obtenerValor, etiqueta) {
+            try {
+                localStorage.setItem(clave, JSON.stringify(obtenerValor()));
+            } catch (error) {
+                console.warn(`No se pudo actualizar respaldo local de ${etiqueta}.`, error);
+            }
+        }
+
         function guardarDatos() {
-            try { localStorage.setItem(KEY_INV, JSON.stringify(inventario)); } catch (e) { console.warn("Límite de cuota en Inventario", e); }
-            try { localStorage.setItem(KEY_VENTAS, JSON.stringify(historialLocalReciente(ventas))); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
-            try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (e) { console.warn("Límite de cuota en Fondos", e); }
-            try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialLocalReciente(historialIngresos))); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
-            try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialLocalReciente(historialCotizaciones))); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
-            try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialLocalReciente(historialRetiros))); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
-            try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (e) { console.warn("Límite de cuota en Códigos de inventario", e); }
-            try { localStorage.setItem(KEY_NEGOCIO, JSON.stringify(configuracionNegocio)); } catch (e) { console.warn("Límite de cuota en Configuración", e); }
-            try { localStorage.setItem(KEY_SALDOS_DINERO, JSON.stringify(saldosDinero)); } catch (e) { console.warn("Límite de cuota en Saldos", e); }
-            try { localStorage.setItem(KEY_CLIENTES, JSON.stringify(clientes)); } catch (e) { console.warn("Límite de cuota en Clientes", e); }
-            try { localStorage.setItem(KEY_ANTICIPOS, JSON.stringify(anticipos)); } catch (e) { console.warn("Límite de cuota en Anticipos", e); }
-            try { localStorage.setItem(KEY_PRESTAMOS, JSON.stringify(prestamos)); } catch (e) { console.warn("Límite de cuota en Préstamos", e); }
-            try { localStorage.setItem(KEY_MOVIMIENTOS_CAJA, JSON.stringify(movimientosCaja.slice(0, 100))); } catch (e) { console.warn("Límite de cuota en Caja", e); }
-            try { localStorage.setItem(KEY_DEVOLUCIONES, JSON.stringify(devoluciones)); } catch (e) { console.warn("Límite de cuota en Devoluciones", e); }
-            try { localStorage.setItem(KEY_PERDIDAS, JSON.stringify(perdidasInventario)); } catch (e) { console.warn("Límite de cuota en Pérdidas", e); }
+            const secuencia = ++secuenciaGuardadoLocal;
+
+            escribirLocalSeguro(KEY_FONDOS, () => fondos, 'Fondos');
+            escribirLocalSeguro(KEY_CODIGOS_INV, () => estadoCodigosInventario, 'Códigos de inventario');
+            escribirLocalSeguro(KEY_NEGOCIO, () => configuracionNegocio, 'Configuración');
+            escribirLocalSeguro(KEY_SALDOS_DINERO, () => saldosDinero, 'Saldos');
+
+            const tareas = [
+                () => escribirLocalSeguro(KEY_INV, () => inventario, 'Inventario'),
+                () => escribirLocalSeguro(KEY_VENTAS, () => historialLocalReciente(ventas), 'Ventas'),
+                () => escribirLocalSeguro(KEY_INGRESOS, () => historialLocalReciente(historialIngresos), 'Ingresos'),
+                () => escribirLocalSeguro(KEY_COTIZ_HIST, () => historialLocalReciente(historialCotizaciones), 'Cotizaciones'),
+                () => escribirLocalSeguro(KEY_RETIROS, () => historialLocalReciente(historialRetiros), 'Retiros'),
+                () => escribirLocalSeguro(KEY_CLIENTES, () => clientes, 'Clientes'),
+                () => escribirLocalSeguro(KEY_ANTICIPOS, () => anticipos, 'Anticipos'),
+                () => escribirLocalSeguro(KEY_PRESTAMOS, () => prestamos, 'Préstamos'),
+                () => escribirLocalSeguro(KEY_MOVIMIENTOS_CAJA, () => movimientosCaja.slice(0, 100), 'Caja'),
+                () => escribirLocalSeguro(KEY_DEVOLUCIONES, () => devoluciones, 'Devoluciones'),
+                () => escribirLocalSeguro(KEY_PERDIDAS, () => perdidasInventario, 'Pérdidas')
+            ];
+
+            let indice = 0;
+            const siguiente = () => {
+                if(secuencia !== secuenciaGuardadoLocal || indice >= tareas.length) return;
+                tareas[indice++]();
+                if(typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(siguiente, { timeout: 900 });
+                } else {
+                    setTimeout(siguiente, 35);
+                }
+            };
+
+            if(typeof window.requestIdleCallback === 'function') {
+                window.requestIdleCallback(siguiente, { timeout: 900 });
+            } else {
+                setTimeout(siguiente, 35);
+            }
+        }
+
+        let sincronizacionNegocioIniciada = false;
+        let datosLocalesPostAccesoCargados = false;
+        let datosNegocioCargadosDeLaNube = false;
+        let temporizadorFallbackLocal = null;
+
+        function ejecutarEnReposo(tarea, timeout = 1200) {
+            if(typeof window.requestIdleCallback === 'function') {
+                window.requestIdleCallback(() => tarea(), { timeout });
+            } else {
+                setTimeout(tarea, 80);
+            }
+        }
+
+        function programarGuardadoSnapshot() {
+            debouncedEjecucion('guardar_snapshot', () => {
+                ejecutarEnReposo(() => guardarDatos(), 1800);
+            }, 2200);
+        }
+
+        async function cargarRespaldoLocalPostAcceso() {
+            if(datosLocalesPostAccesoCargados) return;
+            datosLocalesPostAccesoCargados = true;
+            await cargarDatosLocales();
+            asegurarServicioCreacion();
+            mostrarLogo();
+            actualizarUI();
+        }
+
+        function programarEtapaSincronizacion(retraso, tarea) {
+            setTimeout(() => ejecutarEnReposo(tarea, 1600), retraso);
+        }
+
+        function escucharColeccionNegocio(nombre, asignar, maximo = 0) {
+            const coleccion = window.collection(window.db, nombre);
+            const referencia = maximo > 0 ? window.query(coleccion, window.orderBy('timestamp', 'desc'), window.limit(maximo)) : coleccion;
+            window.onSnapshot(referencia, snap => {
+                const datos = [];
+                snap.forEach(d => datos.push({ id: d.id, ...d.data() }));
+                asignar(datos);
+                datosNegocioCargadosDeLaNube = true;
+                programarGuardadoSnapshot();
+                actualizarUI();
+            }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
+        }
+
+        function activarSincronizacionNegocio() {
+            if(sincronizacionNegocioIniciada || !window.db) return;
+            sincronizacionNegocioIniciada = true;
+
+            programarEtapaSincronizacion(80, () => {
+                window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
+                    const temp = []; snap.forEach(d => temp.push(d.data()));
+                    if(temp.length > 0 || !snap.metadata.fromCache) {
+                        inventario = temp;
+                        datosCargadosDeLaNube = true;
+                        datosNegocioCargadosDeLaNube = true;
+                        asegurarServicioCreacion();
+                        programarGuardadoSnapshot();
+                        actualizarUI();
+                    }
+                }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error));
+
+                window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    const temp = []; snap.forEach(d => temp.push(d.data()));
+                    if(temp.length > 0 || !snap.metadata.fromCache) {
+                        ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;
+                        datosNegocioCargadosDeLaNube = true;
+                        programarGuardadoSnapshot();
+                        actualizarUI();
+                    }
+                }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error));
+            });
+
+            programarEtapaSincronizacion(420, () => {
+                window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
+                    const pendientes = [];
+                    snap.forEach(d => {
+                        const venta = d.data();
+                        if(!venta.anulada && aCentavos(venta.saldoPendiente) > 0) pendientes.push(venta);
+                    });
+                    ventasCreditoPendiente = pendientes;
+                    creditosPendientesConfirmados = !snap.metadata.fromCache;
+                    actualizarUI();
+                }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error));
+
+                window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
+                    const temp = [];
+                    snap.forEach(d => temp.push({ id: d.id, ...d.data() }));
+                    resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id));
+                    actualizarUI();
+                }, error => console.warn('No se pudo sincronizar el resumen mensual.', error));
+            });
+
+            programarEtapaSincronizacion(760, () => {
+                const escucharHistorial = (nombre, asignar) => {
+                    window.onSnapshot(window.query(window.collection(window.db, nombre), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                        const temp = []; snap.forEach(d => temp.push(d.data()));
+                        if(temp.length > 0 || !snap.metadata.fromCache) {
+                            asignar(temp);
+                            datosNegocioCargadosDeLaNube = true;
+                            programarGuardadoSnapshot();
+                            actualizarUI();
+                        }
+                    }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
+                };
+                escucharHistorial('ingresos', temp => historialIngresos = historialCompletoCargado.ingresos ? fusionarPorId(historialIngresos, temp) : temp);
+                escucharHistorial('cotizaciones', temp => historialCotizaciones = historialCompletoCargado.cotizaciones ? fusionarPorId(historialCotizaciones, temp) : temp);
+                escucharHistorial('retiros', temp => historialRetiros = historialCompletoCargado.retiros ? fusionarPorId(historialRetiros, temp) : temp);
+            });
+
+            programarEtapaSincronizacion(1120, () => {
+                escucharColeccionNegocio('clientes', datos => clientes = datos);
+                escucharColeccionNegocio('anticipos', datos => anticipos = datos);
+                escucharColeccionNegocio('prestamos', datos => prestamos = datos);
+            });
+
+            programarEtapaSincronizacion(1500, () => {
+                escucharColeccionNegocio('movimientos_caja', datos => movimientosCaja = datos, 120);
+                escucharColeccionNegocio('devoluciones', datos => devoluciones = datos, 120);
+                escucharColeccionNegocio('perdidas_inventario', datos => perdidasInventario = datos, 120);
+            });
+
+            programarEtapaSincronizacion(8000, () => cargarVentasAnalisisUltimos30Dias());
+        }
+
+        let observadorChartPrincipal = null;
+
+        function prepararChartBajoDemanda() {
+            const canvas = document.getElementById('graficoVentas');
+            if(!canvas || canvas.dataset.chartLazy === '1') return;
+            canvas.dataset.chartLazy = '1';
+
+            const cargar = () => {
+                observadorChartPrincipal?.disconnect();
+                observadorChartPrincipal = null;
+                asegurarChartJS().then(() => actualizarUI()).catch(error => console.warn('No se pudo cargar el gráfico.', error));
+            };
+
+            if(typeof window.IntersectionObserver === 'function') {
+                observadorChartPrincipal = new IntersectionObserver(entradas => {
+                    if(entradas.some(entrada => entrada.isIntersecting)) cargar();
+                }, { rootMargin: '160px 0px' });
+                observadorChartPrincipal.observe(canvas);
+            } else {
+                setTimeout(cargar, 5000);
+            }
+        }
+
+        function activarDatosPostAcceso() {
+            if(temporizadorFallbackLocal) {
+                clearTimeout(temporizadorFallbackLocal);
+                temporizadorFallbackLocal = null;
+            }
+
+            if(!navigator.onLine || !window.db) {
+                cargarRespaldoLocalPostAcceso();
+            } else if(!datosLocalesPostAccesoCargados) {
+                temporizadorFallbackLocal = setTimeout(() => {
+                    if(!datosNegocioCargadosDeLaNube) cargarRespaldoLocalPostAcceso();
+                }, 2600);
+            }
+
+            activarSincronizacionNegocio();
+            prepararChartBajoDemanda();
         }
 
         async function cargarDatos() {
             if (cargaDatosIniciada) return;
             cargaDatosIniciada = true;
-            document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos... ⏳</p>';
+            const listaInventario = document.getElementById('lista-inventario');
+            if(listaInventario) listaInventario.innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Los datos se cargarán al ingresar al sistema. ⏳</p>';
 
-            // El respaldo local se muestra primero. Firebase continúa siendo la fuente maestra
-            // y reemplazará estos datos cuando llegue una instantánea confirmada del servidor.
-            cargarDatosLocales();
-            asegurarServicioCreacion();
             mostrarLogo();
-            actualizarUI();
             comprobarIngresoInicialLibre();
 
-            if (window.db) {
-                // La migración v10 ya fue retirada. Ejecutarla durante el arranque podía
-                // sobrescribir una configuración moderna o quedar aplicada a medias.
-                // El documento histórico se conserva intacto y solo puede migrarse con
-                // una herramienta administrativa, respaldo verificado y mantenimiento.
+            if (!window.db) return;
 
-                try {
-                    window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
-                        if (docSnap.exists()) {
-                            datosCargadosDeLaNube = true;
-                            if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
-                            const data = docSnap.data();
-                            fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
-                            sincronizarEstadoNegocio(data);
-                            estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
-                            let nubeCustomCats = data.customCats || [];
-                            if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            if (Array.isArray(data.usuarios)) {
-                                usuarios = data.usuarios;
-                                usuariosRevision = Number(data.usuariosRevision || 0);
-                                localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
-                                if(document.getElementById('sec-ajustes') && document.getElementById('sec-ajustes').style.display === 'block') {
-                                    renderUsuarios();
-                                }
-                            } else if(!docSnap.metadata.fromCache) {
-                                usuarios = [];
-                                usuariosRevision = Number(data.usuariosRevision || 0);
-                                localStorage.removeItem('subli_usuarios');
-                            }
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                            comprobarIngresoInicialLibre();
-                            if(!docSnap.metadata.fromCache) confirmarAccesoFirebaseDisponible();
+            try {
+                // La migración v10 ya fue retirada: el arranque no transforma ni reescribe
+                // datos históricos. Solo se leen configuración y usuarios antes del PIN.
+                window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
+                    if (docSnap.exists()) {
+                        datosCargadosDeLaNube = true;
+                        if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
+                        const data = docSnap.data();
+                        fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
+                        sincronizarEstadoNegocio(data);
+                        estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
+                        // Solo persistimos aquí la configuración pequeña necesaria para el modo offline.
+                        // Inventario e historiales grandes se guardan después, en tiempo ocioso.
+                        try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (_) {}
+                        try { localStorage.setItem(KEY_NEGOCIO, JSON.stringify(configuracionNegocio)); } catch (_) {}
+                        try { localStorage.setItem(KEY_SALDOS_DINERO, JSON.stringify(saldosDinero)); } catch (_) {}
+                        try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (_) {}
+                        if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(data.customCats));
+                        if (Array.isArray(data.usuarios)) {
+                            usuarios = data.usuarios;
+                            usuariosRevision = Number(data.usuariosRevision || 0);
+                            localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+                            if(document.getElementById('sec-ajustes')?.style.display === 'block') renderUsuarios();
                         } else if(!docSnap.metadata.fromCache) {
-                            configuracionUsuariosConfirmada = true;
                             usuarios = [];
-                            usuariosRevision = 0;
-                            comprobarIngresoInicialLibre();
-                            confirmarAccesoFirebaseDisponible();
+                            usuariosRevision = Number(data.usuariosRevision || 0);
+                            localStorage.removeItem('subli_usuarios');
                         }
-                    }, error => {
-                        console.warn("No se pudo sincronizar la configuración; se conserva el respaldo local.", error);
-                        if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
-                    });
+                        comprobarIngresoInicialLibre();
+                        if(!docSnap.metadata.fromCache) confirmarAccesoFirebaseDisponible();
+                    } else if(!docSnap.metadata.fromCache) {
+                        configuracionUsuariosConfirmada = true;
+                        usuarios = [];
+                        usuariosRevision = 0;
+                        comprobarIngresoInicialLibre();
+                        confirmarAccesoFirebaseDisponible();
+                    }
+                }, error => {
+                    console.warn("No se pudo sincronizar la configuración; se conserva el acceso local disponible.", error);
+                    if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
+                });
 
-                    window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0 || !snap.metadata.fromCache) {
-                            inventario = temp;
-                            datosCargadosDeLaNube = true;
-                            asegurarServicioCreacion();
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }
-                    }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error));
-
-                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0 || !snap.metadata.fromCache) {
-                            ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }
-                    }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error));
-
-                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
-                        const pendientes = [];
-                        snap.forEach(d => {
-                            const venta = d.data();
-                            if(!venta.anulada && aCentavos(venta.saldoPendiente) > 0) pendientes.push(venta);
-                        });
-                        ventasCreditoPendiente = pendientes;
-                        creditosPendientesConfirmados = !snap.metadata.fromCache;
-                        actualizarUI();
-                    }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error));
-
-                    window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0 || !snap.metadata.fromCache) {
-                            historialIngresos = historialCompletoCargado.ingresos ? fusionarPorId(historialIngresos, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }
-                    }, error => console.warn("No se pudo sincronizar ingresos; se conserva el respaldo local.", error));
-
-                    window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0 || !snap.metadata.fromCache) {
-                            historialCotizaciones = historialCompletoCargado.cotizaciones ? fusionarPorId(historialCotizaciones, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }
-                    }, error => console.warn("No se pudo sincronizar cotizaciones; se conserva el respaldo local.", error));
-
-                    window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push(d.data()));
-                        if(temp.length > 0 || !snap.metadata.fromCache) {
-                            historialRetiros = historialCompletoCargado.retiros ? fusionarPorId(historialRetiros, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }
-                    }, error => console.warn("No se pudo sincronizar retiros; se conserva el respaldo local.", error));
-                    
-                    window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
-                    }, error => console.warn('No se pudo sincronizar el resumen mensual.', error));
-
-                    const escucharColeccionNegocio = (nombre, asignar, maximo = 0) => {
-                        const coleccion = window.collection(window.db, nombre);
-                        const referencia = maximo > 0 ? window.query(coleccion, window.orderBy('timestamp', 'desc'), window.limit(maximo)) : coleccion;
-                        window.onSnapshot(referencia, snap => {
-                            const datos = [];
-                            snap.forEach(d => datos.push({ id: d.id, ...d.data() }));
-                            asignar(datos);
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
-                            actualizarUI();
-                        }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
-                    };
-                    escucharColeccionNegocio('clientes', datos => clientes = datos);
-                    escucharColeccionNegocio('anticipos', datos => anticipos = datos);
-                    escucharColeccionNegocio('prestamos', datos => prestamos = datos);
-                    escucharColeccionNegocio('movimientos_caja', datos => movimientosCaja = datos, 120);
-                    escucharColeccionNegocio('devoluciones', datos => devoluciones = datos, 120);
-                    escucharColeccionNegocio('perdidas_inventario', datos => perdidasInventario = datos, 120);
-                    window.onSnapshot(window.doc(window.db, 'sistema', 'branding'), snap => {
-                        if(snap.exists()) aplicarLogoSincronizado(snap.data());
-                    }, error => console.warn('No se pudo sincronizar el logo.', error));
-                    
-                    mostrarLogo();
-                    comprobarIngresoInicialLibre();
-                    cargarVentasAnalisisUltimos30Dias();
-                    return; 
-                } catch (e) { console.error("Fallo crítico en Firebase.", e); }
-            } 
+                window.onSnapshot(window.doc(window.db, 'sistema', 'branding'), snap => {
+                    if(snap.exists()) aplicarLogoSincronizado(snap.data());
+                }, error => console.warn('No se pudo sincronizar el logo.', error));
+            } catch (e) {
+                console.error("Fallo crítico al iniciar Firebase.", e);
+            }
         }
 
         function cambiarPestaña(pestaña) {
@@ -3443,7 +3627,11 @@
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
             if(pestaña === 'caja') { renderGestionNegocio(); renderHistorialRetiros(); }
             if(pestaña === 'alertas') renderAlertas();
-            if(pestaña === 'buscador' && window.renderBuscadorDisenos) window.renderBuscadorDisenos();
+            if(pestaña === 'buscador') {
+                asegurarBuscadorDisenos()
+                    .then(() => window.renderBuscadorDisenos?.())
+                    .catch(error => console.warn('No se pudo cargar el buscador de diseños.', error));
+            }
             if(pestaña === 'ajustes') { prepararSeccionesConfiguracion(); renderUsuarios(); sincronizarControlesPreferencias(); }
         }
 
@@ -5891,8 +6079,9 @@
             contAlertas.innerHTML = html;
         }
 
-        function exportarPorSurtirExcel() {
-            if(typeof XLSX === 'undefined') return alert('La herramienta de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
+        async function exportarPorSurtirExcel() {
+            try { await asegurarXLSX(); }
+            catch(error) { return alert('La herramienta de Excel no se pudo cargar. Revisa la conexión e inténtalo de nuevo.'); }
             const planCompleto = SubliNegocioCore.crearPlanSurtido(inventario, configuracionNegocio);
             const productos = filtrarPlanSurtido(planCompleto);
             if(productos.length === 0) return alert('No hay productos pendientes dentro del filtro actual.');
@@ -6313,7 +6502,8 @@
         // ================= REPORTES Y EXPORTACIÓN =================
         async function generarReporteExcel() {
             if(!currentUserData || currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede descargar el reporte financiero completo.');
-            if(typeof XLSX === 'undefined') return alert('El generador de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
+            try { await asegurarXLSX(); }
+            catch(error) { return alert('El generador de Excel no se pudo cargar. Revisa la conexión e inténtalo de nuevo.'); }
             if(window.db && navigator.onLine) {
                 const cargas = [];
                 if(!historialCompletoCargado.ventas) cargas.push(cargarHistorialCompleto('ventas'));
@@ -6700,7 +6890,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.6";
+        const APP_VERSION = "1.2.7";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -6758,14 +6948,11 @@
                 navigator.serviceWorker.register('./sw.js').catch(error => console.warn("No se pudo registrar el modo instalable.", error));
             }
 
-            // Si Firebase tarda o no carga por falta de conexión, se muestra el respaldo
-            // local sin impedir que la sincronización se conecte cuando llegue firebaseListo.
+            // Si Firebase tarda, mantenemos disponible el acceso local sin cargar todavía
+            // inventario e historiales pesados. Esos datos se cargan después del PIN.
             setTimeout(() => {
                 if(!cargaDatosIniciada) {
-                    cargarDatosLocales();
-                    asegurarServicioCreacion();
                     mostrarLogo();
-                    actualizarUI();
                     comprobarIngresoInicialLibre();
                 }
             }, 3500);
@@ -6806,6 +6993,5 @@
             }
         });
     </script>
-    <script type="module" src="./buscador.js"></script>
 </body>
 </html>

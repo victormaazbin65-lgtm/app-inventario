@@ -1,34 +1,20 @@
-const CACHE_NAME = 'sublicosturas-v1.2.6-estable-20260918-1';
+const CACHE_NAME = 'sublicosturas-v1.2.7-ligera-20260918-1';
 const APP_SHELL = [
   './',
   './index.html',
   './visual-preferences.js',
-  './mejoras-core.js',
-  './mejoras-v126.js',
-  './asistente-core.js',
-  './asistente-ajustes-v127.js',
-  './asistente-ajustes-v128.js',
-  './mejoras-v127.js',
-  './mejoras-v128.js',
-  './profesional-core-v130.js',
-  './profesional-core-ajustes-v130.js',
-  './profesional-ui-v130.js',
-  './profesional-operaciones-v130.js',
-  './profesional-compat-v130.js',
-  './asistente-ajustes-v130.js',
-  './vendor-cache-v130.js',
-  './build-info.json',
   './negocio-core.js',
   './gestion-negocio.js',
   './finanzas-negocio.js',
   './respaldo-negocio.js',
-  './buscador.js',
+  './version.json',
+  './build-info.json',
   './manifest.json',
   './logo.jpeg',
   './logo-192.png',
   './logo-512.png',
   './apple-touch-icon.png'
-];
+]
 
 const VENDOR_URLS = new Set([
   'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js',

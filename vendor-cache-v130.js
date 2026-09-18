@@ -25,11 +25,20 @@
     }
 
     function instalar() {
-        cargarScript('subli-chart-fijo-v130', VENDORS.chart.url, () => String(global.Chart?.version || '') === VENDORS.chart.version);
-        cargarScript('subli-xlsx-fijo-v130', VENDORS.xlsx.url, () => Boolean(global.XLSX));
+        // Chart puede cargarse después del login; XLSX queda estrictamente bajo demanda.
+        if(typeof global.asegurarChartJS === 'function') {
+            global.asegurarChartJS().catch(error => console.warn('No se pudo preparar Chart.js.', error));
+        } else {
+            cargarScript('subli-chart-fijo-v130', VENDORS.chart.url, () => String(global.Chart?.version || '') === VENDORS.chart.version);
+        }
     }
 
-    global.SubliVendorV130 = Object.freeze({ VENDORS, instalar });
+    function asegurarXLSX() {
+        if(typeof global.asegurarXLSX === 'function') return global.asegurarXLSX();
+        return Promise.resolve(Boolean(global.XLSX));
+    }
+
+    global.SubliVendorV130 = Object.freeze({ VENDORS, instalar, asegurarXLSX });
     if (document.readyState === 'complete') instalar();
     else global.addEventListener('load', instalar, { once:true });
 })(window);
