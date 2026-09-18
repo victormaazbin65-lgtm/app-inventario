@@ -533,8 +533,8 @@
         }
     }
 
-    function renderGestionClientes() {
-        renderSelectoresClientes();
+    function renderGestionClientes(actualizarSelectores = true) {
+        if (actualizarSelectores) renderSelectoresClientes();
         const cont = document.getElementById('lista-clientes-gestion');
         if (!cont) return;
         const consulta = normalizarTexto(document.getElementById('buscar-cliente')?.value || '');
@@ -550,10 +550,26 @@
         }).join('');
     }
 
+    function pestañaNegocioActiva(nombre) {
+        const tab = document.getElementById('tab-' + nombre);
+        const seccion = document.getElementById('sec-' + nombre);
+        return Boolean(tab?.classList.contains('active') || seccion?.style.display === 'block');
+    }
+
+    function clientesGestionVisibles() {
+        if (!pestañaNegocioActiva('ajustes')) return false;
+        const seccion = document.getElementById('ajuste-clientes');
+        return !seccion || Boolean(seccion.open);
+    }
+
     function renderGestionNegocio() {
-        renderGestionClientes();
+        // Los selectores de clientes sí deben mantenerse actualizados para ventas y anticipos.
+        // La lista completa de clientes y las listas financieras pesadas solo se construyen
+        // cuando el usuario realmente está viendo esas pantallas.
+        renderSelectoresClientes();
+        if (clientesGestionVisibles()) renderGestionClientes(false);
         if (typeof global.renderFinanzasNegocio === 'function') global.renderFinanzasNegocio();
-        actualizarCamposCobroVenta();
+        if (pestañaNegocioActiva('ventas') || pestañaNegocioActiva('caja')) actualizarCamposCobroVenta();
     }
 
     function unidadProducto(producto) {
