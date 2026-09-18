@@ -34,8 +34,9 @@ test('el tema se carga antes de las mejoras y la PWA conserva todos los módulos
   assert.match(visual, /dataset\.temaVisual = temaGuardado\(\)/);
   assert.match(visual, /asistente-ajustes-v128\.js/);
   assert.match(visual, /mejoras-v128\.js/);
-  assert.match(sw, /'\.\/asistente-ajustes-v128\.js'/);
-  assert.match(sw, /'\.\/mejoras-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v128\.js'/);
+  assert.match(sw, /return cacheada \|\| actualizacion/);
 });
 
 test('el asistente sabe explicar temas y conserva el motor anterior para las demás preguntas', () => {
