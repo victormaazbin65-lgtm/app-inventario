@@ -458,17 +458,31 @@
         }
     }
 
+    let timerBorradorEvento = null;
+
     function capturarBorradoresSeguro() {
-        if(document.visibilityState === 'hidden' || campoEdicionActivo()) return;
+        if(document.visibilityState === 'hidden') return;
         capturarBorradores();
+    }
+
+    function programarCapturaBorrador() {
+        clearTimeout(timerBorradorEvento);
+        timerBorradorEvento = setTimeout(capturarBorradoresSeguro, 900);
     }
 
     function iniciar() {
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
-        global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
+        global.addEventListener('online', actualizarSync);
+        global.addEventListener('offline', actualizarSync);
+        global.addEventListener('beforeunload', capturarBorradores);
+        global.addEventListener('subli:ui-actualizada', refrescar);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
-        setInterval(capturarBorradoresSeguro, 10000); setInterval(refrescar, 10000);
-        document.addEventListener('focusout', () => setTimeout(refrescar, 160));
+        document.addEventListener('input', programarCapturaBorrador);
+        document.addEventListener('change', programarCapturaBorrador);
+        document.addEventListener('focusout', () => {
+            programarCapturaBorrador();
+            setTimeout(refrescar, 160);
+        });
         refrescar(); renderGuiaActual();
     }
 

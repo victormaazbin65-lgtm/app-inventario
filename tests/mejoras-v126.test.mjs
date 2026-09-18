@@ -91,5 +91,5 @@ test('la PWA carga y cachea los módulos de mejora sin cambiar la versión conta
   assert.doesNotMatch(sw, /'\.\/mejoras-core\.js'/);
   assert.doesNotMatch(sw, /'\.\/mejoras-v126\.js'/);
   assert.match(sw, /return cacheada \|\| actualizacion/);
-  assert.match(sw, /sublicosturas-v1\.2\.7/);
+  assert.match(sw, /sublicosturas-v1\.2\.8/);
 });

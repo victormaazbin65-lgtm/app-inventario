@@ -86,12 +86,12 @@ test('APP_SHELL es ligero y las capas opcionales se cachean en tiempo de uso', (
     assert.ok(entradas.includes(nucleo), nucleo + ' debe estar en el núcleo');
   }
   assert.match(sw, /return cacheada \|\| actualizacion/);
-  assert.match(sw, /sublicosturas-v1\.2\.7-ligera-20260918-1/);
+  assert.match(sw, /sublicosturas-v1\.2\.8-eventos-20260918-1/);
 });
 
-test('la versión 1.2.7 está coordinada en aplicación y paquete', () => {
-  assert.match(html, /const APP_VERSION = "1\.2\.7"/);
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.7' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.7');
-  assert.equal(JSON.parse(leer('build-info.json')).basePublica, '1.2.7');
+test('la versión 1.2.8 está coordinada en aplicación y paquete', () => {
+  assert.match(html, /const APP_VERSION = "1\.2\.8"/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.8' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.8');
+  assert.equal(JSON.parse(leer('build-info.json')).basePublica, '1.2.8');
 });

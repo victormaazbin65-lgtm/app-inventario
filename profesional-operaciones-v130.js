@@ -214,7 +214,7 @@
         envuelta.__v130opsRefresh=true;envuelta.__original=original;global.cambiarPestaña=envuelta;
     }
 
-    function init(){inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();instalarRefrescoPorPestana();setInterval(refrescar,12000);document.addEventListener('focusout',()=>setTimeout(refrescar,180));refrescar();}
+    function init(){inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();instalarRefrescoPorPestana();global.addEventListener('subli:ui-actualizada',refrescar);document.addEventListener('focusout',()=>setTimeout(refrescar,180));refrescar();}
 
     global.registrarAuditoriaV130=registrarAuditoria;global.cargarAuditoriaV130=cargarAuditoria;global.subirDiagnosticoV130=subirDiagnosticoErrores;global.limpiarErroresV130=limpiarErrores;
     global.renderOrdenV130=renderOrdenCompra;global.imprimirOrdenV130=imprimirOrden;global.exportarOrdenV130=exportarOrden;global.guardarOrdenV130=guardarOrden;global.calcularCierreV130=renderCierre;global.guardarCierreV130=guardarCierre;global.imprimirEtiquetaV130=imprimirEtiqueta;
