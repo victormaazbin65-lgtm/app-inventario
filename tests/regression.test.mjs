@@ -638,7 +638,7 @@ test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
   assert.match(scriptClasico, /const APP_VERSION = "1\.2\.7"/);
   assert.match(leer('sw.js'), /sublicosturas-v1\.2\.7/);
-  assert.match(leer('sw.js'), /\.\/buscador\.js/);
+  assert.match(leer('index.html'), /import\('\.\/buscador\.js'\)/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(`\\.\\/${archivo.replace('.', '\\.')}`)));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
