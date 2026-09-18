@@ -6885,8 +6885,12 @@
         }
 
         function actualizarUI() {
-            // Agrupamos las llamadas repetidas en una sola, esperando 300 milisegundos.
-            debouncedEjecucion('render_global', renderizarTodo, 300);
+            // Solo se actualiza cuando existe un cambio real. Las llamadas cercanas
+            // se agrupan para evitar varios renders por una misma sincronización.
+            debouncedEjecucion('render_global', () => {
+                renderizarTodo();
+                try { window.dispatchEvent(new Event('subli:ui-actualizada')); } catch (_) {}
+            }, 300);
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
