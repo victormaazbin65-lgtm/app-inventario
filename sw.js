@@ -24,7 +24,6 @@ const APP_SHELL = [
   './respaldo-negocio.js',
   './buscador.js',
   './manifest.json',
-  './logo.jpeg',
   './logo-192.png',
   './logo-512.png',
   './apple-touch-icon.png'
