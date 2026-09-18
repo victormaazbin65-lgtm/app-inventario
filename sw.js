@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-hotfix-20260918-2';
+const CACHE_NAME = 'sublicosturas-v1.2.6-estable-20260918-1';
 const APP_SHELL = [
   './',
   './index.html',
