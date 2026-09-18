@@ -16,16 +16,17 @@ test('el buscador de inventario usa debounce y limita resultados masivos', () =>
   assert.match(html, /invFiltrado = invFiltrado\.slice\(0, MAX_RESULTADOS_BUSQUEDA_INV\)/);
 });
 
-test('los refrescos profesionales se pausan mientras el usuario escribe', () => {
+test('los refrescos profesionales ocurren por cambios y no por temporizadores periódicos', () => {
   const ui = leer('profesional-ui-v130.js');
   const ops = leer('profesional-operaciones-v130.js');
   assert.match(ui, /function campoEdicionActivo\(\)/);
-  assert.match(ui, /document\.visibilityState === 'hidden' \|\| campoEdicionActivo\(\)/);
-  assert.match(ui, /setInterval\(capturarBorradoresSeguro, 10000\)/);
-  assert.match(ui, /setInterval\(refrescar, 10000\)/);
+  assert.match(ui, /subli:ui-actualizada/);
+  assert.match(ui, /document\.addEventListener\('input', programarCapturaBorrador\)/);
+  assert.match(ui, /document\.addEventListener\('change', programarCapturaBorrador\)/);
+  assert.doesNotMatch(ui, /setInterval\(/);
   assert.match(ops, /function campoEdicionActivo\(\)/);
-  assert.match(ops, /document\.visibilityState==='hidden'\|\|campoEdicionActivo\(\)/);
-  assert.match(ops, /setInterval\(refrescar,12000\)/);
+  assert.match(ops, /subli:ui-actualizada/);
+  assert.doesNotMatch(ops, /setInterval\(/);
 });
 
 test('esta corrección no toca archivos de lógica de negocio', () => {
