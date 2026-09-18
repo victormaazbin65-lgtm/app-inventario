@@ -44,11 +44,13 @@ test('las capas profesionales solo actualizan trabajo pesado de la pestaña visi
   assert.match(ui, /function pestañaActivaProfesional\(nombre\)/);
   assert.match(ui, /if\(pestañaActivaProfesional\('inventario'\)\)/);
   assert.match(ui, /if\(pestañaActivaProfesional\('ajustes'\)\)/);
-  assert.match(ui, /setInterval\(refrescar, 10000\)/);
+  assert.doesNotMatch(ui, /setInterval\(/);
+  assert.match(ui, /subli:ui-actualizada/);
   assert.match(ops, /function pestañaActivaOperaciones\(nombre\)/);
   assert.match(ops, /if\(pestañaActivaOperaciones\('alertas'\)\)/);
   assert.match(ops, /if\(pestañaActivaOperaciones\('inventario'\)\)/);
-  assert.match(ops, /setInterval\(refrescar,12000\)/);
+  assert.doesNotMatch(ops, /setInterval\(/);
+  assert.match(ops, /subli:ui-actualizada/);
 });
 
 test('la PWA obliga a descargar este hotfix sin borrar datos del negocio', () => {
