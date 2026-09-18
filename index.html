@@ -13,7 +13,7 @@
     <meta http-equiv="Expires" content="0">
     <script src="./visual-preferences.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             /* TEMA OSCURO APLICADO */
@@ -2132,6 +2132,14 @@
             return usuarios.some(u => u.pin === hashed && u.rol === 'dueno');
         }
 
+        let appActivaNotificada = false;
+        function notificarAplicacionActiva() {
+            debouncedEjecucion('render_post_login', () => actualizarUI(), 60);
+            if(appActivaNotificada) return;
+            appActivaNotificada = true;
+            try { window.dispatchEvent(new Event('subli:app-activa')); } catch (_) {}
+        }
+
         async function verificarLogin() {
             if(!cuentaPropietarioAutorizada()) {
                 actualizarPanelAccesoReal();
@@ -2152,6 +2160,7 @@
                 document.getElementById('login-pass').value = '';
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
+                notificarAplicacionActiva();
             } else {
                 alert('Contraseña o PIN incorrecto. Intente de nuevo.');
                 document.getElementById('login-pass').value = '';
@@ -2190,6 +2199,7 @@
                 currentUserData = { id: 0, nombre: 'Dueño (Sin PIN)', rol: 'dueno', pin: '' };
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
+                notificarAplicacionActiva();
             } else {
                 const usuarioSigueVigente = currentUserData && usuarios.some(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
                 if(!usuarioSigueVigente) {
@@ -6615,6 +6625,8 @@
         }
 
         function renderizarTodo() {
+            const appPrincipal = document.getElementById('main-app');
+            if(!appPrincipal || appPrincipal.style.display === 'none') return;
 
             let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
             const simboloMoneda = configuracionNegocio.moneda || 'Q';
@@ -6688,7 +6700,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.5";
+        const APP_VERSION = "1.2.6";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
