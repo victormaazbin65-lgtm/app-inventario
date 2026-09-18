@@ -3496,6 +3496,12 @@
                         fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                         sincronizarEstadoNegocio(data);
                         estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
+                        // Solo persistimos aquí la configuración pequeña necesaria para el modo offline.
+                        // Inventario e historiales grandes se guardan después, en tiempo ocioso.
+                        try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (_) {}
+                        try { localStorage.setItem(KEY_NEGOCIO, JSON.stringify(configuracionNegocio)); } catch (_) {}
+                        try { localStorage.setItem(KEY_SALDOS_DINERO, JSON.stringify(saldosDinero)); } catch (_) {}
+                        try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (_) {}
                         if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(data.customCats));
                         if (Array.isArray(data.usuarios)) {
                             usuarios = data.usuarios;
