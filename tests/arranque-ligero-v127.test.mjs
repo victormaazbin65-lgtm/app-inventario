@@ -63,6 +63,13 @@ test('las mejoras se solicitan por evento después del login y se escalonan', ()
   assert.match(visual, /cargarProfesionalV130/);
 });
 
+test('Chart.js solo se solicita cuando un gráfico se vuelve visible o se abre', () => {
+  assert.match(html, /function prepararChartBajoDemanda\(\)/);
+  assert.match(html, /new IntersectionObserver/);
+  assert.match(v126 = leer('mejoras-v126.js'), /details\.open = false/);
+  assert.match(v126, /asegurarChartJS/);
+});
+
 test('Excel se mantiene fuera de memoria hasta una exportación', () => {
   assert.match(html, /await asegurarXLSX\(\)/);
   assert.doesNotMatch(vendor, /cargarScript\('subli-xlsx-fijo-v130'/);
