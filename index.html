@@ -3497,7 +3497,7 @@
                 escucharColeccionNegocio('perdidas_inventario', datos => perdidasInventario = datos, 120);
             });
 
-            programarEtapaSincronizacion(1900, () => cargarVentasAnalisisUltimos30Dias());
+            programarEtapaSincronizacion(8000, () => cargarVentasAnalisisUltimos30Dias());
         }
 
         function activarDatosPostAcceso() {
@@ -3516,7 +3516,7 @@
 
             activarSincronizacionNegocio();
 
-            programarEtapaSincronizacion(1300, () => {
+            programarEtapaSincronizacion(3000, () => {
                 asegurarChartJS().then(() => actualizarUI()).catch(error => console.warn('No se pudo cargar el gráfico.', error));
             });
         }
