@@ -3500,6 +3500,29 @@
             programarEtapaSincronizacion(8000, () => cargarVentasAnalisisUltimos30Dias());
         }
 
+        let observadorChartPrincipal = null;
+
+        function prepararChartBajoDemanda() {
+            const canvas = document.getElementById('graficoVentas');
+            if(!canvas || canvas.dataset.chartLazy === '1') return;
+            canvas.dataset.chartLazy = '1';
+
+            const cargar = () => {
+                observadorChartPrincipal?.disconnect();
+                observadorChartPrincipal = null;
+                asegurarChartJS().then(() => actualizarUI()).catch(error => console.warn('No se pudo cargar el gráfico.', error));
+            };
+
+            if(typeof window.IntersectionObserver === 'function') {
+                observadorChartPrincipal = new IntersectionObserver(entradas => {
+                    if(entradas.some(entrada => entrada.isIntersecting)) cargar();
+                }, { rootMargin: '160px 0px' });
+                observadorChartPrincipal.observe(canvas);
+            } else {
+                setTimeout(cargar, 5000);
+            }
+        }
+
         function activarDatosPostAcceso() {
             if(temporizadorFallbackLocal) {
                 clearTimeout(temporizadorFallbackLocal);
@@ -3515,10 +3538,7 @@
             }
 
             activarSincronizacionNegocio();
-
-            programarEtapaSincronizacion(3000, () => {
-                asegurarChartJS().then(() => actualizarUI()).catch(error => console.warn('No se pudo cargar el gráfico.', error));
-            });
+            prepararChartBajoDemanda();
         }
 
         async function cargarDatos() {
