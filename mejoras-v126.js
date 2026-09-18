@@ -23,7 +23,7 @@
         timerActualizacionV126 = setTimeout(() => {
             if(!appPrincipalVisibleV126()) return;
             if(pestañaActivaV126('inicio')) {
-                renderResumenRango();
+                if(document.getElementById('v126-resumen-financiero')?.open) renderResumenRango();
                 renderAlertasPrestamosCentro();
             }
             if(pestañaActivaV126('alertas')) renderCatalogoSurtido();
@@ -259,7 +259,7 @@
         const details = document.createElement('details');
         details.id = 'v126-resumen-financiero';
         details.className = 'fold-card';
-        details.open = true;
+        details.open = false;
         details.innerHTML = `<summary>📈 Ventas y utilidad por día, mes o rango</summary>
             <div class="fold-card-content">
                 <div class="v126-toolbar">
@@ -297,7 +297,15 @@
             document.getElementById(id).addEventListener('change', () => { actualizarControlesResumen(); renderResumenRango(); });
         });
         actualizarControlesResumen();
-        if(appPrincipalVisibleV126() && pestañaActivaV126('inicio')) renderResumenRango();
+        details.addEventListener('toggle', () => {
+            if(!details.open) return;
+            if(typeof global.asegurarChartJS === 'function') {
+                global.asegurarChartJS().then(() => renderResumenRango()).catch(() => renderResumenRango());
+            } else {
+                renderResumenRango();
+            }
+        });
+        if(details.open && appPrincipalVisibleV126() && pestañaActivaV126('inicio')) renderResumenRango();
     }
 
     function fechaInputLocal(fecha) {
