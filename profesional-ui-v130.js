@@ -7,6 +7,7 @@
     const DRAFT_PREFIX = 'subli_borrador_v130_';
     const TRAINING_KEY = 'subli_modo_capacitacion_v130';
     let ultimaFirmaSalud = '';
+    let ultimaFirmaAgenda = '';
 
     function escapar(valor) {
         if(typeof global.escaparHTML === 'function') return global.escaparHTML(valor);
@@ -222,6 +223,9 @@
         if(!visible) return;
         const c = contexto();
         const filas = core.agendaCobros(c.ventas, c.prestamos, Date.now());
+        const firmaAgenda = JSON.stringify([visible, filas.slice(0,50).map(f => [f.tipo, f.id, f.saldo, f.dias, f.vencimiento])]);
+        if(firmaAgenda === ultimaFirmaAgenda && salida.childElementCount) return;
+        ultimaFirmaAgenda = firmaAgenda;
         if(!filas.length) { salida.innerHTML = '<p style="color:var(--text-light);font-size:12px">No hay cuentas pendientes detectadas.</p>'; return; }
         salida.innerHTML = `<p style="margin-top:0;color:var(--text-light);font-size:11px">Créditos y préstamos se muestran juntos para seguimiento, pero conservan su contabilidad separada.</p>${filas.slice(0,50).map(f => {
             const etiqueta = f.dias === null ? 'Sin fecha' : (f.dias < 0 ? `Vencido hace ${Math.abs(f.dias)} día(s)` : (f.dias === 0 ? 'Vence hoy' : `Vence en ${f.dias} día(s)`));
@@ -423,7 +427,11 @@
 
     function instalarGuiaPestañas() {
         const original=global.cambiarPestaña; if(typeof original!=='function'||original.__v130guide) return;
-        const envuelta=function(...args){const r=original.apply(this,args);setTimeout(()=>{renderGuiaActual();renderSalud();renderAgendaCobros();actualizarSelectorCostos();actualizarSelectorCRM();},50);return r;}; envuelta.__v130guide=true; global.cambiarPestaña=envuelta;
+        const envuelta=function(...args){const r=original.apply(this,args);setTimeout(()=>{renderGuiaActual();refrescar();},50);return r;}; envuelta.__v130guide=true; global.cambiarPestaña=envuelta;
+    }
+
+    function pestañaActivaProfesional(nombre) {
+        return Boolean(document.getElementById('tab-' + nombre)?.classList.contains('active'));
     }
 
     function campoEdicionActivo() {
@@ -434,12 +442,20 @@
     function refrescar() {
         actualizarSync();
         if(document.visibilityState === 'hidden' || campoEdicionActivo()) return;
-        renderSalud();
-        renderAgendaCobros();
-        asegurarAvisosBorrador();
-        asegurarHistorialCostos(); actualizarSelectorCostos();
-        asegurarCRM(); actualizarSelectorCRM();
-        asegurarToggleCapacitacion();
+        if(pestañaActivaProfesional('inicio')) {
+            renderSalud();
+            renderAgendaCobros();
+            asegurarAvisosBorrador();
+        }
+        if(pestañaActivaProfesional('inventario')) {
+            asegurarHistorialCostos();
+            actualizarSelectorCostos();
+        }
+        if(pestañaActivaProfesional('ajustes')) {
+            asegurarCRM();
+            actualizarSelectorCRM();
+            asegurarToggleCapacitacion();
+        }
     }
 
     function capturarBorradoresSeguro() {
@@ -448,11 +464,11 @@
     }
 
     function iniciar() {
-        inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
+        inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
         global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
-        setInterval(capturarBorradoresSeguro, 10000); setInterval(refrescar, 5000);
-        document.addEventListener('focusout', () => setTimeout(refrescar, 120));
+        setInterval(capturarBorradoresSeguro, 10000); setInterval(refrescar, 10000);
+        document.addEventListener('focusout', () => setTimeout(refrescar, 160));
         refrescar(); renderGuiaActual();
     }
 

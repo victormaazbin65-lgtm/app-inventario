@@ -5,7 +5,26 @@
     if(!core) return;
 
     let graficoResumen = null;
+    let firmaGraficoResumen = '';
     let limiteCatalogo = 500;
+    let timerActualizacionV126 = null;
+
+    function pestañaActivaV126(nombre) {
+        return Boolean(document.getElementById('tab-' + nombre)?.classList.contains('active'));
+    }
+
+    function programarActualizacionV126() {
+        clearTimeout(timerActualizacionV126);
+        timerActualizacionV126 = setTimeout(() => {
+            if(pestañaActivaV126('inicio')) {
+                renderResumenRango();
+                renderAlertasPrestamosCentro();
+            }
+            if(pestañaActivaV126('alertas')) renderCatalogoSurtido();
+            if(pestañaActivaV126('ajustes')) decorarUsuariosHistorial();
+            aplicarVisibilidadFinanciera();
+        }, 350);
+    }
 
     function dinero(valor) {
         const simbolo = typeof configuracionNegocio === 'object' ? (configuracionNegocio.moneda || 'Q') : 'Q';
@@ -330,6 +349,13 @@
 
         const canvas = document.getElementById('v126-grafico-financiero');
         if(!canvas || typeof global.Chart !== 'function') return;
+        const firmaNueva = JSON.stringify([
+            rango.inicio, rango.fin, resumen.ventas, resumen.cobrado, resumen.costoProductos,
+            resumen.produccion, resumen.sat, resumen.utilidad,
+            resumen.dias.map(d => [d.dia, d.ventas, d.costoProductos, d.produccion, d.utilidad])
+        ]);
+        if(graficoResumen && firmaNueva === firmaGraficoResumen) return;
+        firmaGraficoResumen = firmaNueva;
         if(graficoResumen) graficoResumen.destroy();
         graficoResumen = new global.Chart(canvas.getContext('2d'), {
             type: 'line',
@@ -372,11 +398,11 @@
         document.getElementById('v126-surtido-busqueda').addEventListener('input', () => { limiteCatalogo = 500; renderCatalogoSurtido(); });
         document.getElementById('v126-surtido-pendientes').addEventListener('change', () => { limiteCatalogo = 500; renderCatalogoSurtido(); });
         document.getElementById('v126-surtido-mas').addEventListener('click', () => { limiteCatalogo += 500; renderCatalogoSurtido(); });
-        renderCatalogoSurtido();
+        if(pestañaActivaV126('alertas')) renderCatalogoSurtido();
     }
 
     function renderCatalogoSurtido() {
-        if(typeof inventario === 'undefined') return;
+        if(!pestañaActivaV126('alertas') || typeof inventario === 'undefined') return;
         const select = document.getElementById('v126-surtido-proveedor');
         const busqueda = document.getElementById('v126-surtido-busqueda');
         const pendientes = document.getElementById('v126-surtido-pendientes');
@@ -705,15 +731,24 @@
         if(typeof original !== 'function' || original.__v126) return;
         const envuelta = function(...args) {
             const r = original.apply(this, args);
-            renderResumenRango();
-            renderCatalogoSurtido();
-            renderAlertasPrestamosCentro();
-            decorarUsuariosHistorial();
-            aplicarVisibilidadFinanciera();
+            programarActualizacionV126();
             return r;
         };
         envuelta.__v126 = true;
         global.actualizarUI = envuelta;
+    }
+
+    function instalarRefrescoPestanas() {
+        const original = global.cambiarPestaña;
+        if(typeof original !== 'function' || original.__v126tabs) return;
+        const envuelta = function(...args) {
+            const r = original.apply(this, args);
+            programarActualizacionV126();
+            return r;
+        };
+        envuelta.__v126tabs = true;
+        envuelta.__original = original;
+        global.cambiarPestaña = envuelta;
     }
 
     function init() {
@@ -728,10 +763,8 @@
         instalarAlertasPrestamo();
         observarHistoriales();
         envolverActualizacionUI();
-        renderResumenRango();
-        renderCatalogoSurtido();
-        renderAlertasPrestamosCentro();
-        aplicarVisibilidadFinanciera();
+        instalarRefrescoPestanas();
+        programarActualizacionV126();
     }
 
     global.SubliMejorasV126 = Object.freeze({

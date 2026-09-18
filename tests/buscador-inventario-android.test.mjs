@@ -22,10 +22,10 @@ test('los refrescos profesionales se pausan mientras el usuario escribe', () => 
   assert.match(ui, /function campoEdicionActivo\(\)/);
   assert.match(ui, /document\.visibilityState === 'hidden' \|\| campoEdicionActivo\(\)/);
   assert.match(ui, /setInterval\(capturarBorradoresSeguro, 10000\)/);
-  assert.match(ui, /setInterval\(refrescar, 5000\)/);
+  assert.match(ui, /setInterval\(refrescar, 10000\)/);
   assert.match(ops, /function campoEdicionActivo\(\)/);
   assert.match(ops, /document\.visibilityState==='hidden'\|\|campoEdicionActivo\(\)/);
-  assert.match(ops, /setInterval\(refrescar,6000\)/);
+  assert.match(ops, /setInterval\(refrescar,12000\)/);
 });
 
 test('esta corrección no toca archivos de lógica de negocio', () => {
