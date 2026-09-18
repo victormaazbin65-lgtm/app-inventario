@@ -45,7 +45,7 @@ test('la lista completa de clientes no se reconstruye fuera de Ajustes > Cliente
   assert.match(gestion, /dataset\.firmaClientes/);
 });
 
-test('el resumen v1.2.7 espera a que la aplicación esté visible', () => {
+test('el resumen v1.2.8 espera a que la aplicación esté visible', () => {
   assert.match(v126, /function appPrincipalVisibleV126\(\)/);
   assert.match(v126, /if\(!appPrincipalVisibleV126\(\)\) return/);
   assert.match(v126, /subli:app-activa/);
@@ -58,11 +58,11 @@ test('los módulos profesionales se cargan después del acceso y en tiempo ocios
   assert.match(visual, /function cargarProfesionalV130\(\)/);
 });
 
-test('la actualización 1.2.7 fuerza archivos nuevos sin tocar los datos locales', () => {
-  assert.match(html, /const APP_VERSION = "1\.2\.7"/);
+test('la actualización 1.2.8 fuerza archivos nuevos sin tocar los datos locales', () => {
+  assert.match(html, /const APP_VERSION = "1\.2\.8"/);
   assert.match(html, /chart\.js@4\.5\.1/);
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.7' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.7');
-  assert.match(sw, /sublicosturas-v1\.2\.7-ligera-20260918-1/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.8' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.2.8');
+  assert.match(sw, /sublicosturas-v1\.2\.8-eventos-20260918-1/);
   assert.doesNotMatch(sw, /localStorage\.clear|indexedDB\.deleteDatabase/);
 });
