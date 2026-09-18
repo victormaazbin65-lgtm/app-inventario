@@ -26,7 +26,7 @@
                 if(document.getElementById('v126-resumen-financiero')?.open) renderResumenRango();
                 renderAlertasPrestamosCentro();
             }
-            if(pestañaActivaV126('alertas')) renderCatalogoSurtido();
+            if(pestañaActivaV126('alertas') && document.getElementById('v126-catalogo-surtido')?.open) renderCatalogoSurtido();
             if(pestañaActivaV126('ajustes')) decorarUsuariosHistorial();
             aplicarVisibilidadFinanciera();
         }, 350);
@@ -393,7 +393,7 @@
         const details = document.createElement('details');
         details.id = 'v126-catalogo-surtido';
         details.className = 'fold-card';
-        details.open = true;
+        details.open = false;
         details.innerHTML = `<summary>🏭 Catálogo completo por proveedor</summary>
             <div class="fold-card-content">
                 <p class="compact-note">Selecciona una empresa para ver todos sus productos, incluso los que todavía tienen buena existencia.</p>
@@ -412,11 +412,14 @@
         document.getElementById('v126-surtido-busqueda').addEventListener('input', () => { limiteCatalogo = 500; renderCatalogoSurtido(); });
         document.getElementById('v126-surtido-pendientes').addEventListener('change', () => { limiteCatalogo = 500; renderCatalogoSurtido(); });
         document.getElementById('v126-surtido-mas').addEventListener('click', () => { limiteCatalogo += 500; renderCatalogoSurtido(); });
-        if(pestañaActivaV126('alertas')) renderCatalogoSurtido();
+        details.addEventListener('toggle', () => {
+            if(details.open && pestañaActivaV126('alertas')) renderCatalogoSurtido();
+        });
+        if(details.open && pestañaActivaV126('alertas')) renderCatalogoSurtido();
     }
 
     function renderCatalogoSurtido() {
-        if(!pestañaActivaV126('alertas') || typeof inventario === 'undefined') return;
+        if(!pestañaActivaV126('alertas') || !document.getElementById('v126-catalogo-surtido')?.open || typeof inventario === 'undefined') return;
         const select = document.getElementById('v126-surtido-proveedor');
         const busqueda = document.getElementById('v126-surtido-busqueda');
         const pendientes = document.getElementById('v126-surtido-pendientes');
