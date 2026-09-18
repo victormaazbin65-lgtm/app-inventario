@@ -52,7 +52,7 @@ test('el resumen v1.2.6 espera a que la aplicación esté visible', () => {
 });
 
 test('los módulos profesionales se cargan después del acceso y en tiempo ocioso', () => {
-  assert.match(visual, /window\.addEventListener\('subli:app-activa', cargarProfesionalV130\)/);
+  assert.match(visual, /entornoGlobal\.addEventListener\?\.\('subli:app-activa', cargarProfesionalV130\)/);
   assert.match(visual, /requestIdleCallback/);
   assert.match(visual, /mejorasBaseListas = true/);
   assert.match(visual, /function cargarProfesionalV130\(\)/);
