@@ -7,7 +7,6 @@
     const DRAFT_PREFIX = 'subli_borrador_v130_';
     const TRAINING_KEY = 'subli_modo_capacitacion_v130';
     let ultimaFirmaSalud = '';
-    let ultimaFirmaAgenda = '';
 
     function escapar(valor) {
         if(typeof global.escaparHTML === 'function') return global.escaparHTML(valor);
@@ -223,9 +222,6 @@
         if(!visible) return;
         const c = contexto();
         const filas = core.agendaCobros(c.ventas, c.prestamos, Date.now());
-        const firmaAgenda = JSON.stringify(filas.slice(0,50).map(f => [f.tipo,f.id,f.saldo,f.dias,f.persona,f.concepto]));
-        if(firmaAgenda === ultimaFirmaAgenda && salida.childElementCount) return;
-        ultimaFirmaAgenda = firmaAgenda;
         if(!filas.length) { salida.innerHTML = '<p style="color:var(--text-light);font-size:12px">No hay cuentas pendientes detectadas.</p>'; return; }
         salida.innerHTML = `<p style="margin-top:0;color:var(--text-light);font-size:11px">Créditos y préstamos se muestran juntos para seguimiento, pero conservan su contabilidad separada.</p>${filas.slice(0,50).map(f => {
             const etiqueta = f.dias === null ? 'Sin fecha' : (f.dias < 0 ? `Vencido hace ${Math.abs(f.dias)} día(s)` : (f.dias === 0 ? 'Vence hoy' : `Vence en ${f.dias} día(s)`));
@@ -444,11 +440,7 @@
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
         global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
-        const capturarSiVisible=()=>{if(document.visibilityState!=='hidden')capturarBorradores();};
-        const refrescarSiVisible=()=>{if(document.visibilityState!=='hidden')refrescar();};
-        setInterval(capturarSiVisible, 4000); setInterval(refrescarSiVisible, 2500);
-        document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')capturarBorradores();else{refrescar();renderGuiaActual();}});
-        refrescar(); renderGuiaActual();
+        setInterval(capturarBorradores, 4000); setInterval(refrescar, 2500); refrescar(); renderGuiaActual();
     }
 
     global.abrirBuscadorAccionesV130=abrirBuscadorAcciones;
