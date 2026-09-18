@@ -66,7 +66,8 @@ test('las mejoras se solicitan por evento después del login y se escalonan', ()
 test('Chart.js solo se solicita cuando un gráfico se vuelve visible o se abre', () => {
   assert.match(html, /function prepararChartBajoDemanda\(\)/);
   assert.match(html, /new IntersectionObserver/);
-  assert.match(v126 = leer('mejoras-v126.js'), /details\.open = false/);
+  const v126 = leer('mejoras-v126.js');
+  assert.match(v126, /details\.open = false/);
   assert.match(v126, /asegurarChartJS/);
 });
 
