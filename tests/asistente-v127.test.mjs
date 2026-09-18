@@ -110,5 +110,5 @@ test('la PWA carga y cachea los módulos del asistente sin alterar la versión c
   assert.match(sw, /'\.\/asistente-core\.js'/);
   assert.match(sw, /'\.\/asistente-ajustes-v127\.js'/);
   assert.match(sw, /'\.\/mejoras-v127\.js'/);
-  assert.match(sw, /sublicosturas-v1\.2\.5/);
+  assert.match(sw, /sublicosturas-v1\.2\.6/);
 });
