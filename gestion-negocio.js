@@ -470,13 +470,18 @@
 
     function renderSelectoresClientes() {
         const activos = clientesActivos();
+        const firma = activos.map(c => `${c.id}|${c.nombreCompleto}|${c.telefono || ''}|${c.nit || ''}`).join('§');
         const datalist = document.getElementById('lista-clientes');
-        if (datalist) datalist.innerHTML = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+        if (datalist && datalist.dataset.firmaClientes !== firma) {
+            datalist.innerHTML = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+            datalist.dataset.firmaClientes = firma;
+        }
         const selectAnticipo = document.getElementById('anticipo-cliente');
-        if (selectAnticipo) {
+        if (selectAnticipo && selectAnticipo.dataset.firmaClientes !== firma) {
             const anterior = selectAnticipo.value;
             selectAnticipo.innerHTML = '<option value="">Selecciona un cliente</option>' + activos.map(c => `<option value="${escaparHTML(c.id)}">${escaparHTML(c.nombreCompleto)}</option>`).join('');
             if (activos.some(c => String(c.id) === String(anterior))) selectAnticipo.value = anterior;
+            selectAnticipo.dataset.firmaClientes = firma;
         }
     }
 
