@@ -426,8 +426,14 @@
         const envuelta=function(...args){const r=original.apply(this,args);setTimeout(()=>{renderGuiaActual();renderSalud();renderAgendaCobros();actualizarSelectorCostos();actualizarSelectorCRM();},50);return r;}; envuelta.__v130guide=true; global.cambiarPestaña=envuelta;
     }
 
+    function campoEdicionActivo() {
+        const activo = document.activeElement;
+        return Boolean(activo && typeof activo.matches === 'function' && activo.matches('input, textarea, select, [contenteditable="true"]'));
+    }
+
     function refrescar() {
         actualizarSync();
+        if(document.visibilityState === 'hidden' || campoEdicionActivo()) return;
         renderSalud();
         renderAgendaCobros();
         asegurarAvisosBorrador();
@@ -436,11 +442,18 @@
         asegurarToggleCapacitacion();
     }
 
+    function capturarBorradoresSeguro() {
+        if(document.visibilityState === 'hidden' || campoEdicionActivo()) return;
+        capturarBorradores();
+    }
+
     function iniciar() {
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
         global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
-        setInterval(capturarBorradores, 4000); setInterval(refrescar, 2500); refrescar(); renderGuiaActual();
+        setInterval(capturarBorradoresSeguro, 10000); setInterval(refrescar, 5000);
+        document.addEventListener('focusout', () => setTimeout(refrescar, 120));
+        refrescar(); renderGuiaActual();
     }
 
     global.abrirBuscadorAccionesV130=abrirBuscadorAcciones;

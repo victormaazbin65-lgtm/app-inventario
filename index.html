@@ -1057,7 +1057,7 @@
             <div class="card">
                 <h3 class="section-title">Mi Inventario Actual</h3>
                 <div class="form-group">
-                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar por código, producto o categoría..." oninput="renderInventario()" style="margin-bottom: 10px;">
+                    <input type="text" id="buscador-inv" autocomplete="off" placeholder="🔍 Buscar por código, producto o categoría..." oninput="programarBusquedaInventario()" style="margin-bottom: 10px;">
                     <p class="inventory-code-note">🏷️ Cada categoría recibe un bloque de 1000. Ejemplo: bloque 1000 → productos 1001 a 1999. El código de un producto es permanente y sirve para su etiqueta física.</p>
                     <div class="inventory-toolbar">
                         <button onclick="toggleVistaInv()" id="btn-vista-inv" class="btn-sm" style="background-color: #4b5563; color: white; padding: 10px 15px; flex-grow: 1; max-width: 200px;">🗂️ Ver A-Z</button>
@@ -4416,11 +4416,20 @@
             return `<div class="item-row" style="border-bottom: 1px solid var(--border-color); padding-bottom:10px; margin-bottom:10px;"><div class="item-info"><p class="item-title">${codigoHTML}${escaparHTML(p.nombre)}</p><p class="item-details">Stock: <b style="${stockStyle}">${escaparHTML(stockDisplay)}${alertaText}</b> | Costo: ${escaparHTML(configuracionNegocio.moneda)}${numeroFinito(p.costo).toFixed(2)} por ${escaparHTML(unidadProducto(p).abreviatura)} | Cat: ${escaparHTML(p.categoria || 'OTROS')}</p></div><div class="item-actions">${botonEtiqueta}<button onclick="abrirModalEditar(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-edit">Editar</button><button onclick="borrarProducto(decodeURIComponent('${idCodificado}'))" class="btn-sm btn-delete">Borrar</button></div></div>`;
         }
 
+        const MAX_RESULTADOS_BUSQUEDA_INV = 80;
+        let timerBusquedaInventario = null;
+
+        function programarBusquedaInventario() {
+            clearTimeout(timerBusquedaInventario);
+            timerBusquedaInventario = setTimeout(() => {
+                if(typeof pestañaActiva !== 'function' || pestañaActiva('inventario')) renderInventario();
+            }, 220);
+        }
         function renderInventario() {
             const contInv = document.getElementById('lista-inventario');
             const btnVista = document.getElementById('btn-vista-inv');
             const inputBusqueda = document.getElementById('buscador-inv');
-            const textoBuscado = inputBusqueda ? inputBusqueda.value : '';
+            const textoBuscado = inputBusqueda ? inputBusqueda.value.trim() : '';
             
             const forzarListaPlana = textoBuscado.length > 0;
             const vistaActualAZ = forzarListaPlana || vistaInventarioAZ;
@@ -4433,8 +4442,14 @@
                 btnVista.disabled = true;
             }
             
-            let invOrdenado = [...inventario].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')); 
-            let invFiltrado = invOrdenado.filter(p => coincideBusquedaProducto(p, textoBuscado));
+            let invFiltrado = textoBuscado
+                ? inventario.filter(p => coincideBusquedaProducto(p, textoBuscado))
+                : [...inventario];
+            invFiltrado.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+            const totalCoincidencias = invFiltrado.length;
+            if(textoBuscado && invFiltrado.length > MAX_RESULTADOS_BUSQUEDA_INV) {
+                invFiltrado = invFiltrado.slice(0, MAX_RESULTADOS_BUSQUEDA_INV);
+            }
             
             if(invFiltrado.length === 0) {
                 contInv.innerHTML = '<p class="item-details" style="text-align:center;">No se encontraron productos.</p>';
@@ -4442,6 +4457,9 @@
             }
 
             let html = '';
+            if(textoBuscado && totalCoincidencias > MAX_RESULTADOS_BUSQUEDA_INV) {
+                html += `<p class="item-details" style="padding:8px 0;color:var(--primary-orange);">Mostrando los primeros ${MAX_RESULTADOS_BUSQUEDA_INV} de ${totalCoincidencias} resultados. Escribe más letras para afinar la búsqueda.</p>`;
+            }
             if (vistaActualAZ) {
                 invFiltrado.forEach(p => { html += renderItemInventario(p); });
             } else {
