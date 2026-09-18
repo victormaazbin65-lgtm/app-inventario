@@ -90,5 +90,5 @@ test('la PWA carga y cachea los módulos de mejora sin cambiar la versión conta
   assert.match(bootstrap, /mejoras-v126\.js/);
   assert.match(sw, /'\.\/mejoras-core\.js'/);
   assert.match(sw, /'\.\/mejoras-v126\.js'/);
-  assert.match(sw, /sublicosturas-v1\.2\.6/);
+  assert.match(sw, /sublicosturas-v1\.2\.7/);
 });
