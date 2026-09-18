@@ -91,7 +91,7 @@ test('el asistente puede resumir préstamos pendientes sin escribir datos', () =
   assert.equal(r.prestamos[0].dias, -1);
 });
 
-test('la interfaz v1.2.7 reutiliza las operaciones existentes y solo agrega ayuda/presentación', () => {
+test('la interfaz v1.2.8 reutiliza las operaciones existentes y solo agrega ayuda/presentación', () => {
   assert.match(uiSource, /registrarPrestamo/);
   assert.match(uiSource, /ejecutarConsultaInteligente/);
   assert.match(uiSource, /renderPanelInteligente/);
@@ -111,5 +111,5 @@ test('la PWA carga y cachea los módulos del asistente sin alterar la versión c
   assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v127\.js'/);
   assert.doesNotMatch(sw, /'\.\/mejoras-v127\.js'/);
   assert.match(sw, /return cacheada \|\| actualizacion/);
-  assert.match(sw, /sublicosturas-v1\.2\.7/);
+  assert.match(sw, /sublicosturas-v1\.2\.8/);
 });
