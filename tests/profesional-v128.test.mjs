@@ -30,12 +30,12 @@ test('los cinco temas son locales, independientes del modelo visual y no escribe
   assert.doesNotMatch(ui128 + ajuste128, /runTransaction|setDoc|updateDoc|addDoc|deleteDoc|Firebase/);
 });
 
-test('el tema se carga antes de las mejoras y la PWA conserva todos los módulos necesarios', () => {
+test('el tema se carga antes de las mejoras y los módulos opcionales quedan disponibles bajo demanda', () => {
   assert.match(visual, /dataset\.temaVisual = temaGuardado\(\)/);
   assert.match(visual, /asistente-ajustes-v128\.js/);
   assert.match(visual, /mejoras-v128\.js/);
-  assert.match(sw, /'\.\/asistente-ajustes-v128\.js'/);
-  assert.match(sw, /'\.\/mejoras-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v128\.js'/);
 });
 
 test('el asistente sabe explicar temas y conserva el motor anterior para las demás preguntas', () => {
