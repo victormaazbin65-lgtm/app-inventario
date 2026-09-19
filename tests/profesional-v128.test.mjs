@@ -108,12 +108,16 @@ test('los botones y selectores HTML simples apuntan a funciones que existen en e
   assert.deepEqual(faltantes, []);
 });
 
-test('todos los archivos locales del APP_SHELL existen y los módulos nuevos son cacheables', () => {
+test('el APP_SHELL conserva solo el arranque esencial y los módulos opcionales siguen disponibles', () => {
   const entradas = [...sw.matchAll(/^\s*'\.\/([^']+)'/gm)].map(m => m[1]).filter(Boolean);
   const faltantes = entradas.filter(rel => rel !== '' && !fs.existsSync(path.join(raiz, rel)));
   assert.deepEqual(faltantes, []);
-  assert.ok(entradas.includes('mejoras-v128.js'));
-  assert.ok(entradas.includes('asistente-ajustes-v128.js'));
+  assert.ok(entradas.includes('visual-preferences.js'));
+  assert.ok(entradas.includes('negocio-core.js'));
+  assert.ok(!entradas.includes('mejoras-v128.js'));
+  assert.ok(!entradas.includes('asistente-ajustes-v128.js'));
+  assert.match(visual, /mejoras-v128\.js/);
+  assert.match(visual, /asistente-ajustes-v128\.js/);
 });
 
 test('la CI usa Node 24 y acciones compatibles con el runtime actual', () => {
