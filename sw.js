@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-diagnostico-nointervalos-20260918';
+const CACHE_NAME = 'sublicosturas-v1.2.5-sync-segura-20260918';
 const APP_SHELL = [
   './',
   './index.html',
