@@ -85,10 +85,10 @@ test('la mejora reutiliza préstamos, reserva transaccional, trazabilidad y perm
   assert.doesNotMatch(coreSource, /setDoc|updateDoc|runTransaction|Firebase/);
 });
 
-test('la PWA carga y cachea los módulos de mejora sin cambiar la versión contable vigente', () => {
+test('la PWA conserva los módulos de mejora bajo demanda sin cambiar la versión contable vigente', () => {
   assert.match(bootstrap, /mejoras-core\.js/);
   assert.match(bootstrap, /mejoras-v126\.js/);
-  assert.match(sw, /'\.\/mejoras-core\.js'/);
-  assert.match(sw, /'\.\/mejoras-v126\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-core\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v126\.js'/);
   assert.match(sw, /sublicosturas-v1\.2\.5/);
 });
