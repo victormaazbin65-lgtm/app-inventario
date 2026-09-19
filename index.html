@@ -5980,8 +5980,9 @@
             contAlertas.innerHTML = html;
         }
 
-        function exportarPorSurtirExcel() {
-            if(typeof XLSX === 'undefined') return alert('La herramienta de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
+        async function exportarPorSurtirExcel() {
+            try { await asegurarXLSX(); }
+            catch(error) { return alert('La herramienta de Excel no pudo cargarse. Revisa la conexión e inténtalo de nuevo.'); }
             const planCompleto = SubliNegocioCore.crearPlanSurtido(inventario, configuracionNegocio);
             const productos = filtrarPlanSurtido(planCompleto);
             if(productos.length === 0) return alert('No hay productos pendientes dentro del filtro actual.');
@@ -6402,7 +6403,8 @@
         // ================= REPORTES Y EXPORTACIÓN =================
         async function generarReporteExcel() {
             if(!currentUserData || currentUserData.rol !== 'dueno') return alert('Solo el Dueño puede descargar el reporte financiero completo.');
-            if(typeof XLSX === 'undefined') return alert('El generador de Excel no está disponible. Revisa la conexión e inténtalo de nuevo.');
+            try { await asegurarXLSX(); }
+            catch(error) { return alert('El generador de Excel no pudo cargarse. Revisa la conexión e inténtalo de nuevo.'); }
             if(window.db && navigator.onLine) {
                 const cargas = [];
                 if(!historialCompletoCargado.ventas) cargas.push(cargarHistorialCompleto('ventas'));
@@ -6564,9 +6566,39 @@
 
         // --- FUNCIONES PARA GRÁFICO, CLIENTES Y CATEGORÍAS ---
         let chartVentas = null;
+        let observadorGraficoVentas = null;
+        function solicitarGraficoCuandoVisible() {
+            const canvas = document.getElementById('graficoVentas');
+            if(!canvas || typeof Chart !== 'undefined' || canvas.dataset.cargaChart === '1') return;
+            canvas.dataset.cargaChart = '1';
+            const cargar = () => asegurarChartJS()
+                .then(() => actualizarGraficoVentas())
+                .catch(error => {
+                    canvas.dataset.cargaChart = '';
+                    console.warn('No se pudo cargar Chart.js bajo demanda.', error);
+                });
+            if('IntersectionObserver' in window) {
+                observadorGraficoVentas?.disconnect();
+                observadorGraficoVentas = new IntersectionObserver(entradas => {
+                    if(entradas.some(entrada => entrada.isIntersecting)) {
+                        observadorGraficoVentas.disconnect();
+                        observadorGraficoVentas = null;
+                        cargar();
+                    }
+                }, { rootMargin: '180px' });
+                observadorGraficoVentas.observe(canvas);
+            } else {
+                setTimeout(cargar, 3500);
+            }
+        }
+
         function actualizarGraficoVentas() {
-            if(typeof Chart === 'undefined') return; 
-            if(!document.getElementById('graficoVentas')) return; let conteo = {};
+            if(!document.getElementById('graficoVentas')) return;
+            if(typeof Chart === 'undefined') {
+                solicitarGraficoCuandoVisible();
+                return;
+            }
+            let conteo = {};
             ventas.forEach(v => { if(v.anulada) return; if(v.detalleItems) { v.detalleItems.forEach(item => { if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty; }); } });
             let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5); let ctx = document.getElementById('graficoVentas').getContext('2d');
             if(chartVentas) chartVentas.destroy();
