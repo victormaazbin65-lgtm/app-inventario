@@ -12,9 +12,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script src="./visual-preferences.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
+<style>
         :root {
             /* TEMA OSCURO APLICADO */
             --bg-color: #111827;        
@@ -1623,9 +1621,7 @@
             </div>
         </div>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="./negocio-core.js"></script>
+<script src="./negocio-core.js"></script>
     <script src="./gestion-negocio.js"></script>
     <script src="./finanzas-negocio.js"></script>
     <script src="./respaldo-negocio.js"></script>
@@ -1685,6 +1681,78 @@
             clearTimeout(debounceTimers[idTimer]);
             debounceTimers[idTimer] = setTimeout(funcion, delay);
         }
+
+        const DEPENDENCIAS_PESADAS = Object.freeze({
+            chart: 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js',
+            xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+        });
+        const promesasDependencias = {};
+
+        function cargarScriptExternoUnaVez(id, url, disponible) {
+            if(typeof disponible === 'function' && disponible()) return Promise.resolve(true);
+            if(promesasDependencias[id]) return promesasDependencias[id];
+            promesasDependencias[id] = new Promise((resolve, reject) => {
+                const existente = document.getElementById(id);
+                if(existente) {
+                    if(typeof disponible === 'function' && disponible()) return resolve(true);
+                    existente.addEventListener('load', () => resolve(true), { once:true });
+                    existente.addEventListener('error', () => reject(new Error('No se pudo cargar ' + url)), { once:true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.id = id;
+                script.src = url;
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                script.onload = () => resolve(true);
+                script.onerror = () => {
+                    delete promesasDependencias[id];
+                    reject(new Error('No se pudo cargar ' + url));
+                };
+                document.head.appendChild(script);
+            });
+            return promesasDependencias[id];
+        }
+
+        async function asegurarXLSX() {
+            if(typeof XLSX !== 'undefined') return true;
+            await cargarScriptExternoUnaVez('subli-xlsx-bajo-demanda', DEPENDENCIAS_PESADAS.xlsx, () => typeof XLSX !== 'undefined');
+            if(typeof XLSX === 'undefined') throw new Error('Excel no quedó disponible.');
+            return true;
+        }
+
+        async function asegurarChartJS() {
+            if(typeof Chart !== 'undefined') return true;
+            await cargarScriptExternoUnaVez('subli-chart-bajo-demanda', DEPENDENCIAS_PESADAS.chart, () => typeof Chart !== 'undefined');
+            if(typeof Chart === 'undefined') throw new Error('El gráfico no quedó disponible.');
+            return true;
+        }
+
+        let promesaBuscadorBajoDemanda = null;
+        function cargarBuscadorBajoDemanda() {
+            if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
+            if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
+            promesaBuscadorBajoDemanda = import('./buscador.js')
+                .then(() => true)
+                .catch(error => {
+                    promesaBuscadorBajoDemanda = null;
+                    throw error;
+                });
+            return promesaBuscadorBajoDemanda;
+        }
+
+        let aplicacionActivaNotificada = false;
+        function notificarAplicacionActiva() {
+            if(aplicacionActivaNotificada) return;
+            aplicacionActivaNotificada = true;
+            const emitir = () => window.dispatchEvent(new Event('subli:app-activa'));
+            if(typeof window.requestIdleCallback === 'function') window.requestIdleCallback(emitir, { timeout: 1200 });
+            else setTimeout(emitir, 250);
+        }
+
+        window.asegurarXLSX = asegurarXLSX;
+        window.asegurarChartJS = asegurarChartJS;
+        window.cargarBuscadorBajoDemanda = cargarBuscadorBajoDemanda;
         // ===============================================================
 
         function normalizarTexto(texto) {
@@ -2152,6 +2220,7 @@
                 document.getElementById('login-pass').value = '';
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
+                notificarAplicacionActiva();
             } else {
                 alert('Contraseña o PIN incorrecto. Intente de nuevo.');
                 document.getElementById('login-pass').value = '';
@@ -2190,6 +2259,7 @@
                 currentUserData = { id: 0, nombre: 'Dueño (Sin PIN)', rol: 'dueno', pin: '' };
                 aplicarPermisos(currentUserData);
                 reiniciarTemporizador();
+                notificarAplicacionActiva();
             } else {
                 const usuarioSigueVigente = currentUserData && usuarios.some(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
                 if(!usuarioSigueVigente) {
@@ -3472,7 +3542,15 @@
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
             if(pestaña === 'caja') renderGestionNegocio();
             if(pestaña === 'alertas') renderAlertas();
-            if(pestaña === 'buscador' && window.renderBuscadorDisenos) window.renderBuscadorDisenos();
+            if(pestaña === 'buscador') {
+                if(window.renderBuscadorDisenos) window.renderBuscadorDisenos();
+                else cargarBuscadorBajoDemanda()
+                    .then(() => window.renderBuscadorDisenos?.())
+                    .catch(error => {
+                        console.warn('No se pudo cargar el buscador bajo demanda.', error);
+                        alert('No se pudo abrir el buscador. Revisa la conexión e inténtalo nuevamente.');
+                    });
+            }
             if(pestaña === 'ajustes') { prepararSeccionesConfiguracion(); renderUsuarios(); sincronizarControlesPreferencias(); }
         }
 
@@ -6802,6 +6880,5 @@
             }
         });
     </script>
-    <script type="module" src="./buscador.js"></script>
 </body>
 </html>
