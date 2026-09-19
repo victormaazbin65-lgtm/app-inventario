@@ -440,7 +440,7 @@
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
         global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
-        setInterval(capturarBorradores, 4000); setInterval(refrescar, 2500); refrescar(); renderGuiaActual();
+        refrescar(); renderGuiaActual();
     }
 
     global.abrirBuscadorAccionesV130=abrirBuscadorAcciones;

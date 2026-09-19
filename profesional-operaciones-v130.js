@@ -198,7 +198,7 @@
 
     function refrescar(){asegurarOrdenCompra();actualizarOrdenCompra();asegurarCierreDiario();renderCierre();asegurarEtiquetas();actualizarEtiquetas();asegurarPanelAuditoria();}
 
-    function init(){inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();asegurarOrdenCompra();asegurarCierreDiario();asegurarEtiquetas();asegurarPanelAuditoria();setInterval(refrescar,3000);refrescar();}
+    function init(){inyectarEstilos();instalarCapturaErrores();instalarReservaProductos();instalarClienteSeguro();instalarAuditoriaOperaciones();asegurarOrdenCompra();asegurarCierreDiario();asegurarEtiquetas();asegurarPanelAuditoria();refrescar();}
 
     global.registrarAuditoriaV130=registrarAuditoria;global.cargarAuditoriaV130=cargarAuditoria;global.subirDiagnosticoV130=subirDiagnosticoErrores;global.limpiarErroresV130=limpiarErrores;
     global.renderOrdenV130=renderOrdenCompra;global.imprimirOrdenV130=imprimirOrden;global.exportarOrdenV130=exportarOrden;global.guardarOrdenV130=guardarOrden;global.calcularCierreV130=renderCierre;global.guardarCierreV130=guardarCierre;global.imprimirEtiquetaV130=imprimirEtiqueta;
