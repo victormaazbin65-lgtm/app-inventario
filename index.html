@@ -3282,6 +3282,12 @@
             else ejecutar();
         }
 
+        function programarActualizacionSincronizacion() {
+            // Durante el arranque varios snapshots pueden llegar juntos. Se conserva el
+            // último estado recibido y se hace un solo render cuando termina la ráfaga.
+            debouncedEjecucion('render_sincronizacion', actualizarUI, 850);
+        }
+
         async function cargarDatos() {
             if (cargaDatosIniciada) return;
             cargaDatosIniciada = true;
@@ -3347,7 +3353,7 @@
                             datosCargadosDeLaNube = true;
                             asegurarServicioCreacion();
                             programarGuardadoSnapshot('inventario', 'inventario');
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }
                     }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error)), 250);
 
@@ -3356,7 +3362,7 @@
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;
                             programarGuardadoSnapshot('ventas', 'ventas');
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }
                     }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error)), 650);
 
@@ -3369,7 +3375,7 @@
                         if(pendientes.length === 0 && snap.metadata.fromCache && ventasCreditoPendiente.length > 0) return;
                         ventasCreditoPendiente = pendientes;
                         creditosPendientesConfirmados = !snap.metadata.fromCache;
-                        actualizarUI();
+                        programarActualizacionSincronizacion();
                     }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error)), 950);
 
                     programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
@@ -3377,7 +3383,7 @@
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialIngresos = historialCompletoCargado.ingresos ? fusionarPorId(historialIngresos, temp) : temp;
                             programarGuardadoSnapshot('ingresos', 'ingresos');
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }
                     }, error => console.warn("No se pudo sincronizar ingresos; se conserva el respaldo local.", error)), 1300);
 
@@ -3386,7 +3392,7 @@
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialCotizaciones = historialCompletoCargado.cotizaciones ? fusionarPorId(historialCotizaciones, temp) : temp;
                             programarGuardadoSnapshot('cotizaciones', 'cotizaciones');
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }
                     }, error => console.warn("No se pudo sincronizar cotizaciones; se conserva el respaldo local.", error)), 1650);
 
@@ -3395,7 +3401,7 @@
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialRetiros = historialCompletoCargado.retiros ? fusionarPorId(historialRetiros, temp) : temp;
                             programarGuardadoSnapshot('retiros', 'retiros');
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }
                     }, error => console.warn("No se pudo sincronizar retiros; se conserva el respaldo local.", error)), 2000);
                     
@@ -3403,7 +3409,7 @@
                         let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() }));
                         if(temp.length === 0 && snap.metadata.fromCache && resumenMensualNube.length > 0) return;
                         resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id));
-                        actualizarUI();
+                        programarActualizacionSincronizacion();
                     }, error => console.warn('No se pudo sincronizar el resumen mensual.', error)), 2300);
 
                     const escucharColeccionNegocio = (nombre, asignar, grupoGuardado, maximo = 0) => {
@@ -3417,7 +3423,7 @@
                             if(datos.length === 0 && snap.metadata.fromCache) return;
                             asignar(datos);
                             programarGuardadoSnapshot(grupoGuardado, grupoGuardado);
-                            actualizarUI();
+                            programarActualizacionSincronizacion();
                         }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
                     };
                     programarEscuchaFirebase(() => escucharColeccionNegocio('clientes', datos => clientes = datos, 'clientes'), 2600);
