@@ -30,12 +30,12 @@ test('los cinco temas son locales, independientes del modelo visual y no escribe
   assert.doesNotMatch(ui128 + ajuste128, /runTransaction|setDoc|updateDoc|addDoc|deleteDoc|Firebase/);
 });
 
-test('el tema se carga antes de las mejoras y la PWA conserva todos los módulos necesarios', () => {
+test('el tema se carga antes de las mejoras y los módulos opcionales quedan disponibles bajo demanda', () => {
   assert.match(visual, /dataset\.temaVisual = temaGuardado\(\)/);
   assert.match(visual, /asistente-ajustes-v128\.js/);
   assert.match(visual, /mejoras-v128\.js/);
-  assert.match(sw, /'\.\/asistente-ajustes-v128\.js'/);
-  assert.match(sw, /'\.\/mejoras-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v128\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v128\.js'/);
 });
 
 test('el asistente sabe explicar temas y conserva el motor anterior para las demás preguntas', () => {
@@ -108,12 +108,16 @@ test('los botones y selectores HTML simples apuntan a funciones que existen en e
   assert.deepEqual(faltantes, []);
 });
 
-test('todos los archivos locales del APP_SHELL existen y los módulos nuevos son cacheables', () => {
+test('el APP_SHELL conserva solo el arranque esencial y los módulos opcionales siguen disponibles', () => {
   const entradas = [...sw.matchAll(/^\s*'\.\/([^']+)'/gm)].map(m => m[1]).filter(Boolean);
   const faltantes = entradas.filter(rel => rel !== '' && !fs.existsSync(path.join(raiz, rel)));
   assert.deepEqual(faltantes, []);
-  assert.ok(entradas.includes('mejoras-v128.js'));
-  assert.ok(entradas.includes('asistente-ajustes-v128.js'));
+  assert.ok(entradas.includes('visual-preferences.js'));
+  assert.ok(entradas.includes('negocio-core.js'));
+  assert.ok(!entradas.includes('mejoras-v128.js'));
+  assert.ok(!entradas.includes('asistente-ajustes-v128.js'));
+  assert.match(visual, /mejoras-v128\.js/);
+  assert.match(visual, /asistente-ajustes-v128\.js/);
 });
 
 test('la CI usa Node 24 y acciones compatibles con el runtime actual', () => {
