@@ -3226,22 +3226,60 @@
             actualizarUI();
         }
 
+        const GUARDADO_LOCAL = {
+            inventario: () => [KEY_INV, inventario, "Inventario"],
+            ventas: () => [KEY_VENTAS, ventas, "Ventas"],
+            fondos: () => [KEY_FONDOS, fondos, "Fondos"],
+            ingresos: () => [KEY_INGRESOS, historialIngresos, "Ingresos"],
+            cotizaciones: () => [KEY_COTIZ_HIST, historialCotizaciones, "Cotizaciones"],
+            retiros: () => [KEY_RETIROS, historialRetiros, "Retiros"],
+            codigos: () => [KEY_CODIGOS_INV, estadoCodigosInventario, "Códigos de inventario"],
+            negocio: () => [KEY_NEGOCIO, configuracionNegocio, "Configuración"],
+            saldos: () => [KEY_SALDOS_DINERO, saldosDinero, "Saldos"],
+            clientes: () => [KEY_CLIENTES, clientes, "Clientes"],
+            anticipos: () => [KEY_ANTICIPOS, anticipos, "Anticipos"],
+            prestamos: () => [KEY_PRESTAMOS, prestamos, "Préstamos"],
+            movimientos: () => [KEY_MOVIMIENTOS_CAJA, movimientosCaja.slice(0, 100), "Caja"],
+            devoluciones: () => [KEY_DEVOLUCIONES, devoluciones, "Devoluciones"],
+            perdidas: () => [KEY_PERDIDAS, perdidasInventario, "Pérdidas"]
+        };
+
+        function guardarDatosParcial(...grupos) {
+            [...new Set(grupos.flat().filter(Boolean))].forEach(grupo => {
+                const obtener = GUARDADO_LOCAL[grupo];
+                if(!obtener) return;
+                const [clave, valor, etiqueta] = obtener();
+                try { localStorage.setItem(clave, JSON.stringify(valor)); }
+                catch (e) { console.warn("Límite de cuota en " + etiqueta, e); }
+            });
+        }
+
+        function programarGuardadoSnapshot(id, ...grupos) {
+            debouncedEjecucion('guardar_snapshot_' + id, () => {
+                const tarea = () => guardarDatosParcial(...grupos);
+                if(typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(tarea, { timeout: 1800 });
+                } else {
+                    setTimeout(tarea, 0);
+                }
+            }, 650);
+        }
+
         function guardarDatos() {
-            try { localStorage.setItem(KEY_INV, JSON.stringify(inventario)); } catch (e) { console.warn("Límite de cuota en Inventario", e); }
-            try { localStorage.setItem(KEY_VENTAS, JSON.stringify(ventas)); } catch (e) { console.warn("Límite de cuota en Ventas", e); }
-            try { localStorage.setItem(KEY_FONDOS, JSON.stringify(fondos)); } catch (e) { console.warn("Límite de cuota en Fondos", e); }
-            try { localStorage.setItem(KEY_INGRESOS, JSON.stringify(historialIngresos)); } catch (e) { console.warn("Límite de cuota en Ingresos", e); }
-            try { localStorage.setItem(KEY_COTIZ_HIST, JSON.stringify(historialCotizaciones)); } catch (e) { console.warn("Límite de cuota en Cotizaciones", e); }
-            try { localStorage.setItem(KEY_RETIROS, JSON.stringify(historialRetiros)); } catch (e) { console.warn("Límite de cuota en Retiros", e); }
-            try { localStorage.setItem(KEY_CODIGOS_INV, JSON.stringify(estadoCodigosInventario)); } catch (e) { console.warn("Límite de cuota en Códigos de inventario", e); }
-            try { localStorage.setItem(KEY_NEGOCIO, JSON.stringify(configuracionNegocio)); } catch (e) { console.warn("Límite de cuota en Configuración", e); }
-            try { localStorage.setItem(KEY_SALDOS_DINERO, JSON.stringify(saldosDinero)); } catch (e) { console.warn("Límite de cuota en Saldos", e); }
-            try { localStorage.setItem(KEY_CLIENTES, JSON.stringify(clientes)); } catch (e) { console.warn("Límite de cuota en Clientes", e); }
-            try { localStorage.setItem(KEY_ANTICIPOS, JSON.stringify(anticipos)); } catch (e) { console.warn("Límite de cuota en Anticipos", e); }
-            try { localStorage.setItem(KEY_PRESTAMOS, JSON.stringify(prestamos)); } catch (e) { console.warn("Límite de cuota en Préstamos", e); }
-            try { localStorage.setItem(KEY_MOVIMIENTOS_CAJA, JSON.stringify(movimientosCaja.slice(0, 100))); } catch (e) { console.warn("Límite de cuota en Caja", e); }
-            try { localStorage.setItem(KEY_DEVOLUCIONES, JSON.stringify(devoluciones)); } catch (e) { console.warn("Límite de cuota en Devoluciones", e); }
-            try { localStorage.setItem(KEY_PERDIDAS, JSON.stringify(perdidasInventario)); } catch (e) { console.warn("Límite de cuota en Pérdidas", e); }
+            guardarDatosParcial(
+                'inventario', 'ventas', 'fondos', 'ingresos', 'cotizaciones', 'retiros',
+                'codigos', 'negocio', 'saldos', 'clientes', 'anticipos', 'prestamos',
+                'movimientos', 'devoluciones', 'perdidas'
+            );
+        }
+
+        function programarEscuchaFirebase(tarea, retraso = 0) {
+            const ejecutar = () => {
+                try { tarea(); }
+                catch(error) { console.warn('No se pudo iniciar una sincronización diferida.', error); }
+            };
+            if(retraso > 0) setTimeout(ejecutar, retraso);
+            else ejecutar();
         }
 
         async function cargarDatos() {
@@ -3286,7 +3324,7 @@
                                 usuariosRevision = Number(data.usuariosRevision || 0);
                                 localStorage.removeItem('subli_usuarios');
                             }
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('config', 'fondos', 'codigos', 'negocio', 'saldos');
                             actualizarUI();
                             comprobarIngresoInicialLibre();
                             if(!docSnap.metadata.fromCache) confirmarAccesoFirebaseDisponible();
@@ -3302,92 +3340,103 @@
                         if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
                     });
 
-                    window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             inventario = temp;
                             datosCargadosDeLaNube = true;
                             asegurarServicioCreacion();
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('inventario', 'inventario');
                             actualizarUI();
                         }
-                    }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error));
+                    }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error)), 250);
 
-                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('ventas', 'ventas');
                             actualizarUI();
                         }
-                    }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error));
+                    }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error)), 650);
 
-                    window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
                         const pendientes = [];
                         snap.forEach(d => {
                             const venta = d.data();
                             if(!venta.anulada && aCentavos(venta.saldoPendiente) > 0) pendientes.push(venta);
                         });
+                        if(pendientes.length === 0 && snap.metadata.fromCache && ventasCreditoPendiente.length > 0) return;
                         ventasCreditoPendiente = pendientes;
                         creditosPendientesConfirmados = !snap.metadata.fromCache;
                         actualizarUI();
-                    }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error));
+                    }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error)), 950);
 
-                    window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialIngresos = historialCompletoCargado.ingresos ? fusionarPorId(historialIngresos, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('ingresos', 'ingresos');
                             actualizarUI();
                         }
-                    }, error => console.warn("No se pudo sincronizar ingresos; se conserva el respaldo local.", error));
+                    }, error => console.warn("No se pudo sincronizar ingresos; se conserva el respaldo local.", error)), 1300);
 
-                    window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "cotizaciones"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialCotizaciones = historialCompletoCargado.cotizaciones ? fusionarPorId(historialCotizaciones, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('cotizaciones', 'cotizaciones');
                             actualizarUI();
                         }
-                    }, error => console.warn("No se pudo sincronizar cotizaciones; se conserva el respaldo local.", error));
+                    }, error => console.warn("No se pudo sincronizar cotizaciones; se conserva el respaldo local.", error)), 1650);
 
-                    window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "retiros"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             historialRetiros = historialCompletoCargado.retiros ? fusionarPorId(historialRetiros, temp) : temp;
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot('retiros', 'retiros');
                             actualizarUI();
                         }
-                    }, error => console.warn("No se pudo sincronizar retiros; se conserva el respaldo local.", error));
+                    }, error => console.warn("No se pudo sincronizar retiros; se conserva el respaldo local.", error)), 2000);
                     
-                    window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
-                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() })); resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id)); actualizarUI();
-                    }, error => console.warn('No se pudo sincronizar el resumen mensual.', error));
+                    programarEscuchaFirebase(() => window.onSnapshot(window.collection(window.db, "resumen_mensual"), (snap) => {
+                        let temp = []; snap.forEach(d => temp.push({ id: d.id, ...d.data() }));
+                        if(temp.length === 0 && snap.metadata.fromCache && resumenMensualNube.length > 0) return;
+                        resumenMensualNube = temp.sort((a,b) => b.id.localeCompare(a.id));
+                        actualizarUI();
+                    }, error => console.warn('No se pudo sincronizar el resumen mensual.', error)), 2300);
 
-                    const escucharColeccionNegocio = (nombre, asignar, maximo = 0) => {
+                    const escucharColeccionNegocio = (nombre, asignar, grupoGuardado, maximo = 0) => {
                         const coleccion = window.collection(window.db, nombre);
                         const referencia = maximo > 0 ? window.query(coleccion, window.orderBy('timestamp', 'desc'), window.limit(maximo)) : coleccion;
                         window.onSnapshot(referencia, snap => {
                             const datos = [];
                             snap.forEach(d => datos.push({ id: d.id, ...d.data() }));
+                            // Una instantánea vacía procedente solo de caché no sustituye
+                            // una copia local válida. Vacío confirmado por servidor sí.
+                            if(datos.length === 0 && snap.metadata.fromCache) return;
                             asignar(datos);
-                            debouncedEjecucion('guardar_snapshot', guardarDatos, 500);
+                            programarGuardadoSnapshot(grupoGuardado, grupoGuardado);
                             actualizarUI();
                         }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
                     };
-                    escucharColeccionNegocio('clientes', datos => clientes = datos);
-                    escucharColeccionNegocio('anticipos', datos => anticipos = datos);
-                    escucharColeccionNegocio('prestamos', datos => prestamos = datos);
-                    escucharColeccionNegocio('movimientos_caja', datos => movimientosCaja = datos, 120);
-                    escucharColeccionNegocio('devoluciones', datos => devoluciones = datos, 120);
-                    escucharColeccionNegocio('perdidas_inventario', datos => perdidasInventario = datos, 120);
-                    window.onSnapshot(window.doc(window.db, 'sistema', 'branding'), snap => {
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('clientes', datos => clientes = datos, 'clientes'), 2600);
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('anticipos', datos => anticipos = datos, 'anticipos'), 3000);
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('prestamos', datos => prestamos = datos, 'prestamos'), 3400);
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('movimientos_caja', datos => movimientosCaja = datos, 'movimientos', 120), 3800);
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('devoluciones', datos => devoluciones = datos, 'devoluciones', 120), 4200);
+                    programarEscuchaFirebase(() => escucharColeccionNegocio('perdidas_inventario', datos => perdidasInventario = datos, 'perdidas', 120), 4600);
+                    programarEscuchaFirebase(() => window.onSnapshot(window.doc(window.db, 'sistema', 'branding'), snap => {
                         if(snap.exists()) aplicarLogoSincronizado(snap.data());
-                    }, error => console.warn('No se pudo sincronizar el logo.', error));
+                    }, error => console.warn('No se pudo sincronizar el logo.', error)), 500);
                     
                     mostrarLogo();
                     comprobarIngresoInicialLibre();
-                    cargarVentasAnalisisUltimos30Dias();
+                    programarEscuchaFirebase(() => {
+                        const cargar = () => cargarVentasAnalisisUltimos30Dias();
+                        if(typeof window.requestIdleCallback === 'function') window.requestIdleCallback(cargar, { timeout: 5000 });
+                        else setTimeout(cargar, 0);
+                    }, 12000);
                     return; 
                 } catch (e) { console.error("Fallo crítico en Firebase.", e); }
             } 
