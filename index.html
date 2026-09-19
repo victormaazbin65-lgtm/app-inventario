@@ -166,6 +166,15 @@
             line-height: 1.45;
         }
         .container { max-width: 1080px; }
+        /* Android/móvil: reduce capas de composición costosas sin cambiar funciones. */
+        @media (max-width: 700px) {
+            body { background-attachment: scroll; }
+            .tabs, .card, .modal-overlay {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .dash-card, .tab-btn { transition: none !important; }
+        }
         .tabs {
             position: sticky;
             top: 10px;
@@ -3270,9 +3279,22 @@
 
         async function cargarVentasAnalisisUltimos30Dias() {
             if(!window.db || !window.getDocs || !window.where || !navigator.onLine) return;
+            // Android ya mantiene una escucha limitada de ventas recientes. Evitamos aquí
+            // una segunda lectura analítica durante el arranque, que coincidía con el pico
+            // de trabajo observado ~12-15 s después de abrir. No escribe ni borra datos.
+            const esAndroid = /Android/i.test(navigator.userAgent || '');
+            if(esAndroid) {
+                ventasAnalisis30 = Array.isArray(ventas) ? ventas.slice() : [];
+                return;
+            }
             try {
                 const desde = Date.now() - (30 * 24 * 60 * 60 * 1000);
-                const consulta = window.query(window.collection(window.db, "ventas"), window.where("timestamp", ">=", desde));
+                const consulta = window.query(
+                    window.collection(window.db, "ventas"),
+                    window.where("timestamp", ">=", desde),
+                    window.orderBy("timestamp", "desc"),
+                    window.limit(200)
+                );
                 const snap = await window.getDocs(consulta);
                 const recientes = [];
                 snap.forEach(docVenta => recientes.push(docVenta.data()));
