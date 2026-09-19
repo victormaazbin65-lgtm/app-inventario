@@ -44,54 +44,75 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
 
     inyectarPaletasTempranas();
 
-    function cargarScript(id, src, alCargar) {
-        if(document.getElementById(id)) return;
-        const script = document.createElement('script');
-        script.id = id;
-        script.src = src;
-        if(typeof alCargar === 'function') script.onload = alCargar;
-        document.head.appendChild(script);
+    function esperar(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // Mejoras incrementales: se cargan separadas del archivo principal para no
-    // duplicar ni reescribir la lógica contable ya probada.
-    function cargarMejoras() {
-        // Las pruebas de arranque usan un documento mínimo. En navegador real
-        // estas funciones existen; si no existen, se conserva únicamente la
-        // preferencia visual y no se intenta manipular el DOM.
+    function cargarScriptPromesa(id, src) {
         if(!document || typeof document.getElementById !== 'function'
             || typeof document.createElement !== 'function'
-            || !document.head || typeof document.head.appendChild !== 'function') return;
-        if(document.getElementById('subli-mejoras-core-v126')) return;
-
-        cargarScript('subli-mejoras-core-v126', './mejoras-core.js', () => {
-            cargarScript('subli-mejoras-ui-v126', './mejoras-v126.js', () => {
-                cargarScript('subli-asistente-core-v127', './asistente-core.js', () => {
-                    cargarScript('subli-asistente-ajustes-v127', './asistente-ajustes-v127.js', () => {
-                        cargarScript('subli-asistente-ajustes-v128', './asistente-ajustes-v128.js', () => {
-                            cargarScript('subli-mejoras-ui-v127', './mejoras-v127.js', () => {
-                                cargarScript('subli-mejoras-ui-v128', './mejoras-v128.js', () => {
-                                    cargarScript('subli-profesional-core-v130', './profesional-core-v130.js', () => {
-                                        cargarScript('subli-profesional-core-ajustes-v130', './profesional-core-ajustes-v130.js', () => {
-                                            cargarScript('subli-vendor-v130', './vendor-cache-v130.js', () => {
-                                                cargarScript('subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', () => {
-                                                    cargarScript('subli-profesional-ui-v130', './profesional-ui-v130.js', () => {
-                                                        cargarScript('subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', () => {
-                                                            cargarScript('subli-profesional-compat-v130', './profesional-compat-v130.js');
-                                                        });
-                                                    });
-                                                });
-                                            });
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
+            || !document.head || typeof document.head.appendChild !== 'function') {
+            return Promise.resolve(false);
+        }
+        const existente = document.getElementById(id);
+        if(existente) return Promise.resolve(true);
+        return new Promise(resolve => {
+            const script = document.createElement('script');
+            script.id = id;
+            script.src = src;
+            script.async = true;
+            script.onload = () => resolve(true);
+            script.onerror = () => {
+                console.warn('No se pudo cargar el módulo opcional ' + src + '.');
+                resolve(false);
+            };
+            document.head.appendChild(script);
         });
     }
 
-    cargarMejoras();
+    const MODULOS_DIFERIDOS = Object.freeze([
+        ['subli-mejoras-core-v126', './mejoras-core.js', 180],
+        ['subli-mejoras-ui-v126', './mejoras-v126.js', 220],
+        ['subli-asistente-core-v127', './asistente-core.js', 180],
+        ['subli-asistente-ajustes-v127', './asistente-ajustes-v127.js', 180],
+        ['subli-asistente-ajustes-v128', './asistente-ajustes-v128.js', 180],
+        ['subli-mejoras-ui-v127', './mejoras-v127.js', 220],
+        ['subli-mejoras-ui-v128', './mejoras-v128.js', 350],
+        ['subli-profesional-core-v130', './profesional-core-v130.js', 220],
+        ['subli-profesional-core-ajustes-v130', './profesional-core-ajustes-v130.js', 220],
+        ['subli-vendor-v130', './vendor-cache-v130.js', 220],
+        ['subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', 220],
+        ['subli-profesional-ui-v130', './profesional-ui-v130.js', 260],
+        ['subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', 260],
+        ['subli-profesional-compat-v130', './profesional-compat-v130.js', 0]
+    ]);
+
+    let cargaMejorasIniciada = false;
+
+    // Las mejoras profesionales ya no compiten con el arranque, Firebase ni el PIN.
+    // Se cargan solamente después de entrar al sistema y una por una.
+    async function cargarMejoras() {
+        if(cargaMejorasIniciada) return;
+        if(!document || typeof document.getElementById !== 'function'
+            || typeof document.createElement !== 'function'
+            || !document.head || typeof document.head.appendChild !== 'function') return;
+        cargaMejorasIniciada = true;
+        for(const [id, src, pausa] of MODULOS_DIFERIDOS) {
+            await cargarScriptPromesa(id, src);
+            if(pausa > 0) await esperar(pausa);
+        }
+    }
+
+    function programarMejorasDespuesDelAcceso() {
+        const iniciar = () => cargarMejoras().catch(error => console.warn('No se pudieron cargar todas las mejoras opcionales.', error));
+        if(typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(iniciar, { timeout: 1800 });
+        } else {
+            setTimeout(iniciar, 700);
+        }
+    }
+
+    if(typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('subli:app-activa', programarMejorasDespuesDelAcceso, { once:true });
+    }
 })();
