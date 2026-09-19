@@ -89,7 +89,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
 
     let cargaMejorasIniciada = false;
 
-    // Las mejoras profesionales ya no compiten con el arranque, Firebase ni el PIN.
+    // Las mejoras profesionales ya no compiten con el arranque, la sincronización ni el PIN.
     // Se cargan solamente después de entrar al sistema y una por una.
     async function cargarMejoras() {
         if(cargaMejorasIniciada) return;
