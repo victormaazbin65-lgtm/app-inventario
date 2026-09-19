@@ -103,12 +103,12 @@ test('la interfaz v1.2.7 reutiliza las operaciones existentes y solo agrega ayud
   assert.doesNotMatch(uiSource, /setDoc|updateDoc|runTransaction/);
 });
 
-test('la PWA carga y cachea los módulos del asistente sin alterar la versión contable', () => {
+test('la PWA conserva los módulos del asistente bajo demanda sin alterar la versión contable', () => {
   assert.match(bootstrap, /asistente-core\.js/);
   assert.match(bootstrap, /asistente-ajustes-v127\.js/);
   assert.match(bootstrap, /mejoras-v127\.js/);
-  assert.match(sw, /'\.\/asistente-core\.js'/);
-  assert.match(sw, /'\.\/asistente-ajustes-v127\.js'/);
-  assert.match(sw, /'\.\/mejoras-v127\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-core\.js'/);
+  assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v127\.js'/);
+  assert.doesNotMatch(sw, /'\.\/mejoras-v127\.js'/);
   assert.match(sw, /sublicosturas-v1\.2\.5/);
 });
