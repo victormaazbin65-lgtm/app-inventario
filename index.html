@@ -3537,6 +3537,7 @@
             if (btnPestaña) btnPestaña.classList.add('active');
             
             if(pestaña === 'inicio') actualizarUI(); 
+            if(pestaña === 'ventas') actualizarUI();
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
             if(pestaña === 'inventario') renderInventario();
             if(pestaña === 'cotizacion') renderHistorialCotizaciones();
@@ -6736,6 +6737,8 @@
 
         // --- SOLUCIÓN 2 Y 3: EMBOUDO DE RENDERIZADO Y OPTIMIZACIÓN DE CHART.JS ---
         function renderizarTodo() {
+            const appPrincipal = document.getElementById('main-app');
+            if(!appPrincipal || appPrincipal.style.display === 'none') return;
 
             let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
             const simboloMoneda = configuracionNegocio.moneda || 'Q';
@@ -6745,19 +6748,23 @@
             document.getElementById('dash-fondo-impuestos').innerText = simboloMoneda + ' ' + numeroFinito(fondos.fondoImpuestos).toFixed(2);
             document.getElementById('dash-ganancia').innerText = simboloMoneda + ' ' + numeroFinito(fondos.gananciaLibre).toFixed(2);
 
-            actualizarListaCategorias(); renderInventario(); 
+            actualizarListaCategorias();
+            if (document.getElementById('tab-inventario').classList.contains('active')) renderInventario();
             
             // OPTIMIZACIÓN: Solo dibuja el gráfico si el panel de finanzas está visible
             if (document.getElementById('tab-inicio').classList.contains('active')) {
                 actualizarGraficoVentas();
             }
             
-            renderResumenMensual();
-            renderHistorialRetiros();
-            renderPanelInteligente();
+            if (document.getElementById('tab-inicio').classList.contains('active')) {
+                renderResumenMensual();
+                renderPanelInteligente();
+            }
+            if (document.getElementById('tab-caja').classList.contains('active')) renderHistorialRetiros();
             aplicarConfiguracionNegocio();
 
-            // RENDER HISTORIAL VENTAS
+            // RENDER HISTORIAL VENTAS solo si la pestaña está visible
+            if (document.getElementById('tab-ventas').classList.contains('active')) {
             const contVentas = document.getElementById('lista-ventas');
             
             popularSelectMeses(ventas, 'filtro-mes-ventas');
@@ -6796,7 +6803,10 @@
                 contVentas.innerHTML = htmlVentas;
             }
 
-            renderHistorialCotizaciones(); renderHistorialIngresos();
+            }
+
+            if (document.getElementById('tab-cotizacion').classList.contains('active')) renderHistorialCotizaciones();
+            if (document.getElementById('tab-ingreso').classList.contains('active')) renderHistorialIngresos();
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
         }
 
