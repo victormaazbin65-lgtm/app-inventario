@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-arranque-liviano-20260922';
+const CACHE_NAME = 'sublicosturas-v1.2.5-restaurar-saldos-20260923';
 const APP_SHELL = [
   './index.html',
   './visual-preferences.js',

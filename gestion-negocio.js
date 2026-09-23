@@ -88,11 +88,17 @@
         renderSelectoresUnidades();
         renderUnidadesPersonalizadasConfig();
         const appPrincipal = document.getElementById('main-app');
-        const cajaVisible = document.getElementById('sec-caja')?.style.display === 'block';
-        const clientesVisibles = document.getElementById('sec-ajustes')?.style.display === 'block'
-            && Boolean(document.getElementById('ajuste-clientes')?.open);
-        if(appPrincipal && appPrincipal.style.display !== 'none' && (cajaVisible || clientesVisibles)) {
+        if(!appPrincipal || appPrincipal.style.display === 'none') return;
+        const visible = id => document.getElementById(id)?.style.display === 'block';
+        if(visible('sec-caja')) {
             renderGestionNegocio();
+        } else if(visible('sec-ajustes') && document.getElementById('ajuste-clientes')?.open) {
+            renderGestionClientes();
+        } else if(visible('sec-inicio')) {
+            if(typeof global.actualizarResumenFinanzasNegocio === 'function') global.actualizarResumenFinanzasNegocio();
+        } else if(visible('sec-ventas') || visible('sec-cotizacion')) {
+            renderListaClientesVenta();
+            if(visible('sec-ventas')) actualizarCamposCobroVenta();
         }
     }
 
@@ -474,10 +480,16 @@
         return clientes.filter(c => c && !c.archivado).sort((a, b) => String(a.nombreCompleto).localeCompare(String(b.nombreCompleto)));
     }
 
+    function renderListaClientesVenta(activos = clientesActivos()) {
+        const datalist = document.getElementById('lista-clientes');
+        if(!datalist) return;
+        const opciones = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+        if(datalist.innerHTML !== opciones) datalist.innerHTML = opciones;
+    }
+
     function renderSelectoresClientes() {
         const activos = clientesActivos();
-        const datalist = document.getElementById('lista-clientes');
-        if (datalist) datalist.innerHTML = activos.map(c => `<option value="${escaparHTML(c.nombreCompleto)}">${escaparHTML(c.telefono || c.nit || '')}</option>`).join('');
+        renderListaClientesVenta(activos);
         const selectAnticipo = document.getElementById('anticipo-cliente');
         if (selectAnticipo) {
             const anterior = selectAnticipo.value;
@@ -687,6 +699,7 @@
     global.dineroNegocio = dineroNegocio;
     global.sincronizarEstadoNegocio = sincronizarEstadoNegocio;
     global.aplicarConfiguracionNegocio = aplicarConfiguracionNegocio;
+    global.renderListaClientesVenta = renderListaClientesVenta;
     global.guardarConfiguracionNegocio = guardarConfiguracionNegocio;
     global.cuentaPropietarioAutorizada = cuentaPropietarioAutorizada;
     global.confirmarAccesoFirebaseDisponible = confirmarAccesoFirebaseDisponible;

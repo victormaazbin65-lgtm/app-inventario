@@ -740,7 +740,7 @@
         }
     }
 
-    function renderFinanzasNegocio() {
+    function actualizarResumenFinanzasNegocio() {
         const moneda = monedaNegocio();
         const efectivo = Number(saldosDinero?.efectivo || 0); const banco = Number(saldosDinero?.banco || 0);
         const saldosClientes = clientes.filter(c => !c.archivado && Number.isFinite(Number(c.saldoCredito)));
@@ -754,6 +754,10 @@
         };
         Object.entries(ids).forEach(([id, valor]) => { const el = document.getElementById(id); if (el) el.textContent = `${moneda} ${core.redondearMoneda(valor).toFixed(2)}`; });
         const total = document.getElementById('dash-total-caja'); if (total) total.textContent = `${moneda} ${core.redondearMoneda(efectivo + banco).toFixed(2)}`;
+    }
+
+    function renderFinanzasNegocio() {
+        actualizarResumenFinanzasNegocio();
         renderCreditos(); renderAnticipos(); renderPrestamos(); renderPerdidas(); renderMovimientos(); renderSelectoresFinanzas();
         if (document.getElementById('devolucion-venta')?.value) actualizarOpcionesDevolucion();
     }
@@ -769,5 +773,6 @@
     global.actualizarOpcionesDevolucion = actualizarOpcionesDevolucion;
     global.actualizarPreviewDevolucion = actualizarPreviewDevolucion;
     global.registrarDevolucionVenta = registrarDevolucionVenta;
+    global.actualizarResumenFinanzasNegocio = actualizarResumenFinanzasNegocio;
     global.renderFinanzasNegocio = renderFinanzasNegocio;
 })(window);

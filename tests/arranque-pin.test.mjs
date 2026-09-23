@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
 const gestion = fs.readFileSync(path.join(raiz, 'gestion-negocio.js'), 'utf8');
+const finanzas = fs.readFileSync(path.join(raiz, 'finanzas-negocio.js'), 'utf8');
 
 test('el respaldo se lee por etapas y una sola vez aunque dos arranques lo pidan', async () => {
   const inicio = html.indexOf('let cargaDatosLocalesPromesa = null;');
@@ -58,15 +59,20 @@ test('el respaldo se lee por etapas y una sola vez aunque dos arranques lo pidan
   assert.equal(datos.size, 3);
 });
 
-test('la configuración no dibuja listas de caja ni clientes mientras el PIN está visible', () => {
+test('cada pantalla recupera su resumen y sus clientes sin dibujar listas durante el PIN', () => {
   const inicio = gestion.indexOf('function aplicarConfiguracionNegocio()');
   const fin = gestion.indexOf('async function guardarConfiguracionNegocio', inicio);
   assert.ok(inicio >= 0 && fin > inicio);
-  const app = { style: { display: 'none' } };
-  const caja = { style: { display: 'none' } };
-  let renders = 0;
+  const vistas = Object.fromEntries(['main-app', 'sec-inicio', 'sec-caja', 'sec-ajustes', 'ajuste-clientes', 'sec-ventas', 'sec-cotizacion']
+    .map(id => [id, { style: { display: id === 'sec-inicio' ? 'block' : 'none' }, open: false }]));
+  let resumen = 0;
+  let caja = 0;
+  let clientes = 0;
+  let listaVenta = 0;
+  let cobro = 0;
   const entorno = {
     core: { normalizarConfiguracionNegocio: valor => valor },
+    global: { actualizarResumenFinanzasNegocio: () => { resumen++; } },
     configuracionNegocio: {
       nombreNegocio: 'SubliCosturas', moneda: 'Q', porcentajeSAT: 5,
       nombreFondoProduccion: 'Producción', nombreManoObra: 'Mano de obra',
@@ -75,21 +81,78 @@ test('la configuración no dibuja listas de caja ni clientes mientras el PIN est
     document: {
       title: '',
       querySelectorAll: () => [],
-      getElementById: id => id === 'main-app' ? app : id === 'sec-caja' ? caja : null
+      getElementById: id => vistas[id] || null
     },
     renderSelectoresUnidades: () => {},
     renderUnidadesPersonalizadasConfig: () => {},
-    renderGestionNegocio: () => { renders += 1; }
+    renderGestionNegocio: () => { caja++; },
+    renderGestionClientes: () => { clientes++; },
+    renderListaClientesVenta: () => { listaVenta++; },
+    actualizarCamposCobroVenta: () => { cobro++; }
   };
   vm.createContext(entorno);
   vm.runInContext(gestion.slice(inicio, fin), entorno);
   entorno.aplicarConfiguracionNegocio();
-  app.style.display = 'block';
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [0, 0, 0, 0, 0]);
+
+  vistas['main-app'].style.display = 'block';
   entorno.aplicarConfiguracionNegocio();
-  assert.equal(renders, 0);
-  caja.style.display = 'block';
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [1, 0, 0, 0, 0]);
+
+  vistas['sec-inicio'].style.display = 'none';
+  vistas['sec-caja'].style.display = 'block';
   entorno.aplicarConfiguracionNegocio();
-  assert.equal(renders, 1);
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [1, 1, 0, 0, 0]);
+
+  vistas['sec-caja'].style.display = 'none';
+  vistas['sec-ajustes'].style.display = 'block';
+  vistas['ajuste-clientes'].open = true;
+  entorno.aplicarConfiguracionNegocio();
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [1, 1, 1, 0, 0]);
+
+  vistas['sec-ajustes'].style.display = 'none';
+  vistas['sec-ventas'].style.display = 'block';
+  entorno.aplicarConfiguracionNegocio();
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [1, 1, 1, 1, 1]);
+
+  vistas['sec-ventas'].style.display = 'none';
+  vistas['sec-cotizacion'].style.display = 'block';
+  entorno.aplicarConfiguracionNegocio();
+  assert.deepEqual([resumen, caja, clientes, listaVenta, cobro], [1, 1, 1, 2, 1]);
+  assert.match(html, /if\(pestaña === 'cotizacion'\) \{\s*window\.renderListaClientesVenta\?\.\(\)/);
+});
+
+test('el resumen muestra los saldos guardados sin construir listas financieras', () => {
+  const inicio = finanzas.indexOf('function actualizarResumenFinanzasNegocio()');
+  const fin = finanzas.indexOf('function renderFinanzasNegocio()', inicio);
+  assert.ok(inicio >= 0 && fin > inicio);
+  const codigo = finanzas.slice(inicio, fin);
+  const elementos = new Map();
+  const entorno = {
+    monedaNegocio: () => 'Q',
+    saldosDinero: { efectivo: 123.45, banco: 67.89 },
+    clientes: [{ saldoCredito: 25, archivado: false }],
+    creditosPendientesConfirmados: true,
+    ventasCreditoPendiente: [],
+    ventas: [],
+    totalAnticiposPendientes: () => 10,
+    core: { redondearMoneda: valor => Math.round(valor * 100) / 100 },
+    document: { getElementById: id => {
+      if(!elementos.has(id)) elementos.set(id, { textContent: '' });
+      return elementos.get(id);
+    } },
+    renderCreditos: () => { throw new Error('No debe dibujar créditos'); },
+    renderMovimientos: () => { throw new Error('No debe dibujar movimientos'); }
+  };
+  vm.createContext(entorno);
+  vm.runInContext(codigo, entorno);
+  entorno.actualizarResumenFinanzasNegocio();
+  assert.equal(elementos.get('dash-efectivo').textContent, 'Q 123.45');
+  assert.equal(elementos.get('dash-banco').textContent, 'Q 67.89');
+  assert.equal(elementos.get('dash-total-caja').textContent, 'Q 191.34');
+  assert.equal(elementos.get('dash-credito-pendiente').textContent, 'Q 25.00');
+  assert.equal(elementos.get('dash-anticipos-pendientes').textContent, 'Q 10.00');
+  assert.equal(elementos.get('caja-saldo-efectivo').textContent, 'Q 123.45');
 });
 
 test('Firebase y el modo local comparten la lectura por etapas', () => {
