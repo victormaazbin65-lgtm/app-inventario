@@ -264,6 +264,21 @@
         try { guardarBorrador('ingreso', carritoIngresos, 'sec-ingreso'); } catch(_) {}
     }
 
+    let guardadoBorradorPendiente = null;
+    function programarGuardadoBorrador(evento) {
+        const objetivo = evento?.target;
+        if(!objetivo || typeof objetivo.closest !== 'function'
+            || !objetivo.closest('#sec-ventas, #sec-cotizacion, #sec-ingreso')) return;
+        clearTimeout(guardadoBorradorPendiente);
+        guardadoBorradorPendiente = setTimeout(capturarBorradores, 500);
+    }
+    function guardarBorradoresAlOcultar() {
+        if(document.visibilityState === 'hidden') {
+            clearTimeout(guardadoBorradorPendiente);
+            capturarBorradores();
+        }
+    }
+
     function leerBorrador(tipo) {
         try {
             const b = JSON.parse(localStorage.getItem(DRAFT_PREFIX + tipo) || 'null');
@@ -439,6 +454,11 @@
     function iniciar() {
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
         global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
+        global.addEventListener('pagehide', capturarBorradores);
+        document.addEventListener('visibilitychange', guardarBorradoresAlOcultar);
+        document.addEventListener('input', programarGuardadoBorrador);
+        document.addEventListener('change', programarGuardadoBorrador);
+        document.addEventListener('click', programarGuardadoBorrador);
         document.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();abrirBuscadorAcciones();}else if(e.key==='Escape')cerrarBuscadorAcciones();});
         refrescar(); renderGuiaActual();
     }
