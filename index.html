@@ -3215,7 +3215,9 @@
             }
         }
 
+        let cargaDatosLocalesPromesa = null;
         function cargarDatosLocales() {
+            if(cargaDatosLocalesPromesa) return cargaDatosLocalesPromesa;
             const asignaciones = [
                 [KEY_INV, valor => inventario = valor],
                 [KEY_VENTAS, valor => {
@@ -3237,14 +3239,20 @@
                 [KEY_PERDIDAS, valor => perdidasInventario = Array.isArray(valor) ? valor : []]
             ];
 
-            asignaciones.forEach(([clave, asignar]) => {
-                try {
-                    const contenido = localStorage.getItem(clave);
-                    if (contenido) asignar(JSON.parse(contenido));
-                } catch (error) {
-                    console.warn(`No se pudo leer el respaldo local ${clave}.`, error);
+            // Lee una copia por tarea y permite responder al teclado entre lecturas.
+            // La promesa compartida evita repetir el trabajo si Firebase llega más tarde.
+            cargaDatosLocalesPromesa = (async () => {
+                for(const [clave, asignar] of asignaciones) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                    try {
+                        const contenido = localStorage.getItem(clave);
+                        if(contenido) asignar(JSON.parse(contenido));
+                    } catch(error) {
+                        console.warn(`No se pudo leer el respaldo local ${clave}.`, error);
+                    }
                 }
-            });
+            })();
+            return cargaDatosLocalesPromesa;
         }
 
         function fusionarPorId(actuales, nuevos) {
@@ -3415,7 +3423,7 @@
 
             // El respaldo local se muestra primero. Firebase continúa siendo la fuente maestra
             // y reemplazará estos datos cuando llegue una instantánea confirmada del servidor.
-            cargarDatosLocales();
+            await cargarDatosLocales();
             asegurarServicioCreacion();
             mostrarLogo();
             actualizarUI();
@@ -3556,7 +3564,6 @@
                         if(snap.exists()) aplicarLogoSincronizado(snap.data());
                     }, error => console.warn('No se pudo sincronizar el logo.', error)), 500);
                     
-                    mostrarLogo();
                     comprobarIngresoInicialLibre();
                     programarEscuchaFirebase(() => {
                         const cargar = () => cargarVentasAnalisisUltimos30Dias();
@@ -6927,13 +6934,14 @@
             // Si Firebase tarda o no carga por falta de conexión, se muestra el respaldo
             // local sin impedir que la sincronización se conecte cuando llegue firebaseListo.
             setTimeout(() => {
-                if(!cargaDatosIniciada) {
-                    cargarDatosLocales();
+                if(cargaDatosIniciada) return;
+                cargarDatosLocales().then(() => {
+                    if(cargaDatosIniciada) return;
                     asegurarServicioCreacion();
                     mostrarLogo();
                     actualizarUI();
                     comprobarIngresoInicialLibre();
-                }
+                });
             }, 3500);
 
             setTimeout(() => {

@@ -1,6 +1,5 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-revision-android-20260922';
+const CACHE_NAME = 'sublicosturas-v1.2.5-arranque-liviano-20260922';
 const APP_SHELL = [
-  './',
   './index.html',
   './visual-preferences.js',
   './build-info.json',
@@ -9,7 +8,6 @@ const APP_SHELL = [
   './finanzas-negocio.js',
   './respaldo-negocio.js',
   './manifest.json',
-  './logo.jpeg',
   './logo-192.png',
   './logo-512.png',
   './apple-touch-icon.png'

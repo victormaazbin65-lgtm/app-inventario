@@ -87,7 +87,13 @@
         if (botonAuth) botonAuth.textContent = config.authPropietario.habilitado ? 'Cuenta real activada' : 'Activar cuenta real';
         renderSelectoresUnidades();
         renderUnidadesPersonalizadasConfig();
-        renderGestionNegocio();
+        const appPrincipal = document.getElementById('main-app');
+        const cajaVisible = document.getElementById('sec-caja')?.style.display === 'block';
+        const clientesVisibles = document.getElementById('sec-ajustes')?.style.display === 'block'
+            && Boolean(document.getElementById('ajuste-clientes')?.open);
+        if(appPrincipal && appPrincipal.style.display !== 'none' && (cajaVisible || clientesVisibles)) {
+            renderGestionNegocio();
+        }
     }
 
     async function guardarConfiguracionNegocio(unidadesPersonalizadasForzadas = null) {
