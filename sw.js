@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-arranque-seguro-20260918';
+const CACHE_NAME = 'sublicosturas-v1.2.5-revision-android-20260922';
 const APP_SHELL = [
   './',
   './index.html',

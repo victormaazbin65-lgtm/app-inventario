@@ -63,6 +63,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
             script.async = true;
             script.onload = () => resolve(true);
             script.onerror = () => {
+                script.remove();
                 console.warn('No se pudo cargar el módulo opcional ' + src + '.');
                 resolve(false);
             };
@@ -88,22 +89,30 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
     ]);
 
     let cargaMejorasIniciada = false;
+    let mejorasCompletas = false;
+    let accesoConfirmado = false;
 
     // Las mejoras profesionales ya no compiten con el arranque, la sincronización ni el PIN.
     // Se cargan solamente después de entrar al sistema y una por una.
     async function cargarMejoras() {
-        if(cargaMejorasIniciada) return;
+        if(cargaMejorasIniciada || mejorasCompletas) return;
         if(!document || typeof document.getElementById !== 'function'
             || typeof document.createElement !== 'function'
             || !document.head || typeof document.head.appendChild !== 'function') return;
         cargaMejorasIniciada = true;
-        for(const [id, src, pausa] of MODULOS_DIFERIDOS) {
-            await cargarScriptPromesa(id, src);
-            if(pausa > 0) await esperar(pausa);
+        try {
+            for(const [id, src, pausa] of MODULOS_DIFERIDOS) {
+                if(!await cargarScriptPromesa(id, src)) throw new Error('Falta el módulo ' + src);
+                if(pausa > 0) await esperar(pausa);
+            }
+            mejorasCompletas = true;
+        } finally {
+            cargaMejorasIniciada = false;
         }
     }
 
     function programarMejorasDespuesDelAcceso() {
+        if(!accesoConfirmado || mejorasCompletas) return;
         const iniciar = () => cargarMejoras().catch(error => console.warn('No se pudieron cargar todas las mejoras opcionales.', error));
         if(typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
             window.requestIdleCallback(iniciar, { timeout: 1800 });
@@ -113,6 +122,10 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
     }
 
     if(typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-        window.addEventListener('subli:app-activa', programarMejorasDespuesDelAcceso, { once:true });
+        window.addEventListener('subli:app-activa', () => {
+            accesoConfirmado = true;
+            programarMejorasDespuesDelAcceso();
+        }, { once:true });
+        window.addEventListener('online', programarMejorasDespuesDelAcceso);
     }
 })();

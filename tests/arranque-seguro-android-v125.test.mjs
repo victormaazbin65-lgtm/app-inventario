@@ -51,7 +51,7 @@ test('Excel profesional conserva fallback y carga bajo demanda', () => {
 });
 
 test('la PWA precarga solo archivos esenciales y mantiene vendors cacheables bajo demanda', () => {
-  assert.match(sw, /sublicosturas-v1\.2\.5-arranque-seguro-20260918/);
+  assert.match(sw, /sublicosturas-v1\.2\.5-revision-android-20260922/);
   assert.doesNotMatch(sw.match(/const APP_SHELL = \[[\s\S]*?\];/)?.[0] || '', /mejoras-v128|profesional-ui-v130|buscador\.js/);
   assert.match(sw, /VENDOR_URLS/);
   assert.match(sw, /chart\.js@4\.5\.1/);
