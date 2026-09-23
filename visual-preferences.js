@@ -1,3 +1,28 @@
+(function () {
+    if(typeof location === 'undefined' || typeof URLSearchParams === 'undefined' || typeof window === 'undefined') return;
+    const parametros = new URLSearchParams(location.search);
+    if(parametros.get('diagnostico') !== '1') return;
+    const clave = 'subli_diag_traza_v1';
+    const sesion = Date.now().toString(36);
+    const inicio = performance.now();
+    let traza = [];
+    try { traza = JSON.parse(localStorage.getItem(clave) || '[]'); } catch(_) {}
+    if(!Array.isArray(traza)) traza = [];
+    window.subliMarcar = (paso, detalle = {}) => {
+        traza.push({ sesion, paso, ms: Math.round(performance.now() - inicio), ...detalle });
+        if(traza.length > 60) traza = traza.slice(-60);
+        try { localStorage.setItem(clave, JSON.stringify(traza)); } catch(_) {}
+    };
+    window.subliMarcar('documento', { cache: parametros.get('cache') === 'memoria' ? 'memoria' : 'persistente' });
+    try {
+        new PerformanceObserver(lista => {
+            lista.getEntries().forEach(entrada => {
+                if(entrada.duration >= 200) window.subliMarcar('tarea_larga', { duracion: Math.round(entrada.duration) });
+            });
+        }).observe({ entryTypes: ['longtask'] });
+    } catch(_) {}
+})();
+
 (function aplicarModeloVisualAntesDelRender() {
     'use strict';
 

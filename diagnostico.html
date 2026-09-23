@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Diagnóstico de inicio · SubliCosturas</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0b1220; color: #f4f7fb; }
+    body { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+    h1 { font-size: 1.45rem; }
+    p { line-height: 1.5; color: #c8d4e4; }
+    .botones { display: grid; gap: 12px; margin: 24px 0; }
+    button, a.boton { display: block; width: 100%; box-sizing: border-box; border: 0; border-radius: 10px; padding: 15px; background: #3283ec; color: white; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; }
+    button.secundario, a.boton.secundario { background: #25364d; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #111c2e; border: 1px solid #33465e; border-radius: 10px; padding: 14px; line-height: 1.5; }
+    small { color: #a9bdd2; }
+  </style>
+</head>
+<body>
+  <h1>Diagnóstico de SubliCosturas</h1>
+  <p>Esta página no abre Firebase ni lee inventario, ventas o PIN. Registra solamente etapas y tiempos de la prueba. No borra datos del negocio.</p>
+  <div class="botones">
+    <button id="normal">1. Probar apertura normal</button>
+    <button id="memoria" class="secundario">2. Probar con caché temporal</button>
+    <button id="actualizar" class="secundario">Ver último reporte</button>
+    <button id="copiar" class="secundario">Copiar reporte</button>
+    <a class="boton secundario" href="./index.html">Abrir app sin diagnóstico</a>
+  </div>
+  <p>Si Chrome vuelve a cerrarse, abre esta página otra vez y envíame una captura del reporte. La segunda prueba usa una caché temporal solo durante esa apertura; no elimina la caché anterior ni los respaldos.</p>
+  <h2>Último reporte</h2>
+  <pre id="reporte">Cargando…</pre>
+  <small>Se guardan como máximo 60 pasos de diagnóstico. Solo el botón de prueba reinicia esos pasos.</small>
+  <script>
+    (() => {
+      const clave = 'subli_diag_traza_v1';
+      const salida = document.getElementById('reporte');
+      let texto = '';
+      function mostrar() {
+        let traza = [];
+        try { traza = JSON.parse(localStorage.getItem(clave) || '[]'); } catch(_) {}
+        if(!Array.isArray(traza)) traza = [];
+        const lineas = traza.map(paso => [
+          paso.sesion || '?', String(paso.ms ?? '?') + ' ms', paso.paso || '?',
+          Object.entries(paso).filter(([clave]) => !['sesion', 'ms', 'paso'].includes(clave))
+            .map(([clave, valor]) => clave + '=' + String(valor)).join(' ')
+        ].filter(Boolean).join(' | '));
+        texto = [
+          'Dispositivo: ' + navigator.userAgent,
+          'Pasos registrados: ' + traza.length,
+          '',
+          ...(lineas.length ? lineas : ['Todavía no hay una prueba registrada.'])
+        ].join('\n');
+        salida.textContent = texto;
+        if(navigator.storage?.estimate) {
+          navigator.storage.estimate().then(estimacion => {
+            const usado = ((estimacion.usage || 0) / 1048576).toFixed(1);
+            salida.textContent = texto + '\n\nAlmacenamiento del sitio: ' + usado + ' MB';
+            texto = salida.textContent;
+          }).catch(() => {});
+        }
+      }
+      function iniciar(memoria) {
+        try { localStorage.removeItem(clave); } catch(_) {}
+        const url = new URL('./index.html', location.href);
+        url.searchParams.set('diagnostico', '1');
+        if(memoria) url.searchParams.set('cache', 'memoria');
+        url.searchParams.set('prueba', String(Date.now()));
+        location.assign(url.href);
+      }
+      document.getElementById('normal').addEventListener('click', () => iniciar(false));
+      document.getElementById('memoria').addEventListener('click', () => iniciar(true));
+      document.getElementById('actualizar').addEventListener('click', mostrar);
+      document.getElementById('copiar').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(texto); }
+        catch(_) { alert('No se pudo copiar. Envíame una captura del reporte.'); }
+      });
+      mostrar();
+    })();
+  </script>
+</body>
+</html>

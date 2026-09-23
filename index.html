@@ -1637,7 +1637,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, where, orderBy, limit, startAfter, writeBatch, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, where, orderBy, limit, startAfter, writeBatch, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -1650,10 +1650,14 @@
             measurementId: "G-EHE8KQVFEE"
         };
 
+        window.subliMarcar?.('firebase_modulos_listos');
         const app = initializeApp(firebaseConfig);
+        const parametrosDiagnostico = new URLSearchParams(location.search);
+        const cacheEnMemoria = parametrosDiagnostico.get('diagnostico') === '1' && parametrosDiagnostico.get('cache') === 'memoria';
         const db = initializeFirestore(app, {
-          localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+          localCache: cacheEnMemoria ? memoryLocalCache() : persistentLocalCache({tabManager: persistentMultipleTabManager()})
         });
+        window.subliMarcar?.('firestore_iniciado', { cache: cacheEnMemoria ? 'memoria' : 'persistente' });
         const auth = getAuth(app);
 
         window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.where = where; window.orderBy = orderBy; window.limit = limit; window.startAfter = startAfter; window.writeBatch = writeBatch;
@@ -1665,6 +1669,7 @@
         window.firebaseAuthUser = null;
         let firebaseListoEmitido = false;
         onAuthStateChanged(auth, usuario => {
+            window.subliMarcar?.('auth_listo', { usuario: Boolean(usuario) });
             window.firebaseAuthUser = usuario || null;
             window.dispatchEvent(new CustomEvent('firebaseAuthCambio', { detail: { usuario: usuario || null } }));
             if (!firebaseListoEmitido) {
@@ -1676,6 +1681,7 @@
     </script>
 
     <script>
+        window.subliMarcar?.('codigo_principal');
         // ================= INTEGRACIÓN: FUNCIONES CRIPTOGRÁFICAS Y DEBOUNCE =================
         async function hashPIN(pin) {
             if (!pin) return "";
@@ -1754,6 +1760,7 @@
         function notificarAplicacionActiva() {
             if(aplicacionActivaNotificada) return;
             aplicacionActivaNotificada = true;
+            window.subliMarcar?.('acceso_confirmado');
             const emitir = () => window.dispatchEvent(new Event('subli:app-activa'));
             if(typeof window.requestIdleCallback === 'function') window.requestIdleCallback(emitir, { timeout: 1200 });
             else setTimeout(emitir, 250);
@@ -2212,6 +2219,7 @@
         }
 
         async function verificarLogin() {
+            window.subliMarcar?.('pin_enviado');
             if(!cuentaPropietarioAutorizada()) {
                 actualizarPanelAccesoReal();
                 alert('Primero inicia sesión con el correo del Dueño.');
@@ -2226,6 +2234,7 @@
             currentUserData = usuarios.find(u => u.pin === hashedPass);
 
             if (currentUserData) {
+                window.subliMarcar?.('pin_correcto');
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
                 document.getElementById('login-pass').value = '';
@@ -3244,11 +3253,18 @@
             cargaDatosLocalesPromesa = (async () => {
                 for(const [clave, asignar] of asignaciones) {
                     await new Promise(resolve => setTimeout(resolve, 0));
+                    const diagnostico = typeof window !== 'undefined' && Boolean(window.subliMarcar);
+                    const inicioLectura = diagnostico ? performance.now() : 0;
+                    if(diagnostico) window.subliMarcar('respaldo_inicio', { clave });
                     try {
                         const contenido = localStorage.getItem(clave);
                         if(contenido) asignar(JSON.parse(contenido));
                     } catch(error) {
                         console.warn(`No se pudo leer el respaldo local ${clave}.`, error);
+                    } finally {
+                        if(diagnostico) window.subliMarcar('respaldo_fin', {
+                            clave, duracion: Math.round(performance.now() - inicioLectura)
+                        });
                     }
                 }
             })();
@@ -3397,6 +3413,7 @@
 
         function programarEscuchaFirebase(tarea, retraso = 0) {
             const ejecutar = () => {
+                window.subliMarcar?.('escucha_iniciada', { retraso });
                 try { tarea(); }
                 catch(error) { console.warn('No se pudo iniciar una sincronización diferida.', error); }
             };
@@ -3419,11 +3436,13 @@
         async function cargarDatos() {
             if (cargaDatosIniciada) return;
             cargaDatosIniciada = true;
+            window.subliMarcar?.('carga_iniciada');
             document.getElementById('lista-inventario').innerHTML = '<p style="text-align:center; color: var(--primary-green); font-weight: bold;">Sincronizando tus datos... ⏳</p>';
 
             // El respaldo local se muestra primero. Firebase continúa siendo la fuente maestra
             // y reemplazará estos datos cuando llegue una instantánea confirmada del servidor.
             await cargarDatosLocales();
+            window.subliMarcar?.('respaldo_completo');
             asegurarServicioCreacion();
             mostrarLogo();
             actualizarUI();
@@ -3436,7 +3455,9 @@
                 // una herramienta administrativa, respaldo verificado y mantenimiento.
 
                 try {
+                    window.subliMarcar?.('config_escucha');
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
+                        window.subliMarcar?.('config_recibida', { cache: Boolean(docSnap.metadata.fromCache) });
                         if (docSnap.exists()) {
                             datosCargadosDeLaNube = true;
                             if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
@@ -6796,6 +6817,7 @@
         function renderizarTodo() {
             const appPrincipal = document.getElementById('main-app');
             if(!appPrincipal || appPrincipal.style.display === 'none') return;
+            window.subliMarcar?.('render_inicio');
 
             let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
             const simboloMoneda = configuracionNegocio.moneda || 'Q';
@@ -6865,6 +6887,7 @@
             if (document.getElementById('tab-cotizacion').classList.contains('active')) renderHistorialCotizaciones();
             if (document.getElementById('tab-ingreso').classList.contains('active')) renderHistorialIngresos();
             if (document.getElementById('tab-alertas').classList.contains('active')) renderAlertas();
+            window.subliMarcar?.('render_fin');
         }
 
         function actualizarUI() {
@@ -6917,6 +6940,7 @@
         });
 
         window.addEventListener('DOMContentLoaded', async () => {
+            window.subliMarcar?.('dom_listo');
             // Evita cambios accidentales de cantidades: la rueda vuelve a desplazar la página.
             document.addEventListener('wheel', desactivarRuedaEnCamposNumericos, { capture: true, passive: true });
             prepararSeccionesConfiguracion();
@@ -6928,7 +6952,10 @@
             aplicarPreferenciasSistema();
 
             if('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').catch(error => console.warn("No se pudo registrar el modo instalable.", error));
+                window.subliMarcar?.('sw_registro_inicio');
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => window.subliMarcar?.('sw_registro_fin'))
+                    .catch(error => console.warn("No se pudo registrar el modo instalable.", error));
             }
 
             // Si Firebase tarda o no carga por falta de conexión, se muestra el respaldo
