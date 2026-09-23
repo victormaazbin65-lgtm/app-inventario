@@ -3618,7 +3618,10 @@
             if(pestaña === 'ventas') actualizarUI();
             if(pestaña === 'ingreso') renderHistorialIngresos(); 
             if(pestaña === 'inventario') renderInventario();
-            if(pestaña === 'cotizacion') renderHistorialCotizaciones();
+            if(pestaña === 'cotizacion') {
+                window.renderListaClientesVenta?.();
+                renderHistorialCotizaciones();
+            }
             if(pestaña === 'caja') renderGestionNegocio();
             if(pestaña === 'alertas') renderAlertas();
             if(pestaña === 'buscador') {
