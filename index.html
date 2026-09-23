@@ -1637,7 +1637,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, where, orderBy, limit, writeBatch, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, deleteDoc, updateDoc, runTransaction, query, where, orderBy, limit, startAfter, writeBatch, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -1656,7 +1656,7 @@
         });
         const auth = getAuth(app);
 
-        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.where = where; window.orderBy = orderBy; window.limit = limit; window.writeBatch = writeBatch;
+        window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.where = where; window.orderBy = orderBy; window.limit = limit; window.startAfter = startAfter; window.writeBatch = writeBatch;
         window.firebaseAuth = auth;
         window.firebaseCreateUser = createUserWithEmailAndPassword;
         window.firebaseSignIn = signInWithEmailAndPassword;
@@ -2016,6 +2016,8 @@
         let cargaDatosIniciada = false;
         let historialCompletoCargado = { ventas: false, ingresos: false, cotizaciones: false, retiros: false };
         let ventasAnalisis30 = [];
+        let analisisVentas30Completo = false;
+        let analisisVentas30Cargando = false;
         const ID_CREACION = "srv_creacion_01";
         let servicioCreacionVerificado = false;
         
@@ -2781,6 +2783,12 @@
             const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
             const margenObjetivoTexto = numeroFinito(configuracionNegocio?.margenObjetivo, 30);
             let html = '';
+            if(!analisisVentas30Completo) {
+                const mensaje = analisisVentas30Cargando
+                    ? 'Cargando ventas de los últimos 30 días por lotes…'
+                    : 'El análisis usa las ventas recientes disponibles. Para incluir todos los últimos 30 días, carga el análisis completo.';
+                html += `<div class="smart-card"><p>${mensaje}</p>${analisisVentas30Cargando ? '' : '<button class="smart-action" onclick="cargarVentasAnalisisUltimos30Dias(true)">Cargar análisis completo</button>'}</div>`;
+            }
             if(moduloInteligenteActivo('alertas')) {
                 const mensajes = [];
                 if(analisis.agotados.length) mensajes.push(`${analisis.agotados.length} producto(s) agotado(s)`);
@@ -3277,31 +3285,45 @@
             }
         }
 
-        async function cargarVentasAnalisisUltimos30Dias() {
-            if(!window.db || !window.getDocs || !window.where || !navigator.onLine) return;
-            // Android ya mantiene una escucha limitada de ventas recientes. Evitamos aquí
-            // una segunda lectura analítica durante el arranque, que coincidía con el pico
-            // de trabajo observado ~12-15 s después de abrir. No escribe ni borra datos.
-            const esAndroid = /Android/i.test(navigator.userAgent || '');
-            if(esAndroid) {
-                ventasAnalisis30 = Array.isArray(ventas) ? ventas.slice() : [];
+        async function cargarVentasAnalisisUltimos30Dias(forzar = false) {
+            // En Android no se inicia esta lectura durante el arranque. El usuario puede
+            // solicitar el análisis completo; los lotes evitan una respuesta gigante.
+            if(/Android/i.test(navigator.userAgent || '') && !forzar) return;
+            if(analisisVentas30Cargando || analisisVentas30Completo) return;
+            if(!window.db || !window.getDocs || !window.startAfter || !navigator.onLine) {
+                if(forzar) alert('Necesitas conexión para cargar el análisis completo.');
                 return;
             }
+            analisisVentas30Cargando = true;
+            actualizarUI();
             try {
                 const desde = Date.now() - (30 * 24 * 60 * 60 * 1000);
-                const consulta = window.query(
-                    window.collection(window.db, "ventas"),
-                    window.where("timestamp", ">=", desde),
-                    window.orderBy("timestamp", "desc"),
-                    window.limit(200)
-                );
-                const snap = await window.getDocs(consulta);
                 const recientes = [];
-                snap.forEach(docVenta => recientes.push(docVenta.data()));
+                let ultimoDocumento = null;
+                while(true) {
+                    const condiciones = [
+                        window.where("timestamp", ">=", desde),
+                        window.orderBy("timestamp", "desc"),
+                        window.limit(100)
+                    ];
+                    if(ultimoDocumento) condiciones.push(window.startAfter(ultimoDocumento));
+                    const consulta = window.query(window.collection(window.db, "ventas"), ...condiciones);
+                    const snap = await window.getDocs(consulta);
+                    if(snap.metadata.fromCache) throw new Error('El servidor no confirmó los datos.');
+                    snap.forEach(docVenta => recientes.push(docVenta.data()));
+                    if(snap.size < 100) break;
+                    ultimoDocumento = snap.docs[snap.docs.length - 1];
+                    // Deja respirar a Chrome entre páginas sin perder registros.
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
                 ventasAnalisis30 = recientes;
-                actualizarUI();
+                analisisVentas30Completo = true;
             } catch(error) {
-                console.warn('No se pudo ampliar el análisis de ventas a 30 días; se usarán los datos ya cargados.', error);
+                console.warn('No se pudo completar el análisis de 30 días; se usarán los datos ya cargados.', error);
+                if(forzar) alert('No se completó el análisis de 30 días. Puedes intentarlo de nuevo.');
+            } finally {
+                analisisVentas30Cargando = false;
+                actualizarUI();
             }
         }
 
@@ -3370,8 +3392,14 @@
                 try { tarea(); }
                 catch(error) { console.warn('No se pudo iniciar una sincronización diferida.', error); }
             };
-            if(retraso > 0) setTimeout(ejecutar, retraso);
-            else ejecutar();
+            const programar = () => {
+                if(retraso > 0) setTimeout(ejecutar, retraso);
+                else ejecutar();
+            };
+            // Solo la configuración de acceso se sincroniza antes del PIN.
+            // Las colecciones de negocio comienzan cuando la app ya está visible.
+            if(aplicacionActivaNotificada) programar();
+            else window.addEventListener('subli:app-activa', programar, { once:true });
         }
 
         function programarActualizacionSincronizacion() {
