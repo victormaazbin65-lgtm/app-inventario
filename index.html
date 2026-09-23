@@ -3253,7 +3253,7 @@
             cargaDatosLocalesPromesa = (async () => {
                 for(const [clave, asignar] of asignaciones) {
                     await new Promise(resolve => setTimeout(resolve, 0));
-                    const diagnostico = Boolean(window.subliMarcar);
+                    const diagnostico = typeof window !== 'undefined' && Boolean(window.subliMarcar);
                     const inicioLectura = diagnostico ? performance.now() : 0;
                     if(diagnostico) window.subliMarcar('respaldo_inicio', { clave });
                     try {
