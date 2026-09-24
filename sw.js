@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-auditoria-integral-20260924';
+const CACHE_NAME = 'sublicosturas-v1.2.5-correcciones-informes-20260924';
 const APP_SHELL = [
   './index.html',
   './visual-preferences.js',

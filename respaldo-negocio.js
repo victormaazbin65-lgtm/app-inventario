@@ -57,7 +57,13 @@
         if (!configInicial.metadata || configInicial.metadata.fromCache || configInicial.metadata.hasPendingWrites) {
             throw new Error('El servidor no confirmó la configuración. No se creó un respaldo desde la caché local.');
         }
-        const resultados = await Promise.all(COLECCIONES_RESPALDO.map(async nombre => [nombre, await leerColeccionCompleta(nombre)]));
+        const resultados = [];
+        // Mantener pocas colecciones grandes en memoria a la vez evita saturar Chrome en Android.
+        for(let inicio = 0; inicio < COLECCIONES_RESPALDO.length; inicio += 3) {
+            const lote = COLECCIONES_RESPALDO.slice(inicio, inicio + 3);
+            resultados.push(...await Promise.all(lote.map(async nombre => [nombre, await leerColeccionCompleta(nombre)])));
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
         const configSnap = await global.getDoc(global.doc(global.db, 'sistema', 'config'));
         const brandingSnap = await global.getDoc(global.doc(global.db, 'sistema', 'branding'));
         if (!configSnap.metadata || configSnap.metadata.fromCache || configSnap.metadata.hasPendingWrites

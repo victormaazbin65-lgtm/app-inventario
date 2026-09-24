@@ -2044,6 +2044,9 @@
         let ventasAnalisis30 = [];
         let analisisVentas30Completo = false;
         let analisisVentas30Cargando = false;
+        let resumenDiaCargando = false;
+        let versionVentasObservadas = 0;
+        window.subliResumenDiaConfirmado = null;
         const ID_CREACION = "srv_creacion_01";
         let servicioCreacionVerificado = false;
         
@@ -2119,6 +2122,13 @@
 
         function modoModuloInteligente(clave) {
             return moduloInteligenteActivo(clave) ? preferenciasSistema.modulos[clave].modo : 'apagado';
+        }
+
+        function puedeConsultarFinanzasInteligentes() {
+            if(!currentUserData) return false;
+            return window.SubliMejorasCore?.puedeVerFinanzas
+                ? window.SubliMejorasCore.puedeVerFinanzas(currentUserData)
+                : currentUserData.rol === 'dueno' || Boolean(currentUserData.permisos?.verFinanzas);
         }
 
         function sincronizarControlesPreferencias() {
@@ -2690,11 +2700,13 @@
             return fecha.getTime();
         }
 
-        function analizarSistemaInteligente(inventarioEntrada = [], ventasEntrada = [], fondosEntrada = null, ahora = Date.now()) {
+        function analizarSistemaInteligente(inventarioEntrada = [], ventasEntrada = [], fondosEntrada = null, ahora = Date.now(), resumenDiaServidor = null) {
             const productos = (Array.isArray(inventarioEntrada) ? inventarioEntrada : []).filter(p => p && !p.isService);
             const ventasValidas = (Array.isArray(ventasEntrada) ? ventasEntrada : []).filter(v => v && !v.anulada);
             const inicioHoy = inicioDiaLocal(ahora);
-            const finHoy = inicioHoy + (24 * 60 * 60 * 1000);
+            const diaSiguiente = new Date(inicioHoy);
+            diaSiguiente.setDate(diaSiguiente.getDate() + 1);
+            const finHoy = diaSiguiente.getTime();
             const fechaAhora = new Date(ahora);
             const inicioMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth(), 1).getTime();
             const finMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth() + 1, 1).getTime();
@@ -2727,6 +2739,12 @@
             const ventasMes = ventasValidas.filter(v => Number(v.timestamp) >= inicioMes && Number(v.timestamp) < finMes);
             const resumenHoy = resumirVentas(ventasHoy);
             const resumenMes = resumirVentas(ventasMes);
+            if(resumenDiaServidor && Number(resumenDiaServidor.diaInicio) === inicioHoy) {
+                resumenHoy.ingreso = numeroFinito(resumenDiaServidor.ventasHoy);
+                resumenHoy.ganancia = numeroFinito(resumenDiaServidor.utilidadHoy);
+                resumenHoy.gastos = numeroFinito(resumenDiaServidor.gastosHoy);
+                resumenHoy.operaciones = numeroFinito(resumenDiaServidor.operaciones);
+            }
             Object.keys(resumenHoy).forEach(clave => { if(clave !== 'operaciones') resumenHoy[clave] = redondear(resumenHoy[clave]); });
             Object.keys(resumenMes).forEach(clave => { if(clave !== 'operaciones') resumenMes[clave] = redondear(resumenMes[clave]); });
 
@@ -2808,7 +2826,8 @@
                 return;
             }
 
-            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
+            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos, Date.now(), window.subliResumenDiaConfirmado);
+            const verFinanzas = puedeConsultarFinanzasInteligentes();
             const margenObjetivoTexto = numeroFinito(configuracionNegocio?.margenObjetivo, 30);
             let html = '';
             if(!analisisVentas30Completo) {
@@ -2821,7 +2840,7 @@
                 const mensajes = [];
                 if(analisis.agotados.length) mensajes.push(`${analisis.agotados.length} producto(s) agotado(s)`);
                 if(analisis.stockBajo.length) mensajes.push(`${analisis.stockBajo.length} en stock mínimo o menor`);
-                if(analisis.anomalias.margenesBajos.length) mensajes.push(`${analisis.anomalias.margenesBajos.length} venta(s) disponible(s) con margen menor al ${margenObjetivoTexto}%`);
+                if(verFinanzas && analisis.anomalias.margenesBajos.length) mensajes.push(`${analisis.anomalias.margenesBajos.length} venta(s) disponible(s) con margen menor al ${margenObjetivoTexto}%`);
                 if(!mensajes.length) mensajes.push('No se observan alertas urgentes en los datos disponibles');
                 html += `<div class="smart-card"><h4>🚦 Alertas</h4><ul>${mensajes.map(m => `<li>${escaparHTML(m)}</li>`).join('')}</ul>${botonAyudaInteligente('alertas', 'alertas', 'Ver productos por surtir')}</div>`;
             }
@@ -2832,24 +2851,25 @@
                     : '<p>No hay suficiente movimiento reciente para anticipar faltantes adicionales.</p>';
                 html += `<div class="smart-card"><h4>📦 Predicción para surtir</h4>${contenidoAbastecimiento}${botonAyudaInteligente('abastecimiento', 'alertas', 'Revisar surtido')}</div>`;
             }
-            if(moduloInteligenteActivo('anomalias')) {
+            if(verFinanzas && moduloInteligenteActivo('anomalias')) {
                 const totalAnomalias = analisis.anomalias.stockNegativo.length + analisis.anomalias.costosInvalidos.length + analisis.anomalias.codigosDuplicados.length + analisis.anomalias.ventasConDiferencia.length;
                 const texto = totalAnomalias === 0
                     ? 'No se detectaron stocks negativos, costos inválidos, códigos duplicados ni diferencias matemáticas en los registros disponibles.'
                     : `${totalAnomalias} posible(s) inconsistencia(s): ${analisis.anomalias.stockNegativo.length} stock negativo, ${analisis.anomalias.costosInvalidos.length} costo inválido, ${analisis.anomalias.codigosDuplicados.length} código duplicado y ${analisis.anomalias.ventasConDiferencia.length} venta con diferencia.`;
                 html += `<div class="smart-card"><h4>🛡️ Revisión de posibles errores</h4><p>${escaparHTML(texto)}</p>${botonAyudaInteligente('anomalias', 'inventario', 'Revisar inventario')}</div>`;
             }
-            if(moduloInteligenteActivo('cierre')) {
-                html += `<div class="smart-card"><h4>📅 Resumen de hoy</h4><p>${analisis.resumenHoy.operaciones} venta(s) · Ingresos Q ${analisis.resumenHoy.ingreso.toFixed(2)} · Gastos Q ${analisis.resumenHoy.gastos.toFixed(2)} · Ganancia Q ${analisis.resumenHoy.ganancia.toFixed(2)}</p>${botonAyudaInteligente('cierre', 'ventas', 'Ver ventas')}</div>`;
+            if(verFinanzas && moduloInteligenteActivo('cierre')) {
+                const confirmado = window.subliResumenDiaConfirmado?.diaInicio === inicioDiaLocal(Date.now());
+                html += `<div class="smart-card"><h4>📅 Resumen de hoy${confirmado ? '' : ' (ventas cargadas)'}</h4><p>${analisis.resumenHoy.operaciones} venta(s) · Vendido Q ${analisis.resumenHoy.ingreso.toFixed(2)} · Costos y SAT Q ${analisis.resumenHoy.gastos.toFixed(2)} · Utilidad Q ${analisis.resumenHoy.ganancia.toFixed(2)}</p><small>Incluye ventas a crédito: el total vendido no equivale al dinero cobrado.</small><br><button class="smart-action" onclick="cargarResumenDiaConfirmado()">${confirmado ? 'Actualizar hoy' : 'Consultar hoy'}</button>${botonAyudaInteligente('cierre', 'ventas', 'Ver ventas')}</div>`;
             }
-            if(moduloInteligenteActivo('retiros')) {
+            if(verFinanzas && moduloInteligenteActivo('retiros')) {
                 html += `<div class="smart-card"><h4>💵 Caja y retiro</h4><p>Total Q ${analisis.fondos.totalCaja.toFixed(2)} · Sin tocar SAT Q ${analisis.fondos.disponibleSinSAT.toFixed(2)} · Ganancia libre Q ${analisis.fondos.gananciaLibre.toFixed(2)}</p>${modoModuloInteligente('retiros') === 'ayudar' ? '<button class="smart-action" onclick="abrirRetiroInteligente()">Analizar un retiro</button>' : ''}</div>`;
             }
             if(moduloInteligenteActivo('etiquetas')) {
                 const texto = analisis.sinCodigo.length ? `${analisis.sinCodigo.length} producto(s) todavía no tienen código físico.` : 'Todos los productos disponibles tienen código físico.';
                 html += `<div class="smart-card"><h4>🏷️ Códigos y etiquetas</h4><p>${escaparHTML(texto)}</p>${botonAyudaInteligente('etiquetas', 'inventario', 'Abrir etiquetas')}</div>`;
             }
-            if(moduloInteligenteActivo('precios')) {
+            if(verFinanzas && moduloInteligenteActivo('precios')) {
                 html += `<div class="smart-card"><h4>📈 Precio y margen</h4><p>${modoModuloInteligente('precios') === 'ayudar' ? `Ventas y cotizaciones mostrarán un total sugerido para buscar ${margenObjetivoTexto}% de margen libre.` : 'Ventas y cotizaciones informarán el margen observado sin sugerir precios.'}</p>${botonAyudaInteligente('precios', 'cotizacion', 'Preparar cotización')}</div>`;
             }
 
@@ -2867,7 +2887,11 @@
                 salida.textContent = 'Escribe una consulta para analizar los datos disponibles.';
                 return;
             }
-            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos);
+            if(!puedeConsultarFinanzasInteligentes() && /hoy|cierre|mes|ganancia|venta|caja|retiro|fondos|efectivo|banco|utilidad|margen|costo/.test(consulta)) {
+                salida.textContent = 'Tu usuario no tiene permiso para consultar cifras financieras.';
+                return;
+            }
+            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos, Date.now(), window.subliResumenDiaConfirmado);
             const permiteAccesos = modoModuloInteligente('busqueda') === 'ayudar';
             let respuesta = '';
             if(/surtir|stock bajo|agotad/.test(consulta)) {
@@ -2879,7 +2903,7 @@
                 respuesta = lista ? `${analisis.sinCodigo.length} producto(s) sin código: ${escaparHTML(lista)}.` : 'Todos los productos tienen código asignado.';
                 if(permiteAccesos) respuesta += '<button class="smart-action" onclick="cambiarPestaña(\'inventario\')">Abrir Inventario</button>';
             } else if(/hoy|cierre/.test(consulta)) {
-                respuesta = `Hoy: ${analisis.resumenHoy.operaciones} venta(s), Q ${analisis.resumenHoy.ingreso.toFixed(2)} ingresados, Q ${analisis.resumenHoy.gastos.toFixed(2)} en gastos y Q ${analisis.resumenHoy.ganancia.toFixed(2)} de ganancia.`;
+                respuesta = `Hoy${window.subliResumenDiaConfirmado?.diaInicio === inicioDiaLocal(Date.now()) ? ' (confirmado por servidor)' : ' (ventas cargadas)'}: ${analisis.resumenHoy.operaciones} venta(s), Q ${analisis.resumenHoy.ingreso.toFixed(2)} vendidos, Q ${analisis.resumenHoy.gastos.toFixed(2)} de costos y SAT y Q ${analisis.resumenHoy.ganancia.toFixed(2)} de utilidad calculada. Incluye ventas a crédito; no equivale a dinero cobrado.`;
             } else if(/mes|ganancia|venta/.test(consulta)) {
                 respuesta = `Mes actual en los datos disponibles: ${analisis.resumenMes.operaciones} venta(s), Q ${analisis.resumenMes.ingreso.toFixed(2)} ingresados y Q ${analisis.resumenMes.ganancia.toFixed(2)} de ganancia.`;
             } else if(/caja|retiro|fondos|efectivo/.test(consulta)) {
@@ -3335,6 +3359,66 @@
             }
         }
 
+        async function cargarResumenDiaConfirmado() {
+            if(!puedeConsultarFinanzasInteligentes() || resumenDiaCargando) return false;
+            if(!window.db || !window.getDocs || !window.startAfter || !navigator.onLine) {
+                alert('Necesitas conexión para consultar las ventas de hoy en el servidor.');
+                return false;
+            }
+            resumenDiaCargando = true;
+            const diaInicio = inicioDiaLocal(Date.now());
+            const diaSiguiente = new Date(diaInicio);
+            diaSiguiente.setDate(diaSiguiente.getDate() + 1);
+            const versionInicio = versionVentasObservadas;
+            let ultimoDocumento = null;
+            let ingresosCent = 0, gastosCent = 0, utilidadCent = 0, operaciones = 0;
+            try {
+                while(true) {
+                    const condiciones = [
+                        window.where('timestamp', '>=', diaInicio),
+                        window.where('timestamp', '<', diaSiguiente.getTime()),
+                        window.orderBy('timestamp', 'desc'),
+                        window.limit(100)
+                    ];
+                    if(ultimoDocumento) condiciones.push(window.startAfter(ultimoDocumento));
+                    const snap = await window.getDocs(window.query(window.collection(window.db, 'ventas'), ...condiciones));
+                    if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) {
+                        throw new Error('El servidor no confirmó todas las páginas de ventas.');
+                    }
+                    for(const documento of snap.docs) {
+                        const venta = documento.data();
+                        if(venta.anulada || Number(venta.timestamp) < diaInicio || Number(venta.timestamp) >= diaSiguiente.getTime()) continue;
+                        ingresosCent += SubliNegocioCore.aCentavos(venta.ingresoTotal);
+                        utilidadCent += SubliNegocioCore.aCentavos(venta.ganancia ?? venta.gananciaNeta);
+                        gastosCent += ['costosProductos', 'costoTinta', 'costoManoObra', 'costoEnvio', 'impuestoSAT']
+                            .reduce((suma, clave) => suma + SubliNegocioCore.aCentavos(venta[clave]), 0);
+                        operaciones++;
+                    }
+                    if(snap.docs.length < 100) break;
+                    ultimoDocumento = snap.docs[snap.docs.length - 1];
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                if(diaInicio !== inicioDiaLocal(Date.now()) || versionInicio !== versionVentasObservadas) {
+                    throw new Error('Las ventas cambiaron durante la consulta. Vuelve a actualizar el resumen.');
+                }
+                window.subliResumenDiaConfirmado = {
+                    diaInicio, confirmadoEn: Date.now(), operaciones,
+                    ventasHoy: SubliNegocioCore.desdeCentavos(ingresosCent),
+                    gastosHoy: SubliNegocioCore.desdeCentavos(gastosCent),
+                    utilidadHoy: SubliNegocioCore.desdeCentavos(utilidadCent)
+                };
+                window.dispatchEvent(new Event('subli:resumen-dia'));
+                actualizarUI();
+                return true;
+            } catch(error) {
+                console.warn('No se pudo confirmar el resumen del día.', error);
+                alert('No se pudo confirmar el total de hoy. Se mantienen identificadas las ventas cargadas. Inténtalo de nuevo.');
+                return false;
+            } finally {
+                resumenDiaCargando = false;
+            }
+        }
+
         async function cargarVentasAnalisisUltimos30Dias(forzar = false) {
             // En Android no se inicia esta lectura durante el arranque. El usuario puede
             // solicitar el análisis completo; los lotes evitan una respuesta gigante.
@@ -3563,6 +3647,13 @@
 
                     programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), { includeMetadataChanges: true }, (snap) => {
                         registrarEstadoSincronizacion('ventas', snap);
+                        if(typeof snap.docChanges === 'function' && snap.docChanges().length) {
+                            versionVentasObservadas++;
+                            if(window.subliResumenDiaConfirmado) {
+                                window.subliResumenDiaConfirmado = null;
+                                window.dispatchEvent(new Event('subli:resumen-dia'));
+                            }
+                        }
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;

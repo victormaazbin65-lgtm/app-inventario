@@ -43,9 +43,12 @@
         try { confirmados = Boolean(creditosPendientesConfirmados); } catch(_) {}
         try { historialCompleto = Boolean(historialCompletoCargado.ventas); } catch(_) {}
         const datosConfirmados = Boolean(global.obtenerEstadoSincronizacion?.()?.confirmado);
+        const ahora = Date.now();
+        const resumenDia = global.subliResumenDiaConfirmado?.diaInicio === core.inicioDia(ahora)
+            ? global.subliResumenDiaConfirmado : null;
         return { inventario:inv, ventas:vts, prestamos:prs, anticipos:ants, clientes:cli, ingresos:ing,
             creditosPendientes:pendientes, creditosConfirmados:confirmados, datosConfirmados, historialCompleto,
-            saldosDinero:saldos, ahora:Date.now() };
+            resumenDia, saldosDinero:saldos, ahora };
     }
 
     function inyectarEstilos() {
@@ -175,7 +178,7 @@
     function firmaSalud(c) {
         const s = core.resumenSalud(c);
         return JSON.stringify([s.productos,s.agotados,s.bajos,s.valorInventario,s.ventasHoy,s.utilidadHoy,s.porCobrar,s.vencidos,
-            c.creditosConfirmados,c.datosConfirmados,c.historialCompleto,c.ventas.length,usuarioActual()?.id,puedeFinanzas()]);
+            c.creditosConfirmados,c.datosConfirmados,c.historialCompleto,c.ventas.length,c.resumenDia?.confirmadoEn,usuarioActual()?.id,puedeFinanzas()]);
     }
 
     function asegurarPanelSalud() {
@@ -202,7 +205,8 @@
         const prioridades = core.prioridadesNegocio(c);
         const u = usuarioActual();
         const fin = puedeFinanzas();
-        const muestra = c.ventas.length >= 50 && !c.historialCompleto ? ' (ventas cargadas)' : '';
+        const muestra = c.resumenDia || c.historialCompleto ? '' : ' (ventas cargadas)';
+        const accionDia = fin ? `<div style="margin-top:9px;font-size:11px;color:var(--text-light)">${c.resumenDia ? `Hoy: ${c.resumenDia.operaciones} ventas confirmadas a las ${escapar(new Date(c.resumenDia.confirmadoEn).toLocaleTimeString('es-GT', {hour:'2-digit',minute:'2-digit'}))}.` : 'Consulta el total de hoy con el servidor sin descargar meses completos.'} <button type="button" class="v130-mini-btn" onclick="cargarResumenDiaConfirmado()">${c.resumenDia ? 'Actualizar hoy' : 'Consultar hoy'}</button></div>` : '';
         const kpisDueno = `<div class="v130-kpi"><small>Ventas de hoy${muestra}</small><strong>${dinero(salud.ventasHoy)}</strong></div><div class="v130-kpi"><small>Utilidad de hoy${muestra}</small><strong>${dinero(salud.utilidadHoy)}</strong></div><div class="v130-kpi"><small>Por cobrar${c.datosConfirmados ? '' : ' (datos cargados)'}</small><strong>${dinero(salud.porCobrar)}</strong></div>`;
         salida.innerHTML = `<p style="margin:0 0 10px;color:var(--text-light);font-size:11px">${u?.rol === 'dueno' ? 'Vista del Dueño: operación, dinero y pendientes importantes.' : 'Tu espacio muestra únicamente información útil para tus tareas permitidas.'}</p>
             <div class="v130-kpis">
@@ -210,8 +214,8 @@
                 <div class="v130-kpi ${salud.agotados?'alert':''}"><small>Productos agotados</small><strong>${salud.agotados}</strong></div>
                 <div class="v130-kpi"><small>Stock bajo</small><strong>${salud.bajos}</strong></div>
                 <div class="v130-kpi"><small>Productos activos</small><strong>${salud.productos}</strong></div>
-            </div>
-            <h5 style="margin:13px 0 4px">Prioridades</h5>${prioridades.slice(0,6).map(p => `<div class="v130-prioridad ${escapar(p.nivel)}"><strong>${escapar(p.titulo)}</strong><span>${escapar(p.detalle)}</span></div>`).join('')}`;
+            </div>${accionDia}
+            <h5 style="margin:13px 0 4px">Prioridades</h5>${prioridades.filter(p => fin || p.tipo !== 'cobros').slice(0,6).map(p => `<div class="v130-prioridad ${escapar(p.nivel)}"><strong>${escapar(p.titulo)}</strong><span>${escapar(p.detalle)}</span></div>`).join('')}`;
     }
 
     function asegurarAgendaCobros() {
@@ -482,7 +486,7 @@
 
     function iniciar() {
         inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas(); instalarRefresco();
-        global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('subli:sync-estado', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
+        global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('subli:sync-estado', actualizarSync); global.addEventListener('subli:resumen-dia', renderSalud); global.addEventListener('beforeunload', capturarBorradores);
         global.addEventListener('pagehide', capturarBorradores);
         document.addEventListener('visibilitychange', guardarBorradoresAlOcultar);
         document.addEventListener('input', programarGuardadoBorrador);

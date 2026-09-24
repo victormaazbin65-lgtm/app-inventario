@@ -157,11 +157,18 @@
             const valor = Math.max(0, stock) * Math.max(0, numero(p.costo));
             if(Number.isFinite(valor)) valorInventarioCent += centavos(valor);
         }
+        const finHoy = new Date(hoy);
+        finHoy.setDate(finHoy.getDate() + 1);
         let ventasHoyCent = 0, utilidadHoyCent = 0;
         for(const v of ventas) {
-            if(!v || v.anulada || numero(v.timestamp) < hoy || numero(v.timestamp) >= hoy + MS_DIA) continue;
+            if(!v || v.anulada || numero(v.timestamp) < hoy || numero(v.timestamp) >= finHoy.getTime()) continue;
             ventasHoyCent += centavos(v.ingresoTotal);
             utilidadHoyCent += centavos(v.ganancia ?? v.gananciaNeta);
+        }
+        const resumenDia = contexto.resumenDia;
+        if(resumenDia && numero(resumenDia.diaInicio, NaN) === hoy) {
+            ventasHoyCent = centavos(resumenDia.ventasHoy);
+            utilidadHoyCent = centavos(resumenDia.utilidadHoy);
         }
         const cobros = agendaCobros(ventasParaCobros(ventas, contexto.creditosPendientes, contexto.creditosConfirmados), prestamos, contexto.ahora || Date.now());
         const porCobrarCent = cobros.reduce((a,c) => a + centavos(c.saldo), 0);
