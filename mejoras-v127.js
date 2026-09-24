@@ -26,7 +26,7 @@
 
     function puedeVerFinanzas() {
         try {
-            if(typeof currentUserData === 'undefined' || !currentUserData) return true;
+            if(typeof currentUserData === 'undefined' || !currentUserData) return false;
             if(global.SubliMejorasCore?.puedeVerFinanzas) return global.SubliMejorasCore.puedeVerFinanzas(currentUserData);
             return currentUserData.rol === 'dueno';
         } catch(_) { return false; }

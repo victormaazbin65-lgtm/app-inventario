@@ -21,7 +21,7 @@ function crearCore() {
 
 function crearRespaldo({ leerColeccion, leerDocumento }) {
   const entorno = vm.createContext({
-    console, Date, Math, Number, String, Object, Array, Map, Set, TextEncoder,
+    console, Date, Math, Number, String, Object, Array, Map, Set, TextEncoder, setTimeout,
     navigator: { onLine: true }, crypto: webcrypto,
     db: {},
     collection: (_, nombre) => nombre,
