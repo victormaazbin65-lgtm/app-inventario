@@ -432,7 +432,6 @@ async function inicializarBuscadorDisenos() {
   } catch(error) {
     actualizarEstadoBuscador(`No se pudo abrir el índice local: ${error.message}`, 'error');
   }
-  if('indexedDB' in window) indexedDB.deleteDatabase('sublicosturas-studio');
 }
 
 if(typeof document !== 'undefined') {

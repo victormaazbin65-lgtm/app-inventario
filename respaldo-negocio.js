@@ -19,6 +19,9 @@
 
     async function leerColeccionCompleta(nombre) {
         const snap = await global.getDocs(global.collection(global.db, nombre));
+        if (!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) {
+            throw new Error(`El servidor no confirmó la colección ${nombre}. Vuelve a intentar el respaldo con conexión estable.`);
+        }
         const docs = [];
         snap.forEach(documento => docs.push({ id: documento.id, data: documento.data() }));
         docs.sort((a, b) => String(a.id).localeCompare(String(b.id)));
@@ -50,9 +53,21 @@
 
     async function construirCopiaSeguridad() {
         if (!global.db || !navigator.onLine) throw new Error('Necesitas conexión para incluir todos los datos de Firebase.');
+        const configInicial = await global.getDoc(global.doc(global.db, 'sistema', 'config'));
+        if (!configInicial.metadata || configInicial.metadata.fromCache || configInicial.metadata.hasPendingWrites) {
+            throw new Error('El servidor no confirmó la configuración. No se creó un respaldo desde la caché local.');
+        }
         const resultados = await Promise.all(COLECCIONES_RESPALDO.map(async nombre => [nombre, await leerColeccionCompleta(nombre)]));
         const configSnap = await global.getDoc(global.doc(global.db, 'sistema', 'config'));
         const brandingSnap = await global.getDoc(global.doc(global.db, 'sistema', 'branding'));
+        if (!configSnap.metadata || configSnap.metadata.fromCache || configSnap.metadata.hasPendingWrites
+            || !brandingSnap.metadata || brandingSnap.metadata.fromCache || brandingSnap.metadata.hasPendingWrites) {
+            throw new Error('El servidor no confirmó todos los documentos del sistema. No se creó un respaldo incompleto.');
+        }
+        if (JSON.stringify(configInicial.exists() ? configInicial.data() : null)
+            !== JSON.stringify(configSnap.exists() ? configSnap.data() : null)) {
+            throw new Error('La configuración cambió durante el respaldo. Inténtalo de nuevo sin operaciones simultáneas.');
+        }
         const copia = {
             formato: 'sublicosturas-backup',
             // Compatibilidad: las copias antiguas con schemaVersion: 3 siguen aceptándose al restaurar.
@@ -191,12 +206,25 @@
     }
 
     async function verificarMuestraRestaurada(validada) {
+        function serializarComparable(valor) {
+            if (valor && typeof valor.toJSON === 'function') return serializarComparable(valor.toJSON());
+            if (Array.isArray(valor)) return valor.map(serializarComparable);
+            if (valor && typeof valor === 'object') {
+                return Object.fromEntries(Object.keys(valor).sort().map(clave => [clave, serializarComparable(valor[clave])]));
+            }
+            return valor;
+        }
         for (const [coleccion, documentos] of Object.entries(validada.colecciones)) {
             if (!documentos.length) continue;
             const muestras = documentos.length === 1 ? [documentos[0]] : [documentos[0], documentos[documentos.length - 1]];
             for (const muestra of muestras) {
                 const snap = await global.getDoc(global.doc(global.db, coleccion, muestra.id));
-                if (!snap.exists()) throw new Error(`No se pudo verificar ${coleccion}/${muestra.id} después de restaurar.`);
+                if (!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites || !snap.exists()) {
+                    throw new Error(`El servidor no confirmó ${coleccion}/${muestra.id} después de restaurar.`);
+                }
+                if (JSON.stringify(serializarComparable(snap.data())) !== JSON.stringify(serializarComparable(muestra.data))) {
+                    throw new Error(`Los datos de ${coleccion}/${muestra.id} no coinciden con la copia restaurada.`);
+                }
             }
         }
         return true;

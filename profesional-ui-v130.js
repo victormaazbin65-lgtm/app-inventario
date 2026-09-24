@@ -31,7 +31,7 @@
     }
 
     function contexto() {
-        let inv=[], vts=[], prs=[], ants=[], cli=[], ing=[], saldos={};
+        let inv=[], vts=[], prs=[], ants=[], cli=[], ing=[], saldos={}, pendientes=[], confirmados=false, historialCompleto=false;
         try { inv = Array.isArray(inventario) ? inventario : []; } catch(_) {}
         try { vts = Array.isArray(ventas) ? ventas : []; } catch(_) {}
         try { prs = Array.isArray(prestamos) ? prestamos : []; } catch(_) {}
@@ -39,7 +39,13 @@
         try { cli = Array.isArray(clientes) ? clientes : []; } catch(_) {}
         try { ing = Array.isArray(historialIngresos) ? historialIngresos : []; } catch(_) {}
         try { saldos = saldosDinero || {}; } catch(_) {}
-        return { inventario:inv, ventas:vts, prestamos:prs, anticipos:ants, clientes:cli, ingresos:ing, saldosDinero:saldos, ahora:Date.now() };
+        try { pendientes = Array.isArray(ventasCreditoPendiente) ? ventasCreditoPendiente : []; } catch(_) {}
+        try { confirmados = Boolean(creditosPendientesConfirmados); } catch(_) {}
+        try { historialCompleto = Boolean(historialCompletoCargado.ventas); } catch(_) {}
+        const datosConfirmados = Boolean(global.obtenerEstadoSincronizacion?.()?.confirmado);
+        return { inventario:inv, ventas:vts, prestamos:prs, anticipos:ants, clientes:cli, ingresos:ing,
+            creditosPendientes:pendientes, creditosConfirmados:confirmados, datosConfirmados, historialCompleto,
+            saldosDinero:saldos, ahora:Date.now() };
     }
 
     function inyectarEstilos() {
@@ -78,7 +84,7 @@
         const bar = document.createElement('div');
         bar.id = 'v130-commandbar';
         bar.className = 'v130-commandbar';
-        bar.innerHTML = `<button type="button" class="v130-command-trigger" onclick="abrirBuscadorAccionesV130()" aria-haspopup="dialog"><span>⌕</span><span><strong>¿Qué quieres hacer?</strong> <span style="font-size:11px">Busca una acción del sistema</span></span><span class="v130-shortcut">Ctrl K</span></button><span id="v130-sync" role="status" aria-live="polite">Sincronizado</span>`;
+        bar.innerHTML = `<button type="button" class="v130-command-trigger" onclick="abrirBuscadorAccionesV130()" aria-haspopup="dialog"><span>⌕</span><span><strong>¿Qué quieres hacer?</strong> <span style="font-size:11px">Busca una acción del sistema</span></span><span class="v130-shortcut">Ctrl K</span></button><span id="v130-sync" role="status" aria-live="polite">Comprobando servidor…</span>`;
         tabs.parentNode.insertBefore(bar, tabs);
     }
 
@@ -154,16 +160,22 @@
         const el = document.getElementById('v130-sync');
         if(!el) return;
         el.className = '';
-        if(!navigator.onLine) { el.classList.add('offline'); el.textContent = 'Sin conexión · modo consulta'; return; }
+        if(!navigator.onLine) { el.classList.add('offline'); el.textContent = 'Sin conexión · copia local'; return; }
+        if(!global.db) { el.classList.add('error'); el.textContent = 'Servidor no disponible · copia local'; return; }
         let procesando = false;
         try { procesando = Boolean(isProcessingTransaction); } catch(_) {}
         if(procesando) { el.classList.add('saving'); el.textContent = 'Guardando…'; return; }
-        el.textContent = 'Sincronizado';
+        const estado = typeof global.obtenerEstadoSincronizacion === 'function' ? global.obtenerEstadoSincronizacion() : null;
+        if(estado?.error) { el.classList.add('error'); el.textContent = 'Sincronización pendiente'; return; }
+        if(estado?.confirmado) { el.textContent = 'Datos principales confirmados'; return; }
+        el.classList.add('saving');
+        el.textContent = 'Comprobando servidor…';
     }
 
     function firmaSalud(c) {
         const s = core.resumenSalud(c);
-        return JSON.stringify([s.productos,s.agotados,s.bajos,s.valorInventario,s.ventasHoy,s.utilidadHoy,s.porCobrar,s.vencidos,usuarioActual()?.id,puedeFinanzas()]);
+        return JSON.stringify([s.productos,s.agotados,s.bajos,s.valorInventario,s.ventasHoy,s.utilidadHoy,s.porCobrar,s.vencidos,
+            c.creditosConfirmados,c.datosConfirmados,c.historialCompleto,c.ventas.length,usuarioActual()?.id,puedeFinanzas()]);
     }
 
     function asegurarPanelSalud() {
@@ -190,7 +202,8 @@
         const prioridades = core.prioridadesNegocio(c);
         const u = usuarioActual();
         const fin = puedeFinanzas();
-        const kpisDueno = `<div class="v130-kpi"><small>Ventas de hoy</small><strong>${dinero(salud.ventasHoy)}</strong></div><div class="v130-kpi"><small>Utilidad de hoy</small><strong>${dinero(salud.utilidadHoy)}</strong></div><div class="v130-kpi"><small>Por cobrar</small><strong>${dinero(salud.porCobrar)}</strong></div>`;
+        const muestra = c.ventas.length >= 50 && !c.historialCompleto ? ' (ventas cargadas)' : '';
+        const kpisDueno = `<div class="v130-kpi"><small>Ventas de hoy${muestra}</small><strong>${dinero(salud.ventasHoy)}</strong></div><div class="v130-kpi"><small>Utilidad de hoy${muestra}</small><strong>${dinero(salud.utilidadHoy)}</strong></div><div class="v130-kpi"><small>Por cobrar${c.datosConfirmados ? '' : ' (datos cargados)'}</small><strong>${dinero(salud.porCobrar)}</strong></div>`;
         salida.innerHTML = `<p style="margin:0 0 10px;color:var(--text-light);font-size:11px">${u?.rol === 'dueno' ? 'Vista del Dueño: operación, dinero y pendientes importantes.' : 'Tu espacio muestra únicamente información útil para tus tareas permitidas.'}</p>
             <div class="v130-kpis">
                 ${fin ? kpisDueno : ''}
@@ -221,9 +234,9 @@
         details.style.display = visible ? '' : 'none';
         if(!visible) return;
         const c = contexto();
-        const filas = core.agendaCobros(c.ventas, c.prestamos, Date.now());
-        if(!filas.length) { salida.innerHTML = '<p style="color:var(--text-light);font-size:12px">No hay cuentas pendientes detectadas.</p>'; return; }
-        salida.innerHTML = `<p style="margin-top:0;color:var(--text-light);font-size:11px">Créditos y préstamos se muestran juntos para seguimiento, pero conservan su contabilidad separada.</p>${filas.slice(0,50).map(f => {
+        const filas = core.agendaCobros(core.ventasParaCobros(c.ventas, c.creditosPendientes, c.creditosConfirmados), c.prestamos, Date.now());
+        if(!filas.length) { salida.innerHTML = `<p style="color:var(--text-light);font-size:12px">${c.datosConfirmados ? 'No hay cuentas pendientes detectadas.' : 'No hay cuentas pendientes entre los datos cargados; espera la confirmación del servidor.'}</p>`; return; }
+        salida.innerHTML = `<p style="margin-top:0;color:var(--text-light);font-size:11px">Créditos y préstamos se muestran juntos para seguimiento, pero conservan su contabilidad separada.${c.creditosConfirmados ? '' : ' Créditos pendientes de confirmar con el servidor.'}</p>${filas.slice(0,50).map(f => {
             const etiqueta = f.dias === null ? 'Sin fecha' : (f.dias < 0 ? `Vencido hace ${Math.abs(f.dias)} día(s)` : (f.dias === 0 ? 'Vence hoy' : `Vence en ${f.dias} día(s)`));
             const clase = f.dias !== null && f.dias < 0 ? 'vencido' : (f.dias === 0 ? 'hoy' : '');
             return `<div class="v130-cobro"><span><strong>${escapar(f.persona)}</strong><br><small>${escapar(f.concepto)} · ${f.tipo === 'credito' ? 'Crédito' : 'Préstamo'}</small></span><span style="text-align:right"><strong>${dinero(f.saldo)}</strong><br><small class="${clase}">${escapar(etiqueta)}</small></span></div>`;
@@ -393,8 +406,9 @@
     function renderCRM() {
         const select=document.getElementById('v130-crm-cliente'), salida=document.getElementById('v130-crm-contenido'); if(!select||!salida) return;
         const c=contexto(); const cliente=c.clientes.find(x=>String(x.id)===String(select.value)); if(!cliente){salida.innerHTML='';return;}
-        const r=core.resumenCliente(cliente,c.ventas,c.anticipos);
-        salida.innerHTML=`<div class="v130-kpis"><div class="v130-kpi"><small>Compras registradas</small><strong>${r.compras}</strong></div>${puedeFinanzas()?`<div class="v130-kpi"><small>Total comprado</small><strong>${dinero(r.totalComprado)}</strong></div><div class="v130-kpi"><small>Saldo a crédito</small><strong>${dinero(r.saldoCredito)}</strong></div><div class="v130-kpi"><small>Anticipos disponibles</small><strong>${dinero(r.anticipos)}</strong></div>`:''}<div class="v130-kpi"><small>Última compra</small><strong style="font-size:13px">${r.ultimaCompra?escapar(new Date(r.ultimaCompra).toLocaleDateString('es-GT')):'Sin compras'}</strong></div></div>${cliente.notas?`<p style="font-size:11px;color:var(--text-light);margin-top:9px"><strong>Notas:</strong> ${escapar(cliente.notas)}</p>`:''}`;
+        const r=core.resumenCliente(cliente,c.ventas,c.anticipos,c);
+        const parcial=c.ventas.length>=50&&!c.historialCompleto;
+        salida.innerHTML=`<div class="v130-kpis"><div class="v130-kpi"><small>${parcial?'Compras cargadas':'Compras registradas'}</small><strong>${r.compras}</strong></div>${puedeFinanzas()?`<div class="v130-kpi"><small>${parcial?'Total cargado':'Total comprado'}</small><strong>${dinero(r.totalComprado)}</strong></div><div class="v130-kpi"><small>Saldo a crédito${c.creditosConfirmados?'':' (datos cargados)'}</small><strong>${dinero(r.saldoCredito)}</strong></div><div class="v130-kpi"><small>Anticipos disponibles</small><strong>${dinero(r.anticipos)}</strong></div>`:''}<div class="v130-kpi"><small>Última compra cargada</small><strong style="font-size:13px">${r.ultimaCompra?escapar(new Date(r.ultimaCompra).toLocaleDateString('es-GT')):'Sin compras cargadas'}</strong></div></div>${cliente.notas?`<p style="font-size:11px;color:var(--text-light);margin-top:9px"><strong>Notas:</strong> ${escapar(cliente.notas)}</p>`:''}`;
     }
 
     const GUIAS = {
@@ -422,7 +436,7 @@
     }
 
     function pestañaVisible() {
-        for(const [p,id] of Object.entries({inicio:'sec-inicio',ingreso:'sec-ingreso',inventario:'sec-inventario',ventas:'sec-ventas',cotizacion:'sec-cotizacion',alertas:'sec-alertas',ajustes:'sec-ajustes',buscador:'sec-buscador'})) {
+        for(const [p,id] of Object.entries({inicio:'sec-inicio',ingreso:'sec-ingreso',inventario:'sec-inventario',ventas:'sec-ventas',cotizacion:'sec-cotizacion',caja:'sec-caja',alertas:'sec-alertas',ajustes:'sec-ajustes',buscador:'sec-buscador'})) {
             const el=document.getElementById(id); if(el && getComputedStyle(el).display!=='none') return p;
         }
         return 'inicio';
@@ -432,7 +446,7 @@
         document.querySelectorAll('.v130-guide').forEach(x=>x.remove());
         if(!modoCapacitacion()) return;
         const p=pestañaVisible(), pasos=GUIAS[p]; if(!pasos) return;
-        const sec=document.getElementById({inicio:'sec-inicio',ingreso:'sec-ingreso',inventario:'sec-inventario',ventas:'sec-ventas',cotizacion:'sec-cotizacion',alertas:'sec-alertas',ajustes:'sec-ajustes',buscador:'sec-buscador'}[p]); if(!sec) return;
+        const sec=document.getElementById({inicio:'sec-inicio',ingreso:'sec-ingreso',inventario:'sec-inventario',ventas:'sec-ventas',cotizacion:'sec-cotizacion',caja:'sec-caja',alertas:'sec-alertas',ajustes:'sec-ajustes',buscador:'sec-buscador'}[p]); if(!sec) return;
         const div=document.createElement('div'); div.className='v130-guide'; div.innerHTML=`<strong>🎓 Guía rápida</strong><ol>${pasos.map(x=>`<li>${escapar(x)}</li>`).join('')}</ol>`; sec.prepend(div);
     }
 
@@ -448,12 +462,27 @@
         asegurarAvisosBorrador();
         asegurarHistorialCostos(); actualizarSelectorCostos();
         asegurarCRM(); actualizarSelectorCRM();
+        if(document.getElementById('v130-crm-cliente')?.value) renderCRM();
         asegurarToggleCapacitacion();
     }
 
+    function instalarRefresco() {
+        const original=global.actualizarUI;
+        if(typeof original!=='function'||original.__v130refresco) return;
+        let pendiente=null;
+        const envuelta=function(...args){
+            const resultado=original.apply(this,args);
+            clearTimeout(pendiente);
+            pendiente=setTimeout(refrescar,120);
+            return resultado;
+        };
+        envuelta.__v130refresco=true;
+        global.actualizarUI=envuelta;
+    }
+
     function iniciar() {
-        inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas();
-        global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
+        inyectarEstilos(); asegurarCommandBar(); asegurarModalAcciones(); asegurarPanelSalud(); asegurarAgendaCobros(); asegurarHistorialCostos(); asegurarCRM(); asegurarToggleCapacitacion(); instalarLimpiezaBorradores(); instalarGuiaPestañas(); instalarRefresco();
+        global.addEventListener('online', actualizarSync); global.addEventListener('offline', actualizarSync); global.addEventListener('subli:sync-estado', actualizarSync); global.addEventListener('beforeunload', capturarBorradores);
         global.addEventListener('pagehide', capturarBorradores);
         document.addEventListener('visibilitychange', guardarBorradoresAlOcultar);
         document.addEventListener('input', programarGuardadoBorrador);

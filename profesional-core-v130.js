@@ -92,11 +92,28 @@
         if(!venta || venta.anulada) return 0;
         const candidatos = [venta.saldoPendiente, venta.saldoCredito, venta.saldoCreditoPendiente, venta.pendienteCobro];
         for(const valor of candidatos) {
-            if(Number.isFinite(Number(valor)) && Number(valor) > 0) return numero(valor);
+            // Un cero registrado significa que la deuda quedó saldada. No se debe
+            // rescatar un campo legado positivo ni recalcularla con cobros antiguos.
+            if(valor !== null && valor !== undefined && String(valor).trim() !== '' && Number.isFinite(Number(valor))) {
+                return monedaDesdeCentavos(Math.max(0, centavos(valor)));
+            }
         }
         const total = numero(venta.ingresoTotal);
         const cobrado = numero(venta.montoCobradoTotal, total);
         return Math.max(0, monedaDesdeCentavos(centavos(total) - centavos(cobrado)));
+    }
+
+    function ventasParaCobros(ventas, pendientes, confirmados = false) {
+        if(confirmados && Array.isArray(pendientes)) return pendientes;
+        const porId = new Map(), sinId = [];
+        // Los cambios de las ventas recientes prevalecen sobre una lista local
+        // de pendientes aún no confirmada por el servidor.
+        for(const venta of [...(Array.isArray(pendientes) ? pendientes : []), ...(Array.isArray(ventas) ? ventas : [])]) {
+            if(!venta) continue;
+            if(venta.id === null || venta.id === undefined || venta.id === '') sinId.push(venta);
+            else porId.set(String(venta.id), venta);
+        }
+        return [...sinId, ...porId.values()];
     }
 
     function agendaCobros(ventas, prestamos, ahora = Date.now()) {
@@ -137,7 +154,7 @@
             const stock = numero(p.stock), minimo = Math.max(0, numero(p.min));
             if(stock <= 0) agotados++;
             else if(stock <= minimo) bajos++;
-            const valor = stock * Math.max(0, numero(p.costo));
+            const valor = Math.max(0, stock) * Math.max(0, numero(p.costo));
             if(Number.isFinite(valor)) valorInventarioCent += centavos(valor);
         }
         let ventasHoyCent = 0, utilidadHoyCent = 0;
@@ -146,7 +163,7 @@
             ventasHoyCent += centavos(v.ingresoTotal);
             utilidadHoyCent += centavos(v.ganancia ?? v.gananciaNeta);
         }
-        const cobros = agendaCobros(ventas, prestamos, contexto.ahora || Date.now());
+        const cobros = agendaCobros(ventasParaCobros(ventas, contexto.creditosPendientes, contexto.creditosConfirmados), prestamos, contexto.ahora || Date.now());
         const porCobrarCent = cobros.reduce((a,c) => a + centavos(c.saldo), 0);
         const vencidos = cobros.filter(c => c.dias !== null && c.dias < 0).length;
         return {
@@ -156,13 +173,13 @@
             ventasHoy: monedaDesdeCentavos(ventasHoyCent),
             utilidadHoy: monedaDesdeCentavos(utilidadHoyCent),
             porCobrar: monedaDesdeCentavos(porCobrarCent), vencidos,
-            prestamosPendientes: prestamos.filter(p => numero(p?.saldoPendiente) > 0 && p?.estado !== 'anulado').length
+            prestamosPendientes: prestamos.filter(p => numero(p?.saldoPendiente) > 0 && p?.estado !== 'anulado' && p?.estado !== 'pagado').length
         };
     }
 
     function prioridadesNegocio(contexto = {}) {
         const salud = resumenSalud(contexto);
-        const cobros = agendaCobros(contexto.ventas, contexto.prestamos, contexto.ahora);
+        const cobros = agendaCobros(ventasParaCobros(contexto.ventas, contexto.creditosPendientes, contexto.creditosConfirmados), contexto.prestamos, contexto.ahora);
         const prioridades = [];
         if(salud.vencidos) prioridades.push({ nivel:'alto', tipo:'cobros', titulo:`${salud.vencidos} cobro(s) vencido(s)`, detalle:'Revisa créditos y préstamos con fecha vencida.' });
         if(salud.agotados) prioridades.push({ nivel:'alto', tipo:'stock', titulo:`${salud.agotados} producto(s) agotado(s)`, detalle:'Conviene revisar Por Surtir.' });
@@ -243,11 +260,17 @@
         return { texto:limpio || '0', modulos, ancho:modulos.reduce((a,m) => a + m.ancho, 0) };
     }
 
-    function resumenCliente(cliente, ventas, anticipos) {
+    function resumenCliente(cliente, ventas, anticipos, opciones = {}) {
         const id = String(cliente?.id || '');
         const propias = (Array.isArray(ventas) ? ventas : []).filter(v => !v?.anulada && String(v?.clienteId || '') === id);
         const totalCent = propias.reduce((a,v) => a + centavos(v.ingresoTotal), 0);
-        const saldoCent = propias.reduce((a,v) => a + centavos(saldoCreditoVenta(v)), 0);
+        const pendientes = ventasParaCobros(ventas, opciones.creditosPendientes, opciones.creditosConfirmados)
+            .filter(v => String(v?.clienteId || '') === id);
+        const saldoFicha = cliente?.saldoCredito;
+        const saldoCent = !opciones.creditosConfirmados && saldoFicha !== null && saldoFicha !== undefined
+            && String(saldoFicha).trim() !== '' && Number.isFinite(Number(saldoFicha))
+            ? Math.max(0, centavos(saldoFicha))
+            : pendientes.reduce((a,v) => a + centavos(saldoCreditoVenta(v)), 0);
         const ult = propias.sort((a,b) => numero(b.timestamp) - numero(a.timestamp))[0];
         const antCent = (Array.isArray(anticipos) ? anticipos : []).filter(a => String(a?.clienteId || '') === id && numero(a?.saldoPendiente) > 0).reduce((a,v) => a + centavos(v.saldoPendiente), 0);
         return { compras:propias.length, totalComprado:monedaDesdeCentavos(totalCent), saldoCredito:monedaDesdeCentavos(saldoCent), anticipos:monedaDesdeCentavos(antCent), ultimaCompra:ult?.timestamp || null };
@@ -266,7 +289,7 @@
 
     global.SubliProfesionalCore = Object.freeze({
         MS_DIA, ACCIONES, numero, centavos, monedaDesdeCentavos, normalizarTexto, claveUnica, inicioDia, parseFecha,
-        buscarAcciones, saldoCreditoVenta, agendaCobros, resumenSalud, prioridadesNegocio, historialCostos, crearOrdenCompra,
+        buscarAcciones, saldoCreditoVenta, ventasParaCobros, agendaCobros, resumenSalud, prioridadesNegocio, historialCostos, crearOrdenCompra,
         calcularCierre, code39, resumenCliente, sanitizarError, borradorValido
     });
 })(typeof window !== 'undefined' ? window : globalThis);
