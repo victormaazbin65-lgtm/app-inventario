@@ -3320,6 +3320,7 @@
 
             try {
                 const snap = await window.getDocs(window.collection(window.db, configuracion.coleccion));
+                if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) throw new Error('El servidor no confirmó el historial completo.');
                 const datos = [];
                 snap.forEach(d => datos.push(d.data()));
                 configuracion.asignar(datos);
@@ -3452,6 +3453,32 @@
             else window.addEventListener('subli:app-activa', programar, { once:true });
         }
 
+        const fuentesSincronizacion = Object.fromEntries(
+            ['config', 'inventario', 'ventas', 'creditos', 'clientes', 'anticipos', 'prestamos'].map(nombre => [nombre, false])
+        );
+        const erroresSincronizacion = new Set();
+        window.obtenerEstadoSincronizacion = () => ({
+            confirmado: Object.values(fuentesSincronizacion).every(Boolean),
+            error: erroresSincronizacion.size > 0
+        });
+        function registrarEstadoSincronizacion(nombre, snap, error = null) {
+            if(!Object.prototype.hasOwnProperty.call(fuentesSincronizacion, nombre)) return;
+            const anterior = fuentesSincronizacion[nombre], teniaError = erroresSincronizacion.has(nombre);
+            if(error) {
+                fuentesSincronizacion[nombre] = false;
+                erroresSincronizacion.add(nombre);
+            } else {
+                fuentesSincronizacion[nombre] = Boolean(navigator.onLine && snap?.metadata && !snap.metadata.fromCache && !snap.metadata.hasPendingWrites);
+                erroresSincronizacion.delete(nombre);
+            }
+            if(anterior !== fuentesSincronizacion[nombre] || teniaError !== erroresSincronizacion.has(nombre)) {
+                window.dispatchEvent(new Event('subli:sync-estado'));
+            }
+        }
+        window.addEventListener('offline', () => {
+            Object.keys(fuentesSincronizacion).forEach(nombre => { fuentesSincronizacion[nombre] = false; });
+        });
+
         function programarActualizacionSincronizacion() {
             // Durante el arranque varios snapshots pueden llegar juntos. Se conserva el
             // último estado recibido y se hace un solo render cuando termina la ráfaga.
@@ -3481,7 +3508,8 @@
 
                 try {
                     window.subliMarcar?.('config_escucha');
-                    window.onSnapshot(window.doc(window.db, "sistema", "config"), (docSnap) => {
+                    window.onSnapshot(window.doc(window.db, "sistema", "config"), { includeMetadataChanges: true }, (docSnap) => {
+                        registrarEstadoSincronizacion('config', docSnap);
                         window.subliMarcar?.('config_recibida', { cache: Boolean(docSnap.metadata.fromCache) });
                         if (docSnap.exists()) {
                             datosCargadosDeLaNube = true;
@@ -3516,11 +3544,13 @@
                             confirmarAccesoFirebaseDisponible();
                         }
                     }, error => {
+                        registrarEstadoSincronizacion('config', null, error);
                         console.warn("No se pudo sincronizar la configuración; se conserva el respaldo local.", error);
                         if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
                     });
 
-                    programarEscuchaFirebase(() => window.onSnapshot(window.collection(window.db, "inventario"), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.collection(window.db, "inventario"), { includeMetadataChanges: true }, (snap) => {
+                        registrarEstadoSincronizacion('inventario', snap);
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             inventario = temp;
@@ -3529,18 +3559,20 @@
                             programarGuardadoSnapshot('inventario', 'inventario');
                             programarActualizacionSincronizacion();
                         }
-                    }, error => console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error)), 250);
+                    }, error => { registrarEstadoSincronizacion('inventario', null, error); console.warn("No se pudo sincronizar inventario; se conserva el respaldo local.", error); }), 250);
 
-                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.orderBy("id", "desc"), window.limit(50)), { includeMetadataChanges: true }, (snap) => {
+                        registrarEstadoSincronizacion('ventas', snap);
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             ventas = historialCompletoCargado.ventas ? fusionarPorId(ventas, temp) : temp;
                             programarGuardadoSnapshot('ventas', 'ventas');
                             programarActualizacionSincronizacion();
                         }
-                    }, error => console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error)), 650);
+                    }, error => { registrarEstadoSincronizacion('ventas', null, error); console.warn("No se pudo sincronizar ventas; se conserva el respaldo local.", error); }), 650);
 
-                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), (snap) => {
+                    programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ventas"), window.where("saldoPendiente", ">", 0)), { includeMetadataChanges: true }, (snap) => {
+                        registrarEstadoSincronizacion('creditos', snap);
                         const pendientes = [];
                         snap.forEach(d => {
                             const venta = d.data();
@@ -3548,9 +3580,9 @@
                         });
                         if(pendientes.length === 0 && snap.metadata.fromCache && ventasCreditoPendiente.length > 0) return;
                         ventasCreditoPendiente = pendientes;
-                        creditosPendientesConfirmados = !snap.metadata.fromCache;
+                        creditosPendientesConfirmados = !snap.metadata.fromCache && !snap.metadata.hasPendingWrites;
                         programarActualizacionSincronizacion();
-                    }, error => console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error)), 950);
+                    }, error => { registrarEstadoSincronizacion('creditos', null, error); console.warn("No se pudo sincronizar la lista completa de créditos; se usarán los datos locales disponibles.", error); }), 950);
 
                     programarEscuchaFirebase(() => window.onSnapshot(window.query(window.collection(window.db, "ingresos"), window.orderBy("id", "desc"), window.limit(50)), (snap) => {
                         let temp = []; snap.forEach(d => temp.push(d.data()));
@@ -3589,7 +3621,8 @@
                     const escucharColeccionNegocio = (nombre, asignar, grupoGuardado, maximo = 0) => {
                         const coleccion = window.collection(window.db, nombre);
                         const referencia = maximo > 0 ? window.query(coleccion, window.orderBy('timestamp', 'desc'), window.limit(maximo)) : coleccion;
-                        window.onSnapshot(referencia, snap => {
+                        window.onSnapshot(referencia, { includeMetadataChanges: true }, snap => {
+                            registrarEstadoSincronizacion(nombre, snap);
                             const datos = [];
                             snap.forEach(d => datos.push({ id: d.id, ...d.data() }));
                             // Una instantánea vacía procedente solo de caché no sustituye
@@ -3598,7 +3631,7 @@
                             asignar(datos);
                             programarGuardadoSnapshot(grupoGuardado, grupoGuardado);
                             programarActualizacionSincronizacion();
-                        }, error => console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error));
+                        }, error => { registrarEstadoSincronizacion(nombre, null, error); console.warn(`No se pudo sincronizar ${nombre}; se conserva el respaldo local.`, error); });
                     };
                     programarEscuchaFirebase(() => escucharColeccionNegocio('clientes', datos => clientes = datos, 'clientes'), 2600);
                     programarEscuchaFirebase(() => escucharColeccionNegocio('anticipos', datos => anticipos = datos, 'anticipos'), 3000);
@@ -6528,6 +6561,7 @@
                 ];
                 cargas.push(Promise.all(coleccionesAdicionales.map(async ([nombre, asignar]) => {
                     const snap = await window.getDocs(window.collection(window.db, nombre));
+                    if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) throw new Error(`El servidor no confirmó ${nombre} para el reporte.`);
                     const datos = [];
                     snap.forEach(d => datos.push({ id: d.id, ...d.data() }));
                     asignar(datos);
@@ -6548,7 +6582,7 @@
             const moneda = configuracionNegocio.moneda || 'Q';
             const nombreProduccion = configuracionNegocio.nombreFondoProduccion || 'Luz y Tinta';
             const nombreManoObra = configuracionNegocio.nombreManoObra || 'Mano de obra / creación';
-            const valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (numeroFinito(p.stock) * numeroFinito(p.costo))), 0);
+            const valorInv = inv.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * Math.max(0, numeroFinito(p.costo)))), 0);
             const ret = historialRetiros;
 
             const libro = XLSX.utils.book_new();
@@ -6568,9 +6602,9 @@
                 { Concepto: 'Valor total del inventario actual', [monto()]: redondear(valorInv) },
                 { Concepto: 'Dinero disponible en efectivo', [monto()]: redondear(saldosDinero.efectivo) },
                 { Concepto: 'Dinero disponible en banco', [monto()]: redondear(saldosDinero.banco) },
-                { Concepto: 'Crédito pendiente de clientes', [monto()]: redondear(vent.reduce((t, v) => t + numeroFinito(v.saldoPendiente), 0)) },
+                { Concepto: 'Crédito pendiente de clientes', [monto()]: SubliNegocioCore.calcularCreditoPendiente(clientes, creditosPendientesConfirmados ? ventasCreditoPendiente : fusionarPorId(ventasCreditoPendiente, vent), creditosPendientesConfirmados) },
                 { Concepto: 'Anticipos pendientes de aplicar o devolver', [monto()]: redondear(totalAnticiposPendientes()) },
-                { Concepto: 'Préstamos pendientes de regresar', [monto()]: redondear(prestamos.reduce((t, p) => t + Math.max(0, numeroFinito(p.saldoPendiente)), 0)) },
+                { Concepto: 'Préstamos pendientes de regresar', [monto()]: redondear(prestamos.filter(p => p && p.estado !== 'anulado' && p.estado !== 'pagado').reduce((t, p) => t + Math.max(0, numeroFinito(p.saldoPendiente)), 0)) },
                 { Concepto: 'Fondo acumulado: productos', [monto()]: redondear(fnd.costoProducto) },
                 { Concepto: `Fondo acumulado: ${nombreProduccion}`, [monto()]: redondear(fnd.costoLuzTinta) },
                 { Concepto: 'Fondo acumulado: impuestos SAT', [monto()]: redondear(fnd.fondoImpuestos) },
@@ -6588,7 +6622,7 @@
                     'Abreviatura': p.isService ? 'serv' : unidad.abreviatura,
                     'Alerta mínima': p.isService ? '' : numeroFinito(p.min),
                     [`Costo por unidad (${moneda})`]: p.isService ? 0 : numeroFinito(p.costo),
-                    [`Valor en bodega (${moneda})`]: p.isService ? 0 : redondear(numeroFinito(p.stock) * numeroFinito(p.costo)),
+                    [`Valor en bodega (${moneda})`]: p.isService ? 0 : redondear(Math.max(0, numeroFinito(p.stock)) * Math.max(0, numeroFinito(p.costo))),
                     'Proveedor': String(p.proveedor || 'NO ESPECIFICADO').toUpperCase(),
                     'Cantidad vendida histórica': numeroFinito(p.ventasTotales)
                 };
@@ -6847,7 +6881,7 @@
             if(!appPrincipal || appPrincipal.style.display === 'none') return;
             window.subliMarcar?.('render_inicio');
 
-            let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * numeroFinito(p.costo))), 0);
+            let valorInventario = inventario.reduce((sum, p) => sum + (p.isService ? 0 : (Math.max(0, numeroFinito(p.stock)) * Math.max(0, numeroFinito(p.costo)))), 0);
             const simboloMoneda = configuracionNegocio.moneda || 'Q';
             document.getElementById('dash-valor-inv').innerText = simboloMoneda + ' ' + valorInventario.toFixed(2);
             document.getElementById('dash-costo-producto').innerText = simboloMoneda + ' ' + numeroFinito(fondos.costoProducto).toFixed(2);

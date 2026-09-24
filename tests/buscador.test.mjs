@@ -54,6 +54,7 @@ test('el módulo es de solo lectura y no contiene operaciones que modifiquen arc
   assert.match(codigo, /rutaRelativa/);
   assert.doesNotMatch(codigo, /createWritable|removeEntry|getFileHandle\([^)]*create\s*:\s*true|getDirectoryHandle\([^)]*create\s*:\s*true/);
   assert.doesNotMatch(codigo, /firebase|setDoc|updateDoc|deleteDoc|runTransaction/);
+  assert.doesNotMatch(codigo, /indexedDB\.deleteDatabase\(/);
 });
 
 test('la pestaña está en la navegación principal y Studio externo fue retirado', () => {
