@@ -36,6 +36,8 @@ test('el respaldo se lee por etapas y una sola vez aunque dos arranques lo pidan
       normalizarSaldosDinero: valor => valor,
       totalFondos: () => 0
     },
+    totalAnticiposPendientes: () => 0,
+    fondos: {},
     normalizarEstadoCodigosInventario: valor => valor
   };
   claves.forEach(clave => {
@@ -131,12 +133,12 @@ test('el resumen muestra los saldos guardados sin construir listas financieras',
   const entorno = {
     monedaNegocio: () => 'Q',
     saldosDinero: { efectivo: 123.45, banco: 67.89 },
-    clientes: [{ saldoCredito: 25, archivado: false }],
-    creditosPendientesConfirmados: true,
+    clientes: [{ id: 'cliente-1', saldoCredito: 25, archivado: false }],
+    creditosPendientesConfirmados: false,
     ventasCreditoPendiente: [],
     ventas: [],
     totalAnticiposPendientes: () => 10,
-    core: { redondearMoneda: valor => Math.round(valor * 100) / 100 },
+    core: (() => { const c = vm.createContext({}); vm.runInContext(fs.readFileSync(path.join(raiz, 'negocio-core.js'), 'utf8'), c); return c.SubliNegocioCore; })(),
     document: { getElementById: id => {
       if(!elementos.has(id)) elementos.set(id, { textContent: '' });
       return elementos.get(id);

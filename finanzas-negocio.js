@@ -743,10 +743,8 @@
     function actualizarResumenFinanzasNegocio() {
         const moneda = monedaNegocio();
         const efectivo = Number(saldosDinero?.efectivo || 0); const banco = Number(saldosDinero?.banco || 0);
-        const saldosClientes = clientes.filter(c => !c.archivado && Number.isFinite(Number(c.saldoCredito)));
-        const credito = saldosClientes.length
-            ? saldosClientes.reduce((t, c) => t + Math.max(0, Number(c.saldoCredito) || 0), 0)
-            : (creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas).filter(v => !v.anulada).reduce((t, v) => t + Math.max(0, Number(v.saldoPendiente) || 0), 0);
+        const fuenteCredito = creditosPendientesConfirmados || ventasCreditoPendiente.length ? ventasCreditoPendiente : ventas;
+        const credito = core.calcularCreditoPendiente(clientes, fuenteCredito, creditosPendientesConfirmados);
         const anticipo = totalAnticiposPendientes();
         const ids = {
             'dash-efectivo': efectivo, 'dash-banco': banco, 'dash-credito-pendiente': credito,

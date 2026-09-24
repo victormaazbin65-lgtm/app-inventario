@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-restaurar-saldos-20260923';
+const CACHE_NAME = 'sublicosturas-v1.2.5-auditoria-finanzas-20260924';
 const APP_SHELL = [
   './index.html',
   './visual-preferences.js',

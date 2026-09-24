@@ -417,6 +417,28 @@
         };
     }
 
+    function calcularCreditoPendiente(clientes, ventas, creditosConfirmados = false) {
+        const cuentas = new Map();
+        let sinCliente = 0;
+        for (const venta of ventas || []) {
+            if (!venta || venta.anulada) continue;
+            const pendiente = Math.max(0, aCentavos(venta.saldoPendiente));
+            const id = String(venta.clienteId || '');
+            if (id) cuentas.set(id, (cuentas.get(id) || 0) + pendiente);
+            else sinCliente += pendiente;
+        }
+        // Una consulta completa confirmada es la fuente de verdad, incluso vacía.
+        // Sin conexión, usar cada ficha disponible y completar con ventas conocidas.
+        if (!creditosConfirmados) {
+            for (const cliente of clientes || []) {
+                const saldo = cliente?.saldoCredito;
+                if (!cliente?.id || saldo === null || saldo === undefined || saldo === '' || !Number.isFinite(Number(saldo))) continue;
+                cuentas.set(String(cliente.id), Math.max(0, aCentavos(saldo)));
+            }
+        }
+        return desdeCentavos([...cuentas.values()].reduce((total, saldo) => total + saldo, sinCliente));
+    }
+
     function ubicacionMetodoPago(metodo) {
         return (METODOS_PAGO[metodo] || METODOS_PAGO.efectivo).ubicacion;
     }
@@ -769,6 +791,7 @@
         normalizarFondos,
         totalFondos,
         normalizarSaldosDinero,
+        calcularCreditoPendiente,
         ubicacionMetodoPago,
         calcularTramoProporcionalMoneda,
         calcularReembolsoPagos,

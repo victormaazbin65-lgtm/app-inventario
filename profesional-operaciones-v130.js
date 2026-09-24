@@ -192,7 +192,38 @@
     function claveProducto(p){return core.claveUnica(`${p?.categoria||''}|${p?.nombre||''}|${p?.descripcion||''}`);}
     function identidadCliente(c){const nit=String(c?.nit||'').trim().toUpperCase();if(nit&&nit!=='C/F'&&nit!=='CF')return `nit-${core.claveUnica(nit)}`;const tel=String(c?.telefono||'').replace(/\D/g,'');return tel.length>=6?`tel-${tel.slice(0,30)}`:'';}
 
-    function instalarReservaProductos(){const original=global.reservarCodigoInventarioEnTransaccion;if(typeof original!=='function'||original.__v130names)return;const envuelta=async function(t,producto,estado,ocupados,timestamp){const resultado=await original.call(this,t,producto,estado,ocupados,timestamp);const p=resultado?.producto||producto;if(!p||p.isService||!p.id)return resultado;const clave=claveProducto(p);const ref=global.doc(global.db,'indices_nombres',`producto_${clave}`);const snap=await t.get(ref);if(snap.exists()&&String(snap.data()?.entidadId||'')!==String(p.id))throw new Error(`Ya existe un producto equivalente a “${p.nombre}”. Actualiza el inventario antes de continuar.`);let anterior=null;try{anterior=(inventario||[]).find(x=>String(x.id)===String(p.id));}catch(_){}const claveAnterior=anterior?claveProducto(anterior):clave;if(claveAnterior!==clave){const refAnt=global.doc(global.db,'indices_nombres',`producto_${claveAnterior}`);const snapAnt=await t.get(refAnt);if(snapAnt.exists()&&String(snapAnt.data()?.entidadId||'')===String(p.id))t.delete(refAnt);}t.set(ref,{tipo:'producto',entidadId:String(p.id),clave,nombre:String(p.nombre||''),actualizadoEn:timestamp||Date.now()},{merge:true});return resultado;};envuelta.__v130names=true;global.reservarCodigoInventarioEnTransaccion=envuelta;}
+    function instalarReservaProductos() {
+        const original = global.reservarCodigoInventarioEnTransaccion;
+        if (typeof original !== 'function' || original.__v130names) return;
+        const envuelta = async function(t, producto, estado, ocupados, timestamp) {
+            const resultado = await original.call(this, t, producto, estado, ocupados, timestamp);
+            const p = resultado?.producto || producto;
+            if (!p || p.isService || !p.id) return resultado;
+            const clave = claveProducto(p);
+            const ref = global.doc(global.db, 'indices_nombres', `producto_${clave}`);
+            const snap = await t.get(ref);
+            if (snap.exists() && String(snap.data()?.entidadId || '') !== String(p.id)) {
+                throw new Error(`Ya existe un producto equivalente a “${p.nombre}”. Actualiza el inventario antes de continuar.`);
+            }
+            // La identidad anterior también procede del servidor, no de una copia local.
+            const productoSnap = await t.get(global.doc(global.db, 'inventario', String(p.id)));
+            const anterior = productoSnap.exists() ? productoSnap.data() : null;
+            const claveAnterior = anterior ? claveProducto(anterior) : clave;
+            let anteriorRef = null;
+            if (claveAnterior !== clave) {
+                const refAnt = global.doc(global.db, 'indices_nombres', `producto_${claveAnterior}`);
+                const snapAnt = await t.get(refAnt);
+                if (snapAnt.exists() && String(snapAnt.data()?.entidadId || '') === String(p.id)) anteriorRef = refAnt;
+            }
+            // El llamador escribe estas reservas cuando termina de leer TODO el lote.
+            return { ...resultado, reserva: { ...resultado.reserva, indiceNombre: {
+                ref, anteriorRef,
+                datos: { tipo: 'producto', entidadId: String(p.id), clave, nombre: String(p.nombre || ''), actualizadoEn: timestamp || Date.now() }
+            } } };
+        };
+        envuelta.__v130names = true;
+        global.reservarCodigoInventarioEnTransaccion = envuelta;
+    }
 
     function instalarClienteSeguro(){const original=global.guardarCliente;if(typeof original!=='function'||original.__v130names)return;const seguro=async function(){if(!global.exigirDueno?.('Solo el Dueño puede crear o modificar fichas de clientes.')||!navigator.onLine||!global.db)return;if(typeof isProcessingTransaction!=='undefined'&&isProcessingTransaction)return;let cliente;try{cliente=negocio.validarCliente({id:document.getElementById('cliente-id').value||global.generarIDSeguro(),nombres:document.getElementById('cliente-nombres').value,apellidos:document.getElementById('cliente-apellidos').value,telefono:document.getElementById('cliente-telefono').value,direccion:document.getElementById('cliente-direccion').value,nit:document.getElementById('cliente-nit').value,notas:document.getElementById('cliente-notas').value,limiteCredito:document.getElementById('cliente-limite').value});}catch(error){return alert(error.message);}const duplicado=(clientes||[]).find(c=>!c.archivado&&c.nombreCompleto===cliente.nombreCompleto&&String(c.id)!==String(cliente.id));if(duplicado&&!confirm(`Ya existe “${duplicado.nombreCompleto}”. ¿Guardar de todos modos como otra ficha?`))return;isProcessingTransaction=true;try{const registro=await global.runTransaction(global.db,async t=>{const ref=global.doc(global.db,'clientes',String(cliente.id));const snap=await t.get(ref);const anteriorServidor=snap.exists()?snap.data():null;const anteriorLocal=(clientes||[]).find(c=>String(c.id)===String(cliente.id));const anterior=anteriorServidor||anteriorLocal||{};const identidad=identidadCliente(cliente),identidadAnterior=identidadCliente(anterior);let refIdentidad=null;if(identidad){refIdentidad=global.doc(global.db,'indices_nombres',`cliente_${identidad}`);const s=await t.get(refIdentidad);if(s.exists()&&String(s.data()?.entidadId||'')!==String(cliente.id))throw new Error(identidad.startsWith('nit-')?'Ese NIT ya pertenece a otra ficha de cliente.':'Ese teléfono ya pertenece a otra ficha de cliente.');}let refAnterior=null;if(identidadAnterior&&identidadAnterior!==identidad){refAnterior=global.doc(global.db,'indices_nombres',`cliente_${identidadAnterior}`);const s=await t.get(refAnterior);if(!(s.exists()&&String(s.data()?.entidadId||'')===String(cliente.id)))refAnterior=null;}const saldo=Number.isFinite(Number(anteriorServidor?.saldoCredito))?negocio.redondearMoneda(anteriorServidor.saldoCredito):global.saldoCreditoCalculadoCliente(cliente.id);const actualizado={...anterior,...cliente,saldoCredito:saldo,creadoEn:anterior.creadoEn||Date.now(),actualizadoEn:Date.now(),archivado:false};t.set(ref,actualizado);if(refAnterior)t.delete(refAnterior);if(refIdentidad)t.set(refIdentidad,{tipo:'cliente',entidadId:String(cliente.id),clave:identidad,nombre:cliente.nombreCompleto,actualizadoEn:Date.now()},{merge:true});return actualizado;});clientes=global.fusionarPorId?global.fusionarPorId(clientes,[registro]):[...clientes.filter(c=>String(c.id)!==String(registro.id)),registro];global.limpiarFormularioCliente?.();global.renderGestionNegocio?.();registrarAuditoria('cliente_guardado',{clienteId:registro.id});alert('✅ Cliente guardado.');}catch(error){alert('No se guardó el cliente. '+error.message);}finally{isProcessingTransaction=false;}};seguro.__v130names=true;seguro.__original=original;global.guardarCliente=seguro;}
 

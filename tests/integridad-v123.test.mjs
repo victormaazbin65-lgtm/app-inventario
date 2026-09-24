@@ -116,7 +116,7 @@ test('créditos pendientes se consultan sin depender de las últimas 50 ventas',
   const finanzas = leer('finanzas-negocio.js');
   assert.match(html, /window\.where\("saldoPendiente", ">", 0\)/);
   assert.match(finanzas, /creditosPendientesConfirmados \|\| ventasCreditoPendiente\.length \? ventasCreditoPendiente : ventas/);
-  assert.match(finanzas, /saldosClientes\.reduce/);
+  assert.match(finanzas, /core\.calcularCreditoPendiente\(clientes, fuenteCredito, creditosPendientesConfirmados\)/);
 });
 
 test('las reglas nuevas quedan cerradas y vinculadas al UID propietario', () => {
