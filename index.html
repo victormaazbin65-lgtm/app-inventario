@@ -1955,6 +1955,25 @@
             }
         }
 
+        function escribirReservasInventario(t, reservas) {
+            const nombres = new Map();
+            for (const reserva of reservas) {
+                const indice = reserva?.indiceNombre;
+                if (!indice) continue;
+                const anterior = nombres.get(indice.ref.path);
+                if (anterior && anterior.datos.entidadId !== indice.datos.entidadId) {
+                    throw new Error(`El ingreso contiene productos equivalentes: “${indice.datos.nombre}”. Unifica las líneas antes de guardar.`);
+                }
+                nombres.set(indice.ref.path, indice);
+            }
+            // No eliminar una clave que el mismo lote está reservando otra vez.
+            for (const indice of nombres.values()) {
+                if (indice.anteriorRef && !nombres.has(indice.anteriorRef.path)) t.delete(indice.anteriorRef);
+            }
+            for (const indice of nombres.values()) t.set(indice.ref, indice.datos, { merge: true });
+            for (const reserva of reservas) if (reserva?.ref) t.set(reserva.ref, reserva.datos, { merge: true });
+        }
+
         function renombrarCategoriaEnEstadoCodigos(estado, categoriaActual, categoriaNueva) {
             const resultado = normalizarEstadoCodigosInventario(estado);
             const actual = normalizarCategoriaCodigo(categoriaActual);
@@ -3227,6 +3246,7 @@
         let cargaDatosLocalesPromesa = null;
         function cargarDatosLocales() {
             if(cargaDatosLocalesPromesa) return cargaDatosLocalesPromesa;
+            let saldosLocales = null;
             const asignaciones = [
                 [KEY_INV, valor => inventario = valor],
                 [KEY_VENTAS, valor => {
@@ -3239,7 +3259,7 @@
                 [KEY_RETIROS, valor => historialRetiros = valor],
                 [KEY_CODIGOS_INV, valor => estadoCodigosInventario = normalizarEstadoCodigosInventario(valor)],
                 [KEY_NEGOCIO, valor => configuracionNegocio = SubliNegocioCore.normalizarConfiguracionNegocio(valor)],
-                [KEY_SALDOS_DINERO, valor => saldosDinero = SubliNegocioCore.normalizarSaldosDinero(valor, SubliNegocioCore.totalFondos(fondos))],
+                [KEY_SALDOS_DINERO, valor => saldosLocales = valor],
                 [KEY_CLIENTES, valor => clientes = Array.isArray(valor) ? valor : []],
                 [KEY_ANTICIPOS, valor => anticipos = Array.isArray(valor) ? valor : []],
                 [KEY_PRESTAMOS, valor => prestamos = Array.isArray(valor) ? valor : []],
@@ -3267,6 +3287,11 @@
                         });
                     }
                 }
+                // Respaldo heredado: reconstruir solo si nunca guardó saldos.
+                // Esperar a fondos y anticipos; un cero explícito sigue siendo cero.
+                saldosDinero = SubliNegocioCore.normalizarSaldosDinero(
+                    saldosLocales, SubliNegocioCore.totalFondos(fondos) + totalAnticiposPendientes()
+                );
             })();
             return cargaDatosLocalesPromesa;
         }
@@ -4096,7 +4121,7 @@
                     productosActualizados.forEach(producto => {
                         t.set(window.doc(window.db, "inventario", String(producto.id)), producto);
                     });
-                    reservasCodigos.forEach(reserva => t.set(reserva.ref, reserva.datos, { merge: true }));
+                    escribirReservasInventario(t, reservasCodigos);
                     t.set(ingresoRef, registroHistorial);
                     t.update(configRef, { codigosInventario: estadoCodigosTrabajo, ultimaActualizacion: timestampActual });
 
@@ -4534,12 +4559,12 @@
                             preparados.push({ entrada, producto: reservado.producto, reserva: reservado.reserva });
                         }
 
-                        preparados.forEach(({ entrada, producto, reserva }) => {
+                        escribirReservasInventario(t, preparados.map(x => x.reserva));
+                        preparados.forEach(({ entrada, producto }) => {
                             if(!esCodigoInventarioValido(entrada.datos.codigoInventario)) {
                                 // Se conserva lastModified para no invalidar reversiones contables.
                                 t.set(entrada.ref, producto);
                             }
-                            t.set(reserva.ref, reserva.datos, { merge: true });
                         });
                         t.update(configRef, { codigosInventario: estadoTrabajo, ultimaActualizacionCodigos: Date.now() });
                         return { productos: preparados.map(x => x.producto), estado: estadoTrabajo, ocupados: Array.from(ocupadosTrabajo) };
@@ -6842,7 +6867,7 @@
                 renderResumenMensual();
                 renderPanelInteligente();
             }
-            if (document.getElementById('tab-caja').classList.contains('active')) renderHistorialRetiros();
+            if (document.getElementById('sec-caja')?.style.display === 'block') renderHistorialRetiros();
             aplicarConfiguracionNegocio();
 
             // RENDER HISTORIAL VENTAS solo si la pestaña está visible
