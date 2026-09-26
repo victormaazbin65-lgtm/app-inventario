@@ -1,6 +1,7 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-correcciones-informes-20260924';
+const CACHE_NAME = 'sublicosturas-v1.2.5-estabilidad-android-20260926';
 const APP_SHELL = [
   './index.html',
+  './diagnostico.html',
   './visual-preferences.js',
   './build-info.json',
   './negocio-core.js',
@@ -45,17 +46,18 @@ self.addEventListener('fetch', event => {
   }
 
   if(request.mode === 'navigate') {
+    const rutaInicio = new URL('./index.html', self.location.href).pathname;
+    const rutaRaiz = new URL('./', self.location.href).pathname;
+    const rutaAnterior = new URL('./SUBLI.html', self.location.href).pathname;
+    const rutaDiagnostico = new URL('./diagnostico.html', self.location.href).pathname;
+    const esEntradaApp = [rutaInicio, rutaRaiz, rutaAnterior].includes(url.pathname);
     event.respondWith(
       fetch(request)
-        .then(response => {
-          const tipo = response.headers.get('content-type') || '';
-          if(response.ok && tipo.includes('text/html')) {
-            const copia = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copia));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
+        // La copia de index.html ya se instala junto con sus módulos. Una página
+        // auxiliar jamás debe sobrescribir la entrada de la aplicación.
+        .catch(() => esEntradaApp ? caches.match('./index.html')
+          : url.pathname === rutaDiagnostico ? caches.match('./diagnostico.html')
+          : caches.match(request))
     );
     return;
   }

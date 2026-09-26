@@ -3633,11 +3633,17 @@
                         if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
                     });
 
+                    let inventarioSnapshotAplicado = false;
                     programarEscuchaFirebase(() => window.onSnapshot(window.collection(window.db, "inventario"), { includeMetadataChanges: true }, (snap) => {
                         registrarEstadoSincronizacion('inventario', snap);
+                        // Firestore también avisa cuando solo cambia fromCache o
+                        // hasPendingWrites. Conservamos ese estado sin copiar y volver
+                        // a serializar el inventario completo en cada aviso.
+                        if(inventarioSnapshotAplicado && typeof snap.docChanges === 'function' && snap.docChanges().length === 0) return;
                         let temp = []; snap.forEach(d => temp.push(d.data()));
                         if(temp.length > 0 || !snap.metadata.fromCache) {
                             inventario = temp;
+                            inventarioSnapshotAplicado = true;
                             datosCargadosDeLaNube = true;
                             asegurarServicioCreacion();
                             programarGuardadoSnapshot('inventario', 'inventario');
