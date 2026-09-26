@@ -151,7 +151,8 @@ test('la actualización PWA sólo limpia cachés propias y evita ciclos de recar
   assert.doesNotMatch(html, /getRegistrations\(\)/);
   assert.doesNotMatch(html, /\.unregister\(\)/);
   assert.match(html, /subli_actualizacion_intentada/);
-  assert.match(sw, /response\.ok && tipo\.includes\('text\/html'\)/);
+  assert.match(sw, /const esEntradaApp = \[rutaInicio, rutaRaiz, rutaAnterior\]\.includes\(url\.pathname\)/);
+  assert.doesNotMatch(sw, /cache\.put\('\.\/index\.html', copia\)/);
   assert.match(sw, /url\.origin !== self\.location\.origin/);
 });
 
