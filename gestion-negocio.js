@@ -325,24 +325,45 @@
     }
 
     async function guardarLogoNegocio(dataUrl) {
-        if (!global.db || !navigator.onLine || !esDuenoActual()) return;
+        if(!esDuenoActual()) return false;
+        const actualizadoEn = Date.now();
+        try { localStorage.setItem('subli_logo_pendiente', JSON.stringify({ logoDataUrl:dataUrl, actualizadoEn })); } catch(_) {}
+        if (!global.db || !navigator.onLine) return false;
         try {
             await global.setDoc(global.doc(global.db, 'sistema', 'branding'), {
                 logoDataUrl: dataUrl,
-                actualizadoEn: Date.now(),
+                actualizadoEn,
                 actualizadoPor: currentUserData?.nombre || 'Dueño'
             }, { merge: true });
+            try {
+                const pendiente = JSON.parse(localStorage.getItem('subli_logo_pendiente') || 'null');
+                if(pendiente?.logoDataUrl === dataUrl) localStorage.removeItem('subli_logo_pendiente');
+            } catch(_) {}
+            return true;
         } catch (error) {
             console.warn('El logo quedó guardado en este dispositivo, pero no se sincronizó.', error);
+            return false;
         }
     }
 
     function aplicarLogoSincronizado(data) {
         const logo = String(data?.logoDataUrl || '');
         if (!logo.startsWith('data:image/')) return;
+        try {
+            const pendiente = JSON.parse(localStorage.getItem('subli_logo_pendiente') || 'null');
+            if(pendiente && pendiente.logoDataUrl !== logo && Number(pendiente.actualizadoEn) > Number(data.actualizadoEn || 0)) return;
+            if(pendiente) localStorage.removeItem('subli_logo_pendiente');
+        } catch(_) {}
         try { localStorage.setItem('subli_logo', logo); } catch (error) { console.warn('No se pudo guardar el logo local.', error); }
         mostrarLogo();
     }
+
+    global.addEventListener('online', () => {
+        try {
+            const pendiente = JSON.parse(localStorage.getItem('subli_logo_pendiente') || 'null');
+            if(pendiente?.logoDataUrl && esDuenoActual()) guardarLogoNegocio(pendiente.logoDataUrl);
+        } catch(_) {}
+    });
 
     function limpiarFormularioCliente() {
         ['cliente-id', 'cliente-nombres', 'cliente-apellidos', 'cliente-telefono', 'cliente-direccion', 'cliente-notas'].forEach(id => {

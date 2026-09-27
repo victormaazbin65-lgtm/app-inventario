@@ -93,8 +93,8 @@ test('una descarga opcional fallida se reintenta sin saltar módulos dependiente
   assert.equal(elementos.size, 0);
   await app.cargarMejoras();
   assert.equal(app.estado().mejorasCompletas, true);
-  assert.equal(elementos.size, 14);
-  assert.equal(intentos, 15);
+  assert.equal(elementos.size, 15);
+  assert.equal(intentos, 16);
 });
 
 test('el borrador se guarda al ocultar la pestaña, además del guardado diferido durante edición', () => {

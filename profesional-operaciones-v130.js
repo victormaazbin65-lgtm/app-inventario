@@ -102,12 +102,55 @@
 
     function leerErrores() { try { const x=JSON.parse(localStorage.getItem(ERROR_KEY)||'[]'); return Array.isArray(x)?x:[]; } catch(_){return [];} }
     function guardarErrores(lista) { try { localStorage.setItem(ERROR_KEY,JSON.stringify(lista.slice(-30))); } catch(_){} }
-    function capturarError(error,contexto) { const lista=leerErrores(); lista.push(core.sanitizarError(error,contexto)); guardarErrores(lista); renderDiagnosticoErrores(); }
+    function capturarError(error,contexto,ubicacion = {}) {
+        const lista=leerErrores();
+        const nuevo={...core.sanitizarError(error,contexto), archivo:String(ubicacion.archivo || '').slice(0,300), linea:Number(ubicacion.linea)||0, columna:Number(ubicacion.columna)||0};
+        const ultimo=lista[lista.length-1];
+        if(ultimo && ultimo.mensaje===nuevo.mensaje && ultimo.contexto===nuevo.contexto && nuevo.timestamp-ultimo.timestamp<10000) {
+            ultimo.repeticiones=(ultimo.repeticiones||1)+1; ultimo.timestamp=nuevo.timestamp;
+        } else lista.push(nuevo);
+        guardarErrores(lista);
+        try { renderDiagnosticoErrores(); actualizarAvisoErrores(); } catch(_) {}
+    }
 
     function instalarCapturaErrores() {
-        global.addEventListener('error',e=>capturarError(e.error||e.message,'window.error'));
-        global.addEventListener('unhandledrejection',e=>capturarError(e.reason,'unhandledrejection'));
+        global.subliRegistrarError=capturarError;
+        if(!global.subliCapturaErroresActiva) {
+            global.addEventListener('error',e=>capturarError(e.error||e.message,'window.error',{archivo:e.filename,linea:e.lineno,columna:e.colno}));
+            global.addEventListener('unhandledrejection',e=>capturarError(e.reason,'unhandledrejection'));
+        }
+        for(const e of global.subliErroresTempranos || []) capturarError(e.error,e.contexto,e.ubicacion);
+        if(global.subliErroresTempranos) global.subliErroresTempranos.length=0;
+        actualizarAvisoErrores();
     }
+
+    function actualizarAvisoErrores() {
+        const app=document.getElementById('main-app'); if(!app) return;
+        let aviso=document.getElementById('subli-error-aviso');
+        if(!aviso) {
+            aviso=document.createElement('div'); aviso.id='subli-error-aviso'; aviso.setAttribute('role','alert');
+            aviso.style.cssText='position:sticky;top:8px;z-index:1500;border:2px solid #fb7185;background:#591d2a;color:#fff;padding:12px;border-radius:12px;margin:10px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+            aviso.innerHTML='<strong id="subli-error-aviso-texto"></strong><button type="button" class="btn-sm" onclick="verErroresSistemaV131()">Ver errores</button><button type="button" class="btn-sm" onclick="reconocerErroresV131()">Entendido</button>';
+            app.prepend(aviso);
+        }
+        let visto=0; try { visto=Number(localStorage.getItem('subli_errores_vistos_v1'))||0; } catch(_) {}
+        const pendientes=leerErrores().filter(e=>Number(e.timestamp)>visto);
+        aviso.hidden=!pendientes.length;
+        aviso.style.display=pendientes.length?'flex':'none';
+        const texto=document.getElementById('subli-error-aviso-texto');
+        if(texto) texto.textContent=`⚠️ ${pendientes.length} error(es) sin revisar en este dispositivo. Abre el detalle antes de repetir una operación.`;
+    }
+
+    global.verErroresSistemaV131=function() {
+        if(!esDueno()) return alert('Solicita al Dueño que revise el diagnóstico en Opciones.');
+        global.cambiarPestaña?.('ajustes'); asegurarPanelAuditoria();
+        global.subliAbrirPanel?.('v130-auditoria');
+        const panel=document.getElementById('v130-auditoria'); if(panel){panel.open=true;panel.scrollIntoView({behavior:'smooth',block:'start'});}
+    };
+    global.reconocerErroresV131=function() {
+        try { localStorage.setItem('subli_errores_vistos_v1',String(Math.max(0,...leerErrores().map(e=>Number(e.timestamp)||0)))); } catch(_) {}
+        actualizarAvisoErrores();
+    };
 
     async function subirDiagnosticoErrores() {
         if(!esDueno()) return alert('Solo el Dueño puede guardar diagnósticos en la nube.');
@@ -141,10 +184,10 @@
 
     function renderDiagnosticoErrores() {
         const salida=document.getElementById('v130-errores-lista'); if(!salida) return; const lista=leerErrores().slice().reverse();
-        salida.innerHTML=lista.length?lista.slice(0,10).map(e=>`<div class="v130-log-row v130-error"><strong>${escapar(e.nombre)}: ${escapar(e.mensaje)}</strong><small>${escapar(new Date(e.timestamp).toLocaleString('es-GT'))} · ${escapar(e.contexto)}</small></div>`).join(''):'<small class="v130-ok">No hay errores JavaScript recientes guardados en este dispositivo.</small>';
+        salida.innerHTML=lista.length?lista.slice(0,10).map(e=>`<div class="v130-log-row v130-error"><strong>${escapar(e.nombre)}: ${escapar(e.mensaje)}${e.repeticiones>1?' · ×'+Number(e.repeticiones):''}</strong><small>${escapar(new Date(e.timestamp).toLocaleString('es-GT'))} · ${escapar(e.contexto)}</small><details><summary>Detalle técnico</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px">${escapar(e.archivo||'')}${e.linea?' · línea '+Number(e.linea):''}\n${escapar(e.pila||'El registro antiguo no guardó la ubicación del error.')}</pre></details></div>`).join(''):'<small class="v130-ok">No hay errores JavaScript recientes guardados en este dispositivo.</small>';
     }
 
-    function limpiarErrores(){guardarErrores([]);renderDiagnosticoErrores();}
+    function limpiarErrores(){if(!confirm('¿Borrar solo el registro local de errores? No cambia inventario ni ventas.'))return;guardarErrores([]);renderDiagnosticoErrores();actualizarAvisoErrores();}
 
     function proveedorPlan() {
         try{return negocio.crearPlanSurtido(inventario,configuracionNegocio);}catch(_){return [];}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublicosturas-v1.2.5-estabilidad-android-20260926';
+const CACHE_NAME = 'sublicosturas-v1.2.5-auditoria-pantallas-20260927';
 const APP_SHELL = [
   './index.html',
   './diagnostico.html',

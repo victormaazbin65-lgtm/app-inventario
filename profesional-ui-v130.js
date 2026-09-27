@@ -154,6 +154,7 @@
             if(!destino && accion.focusText) {
                 destino = Array.from(document.querySelectorAll('details')).find(d => (d.textContent || '').toLowerCase().includes(accion.focusText));
             }
+            if(destino) global.subliAbrirPanel?.(destino);
             if(destino?.tagName === 'DETAILS') destino.open = true;
             destino?.scrollIntoView({ behavior:'smooth', block:'center' });
         }, 130);
@@ -188,7 +189,7 @@
         const details = document.createElement('details');
         details.id = 'v130-salud';
         details.className = 'fold-card v130-panel';
-        details.open = true;
+        details.open = false;
         details.innerHTML = `<summary>🧭 Estado del negocio y prioridades</summary><div class="fold-card-content" id="v130-salud-contenido"></div>`;
         sec.prepend(details);
     }
@@ -271,7 +272,15 @@
 
     function guardarBorrador(tipo, items, seccionId) {
         if(!Array.isArray(items) || !items.length) return;
-        const payload = { version:1, tipo, timestamp:Date.now(), items:JSON.parse(JSON.stringify(items)), campos:capturarCampos(seccionId) };
+        const contextoOperacion = {};
+        if(tipo === 'ventas') {
+            try { Object.assign(contextoOperacion, { ventaEnEdicion, ventaEdicionVersion, cotizacionOrigenVentaId, cotizacionOrigenVentaVersion }); } catch(_) {}
+        } else if(tipo === 'cotizacion') {
+            try { Object.assign(contextoOperacion, { cotizacionBorradorOrigenId, cotizacionBorradorVersion }); } catch(_) {}
+        } else if(tipo === 'ingreso') {
+            try { Object.assign(contextoOperacion, { ingresoEnEdicion }); } catch(_) {}
+        }
+        const payload = { version:2, tipo, timestamp:Date.now(), items:JSON.parse(JSON.stringify(items)), campos:capturarCampos(seccionId), contextoOperacion };
         try { localStorage.setItem(DRAFT_PREFIX + tipo, JSON.stringify(payload)); } catch(_) {}
     }
 
@@ -311,10 +320,28 @@
     function restaurarBorrador(tipo) {
         const b = leerBorrador(tipo);
         if(!b) return borrarBorrador(tipo);
+        if((tipo === 'ventas' || tipo === 'ingreso') && b.version !== 2 && !confirm('Este borrador antiguo no conserva el vínculo con una operación editada. Se cargará como un registro nuevo. Comprueba antes que no esté registrado. ¿Continuar?')) return;
         try {
+            const c = b.contextoOperacion || {};
+            if(tipo === 'ventas') {
+                ventaEnEdicion = c.ventaEnEdicion || null;
+                ventaEdicionVersion = c.ventaEdicionVersion ?? null;
+                cotizacionOrigenVentaId = c.cotizacionOrigenVentaId || null;
+                cotizacionOrigenVentaVersion = c.cotizacionOrigenVentaVersion ?? null;
+                const aviso = document.getElementById('aviso-venta-edicion');
+                if(aviso) aviso.style.display = ventaEnEdicion ? 'block' : 'none';
+            } else if(tipo === 'cotizacion') {
+                cotizacionBorradorOrigenId = c.cotizacionBorradorOrigenId || null;
+                cotizacionBorradorVersion = c.cotizacionBorradorVersion ?? null;
+            } else if(tipo === 'ingreso') {
+                ingresoEnEdicion = c.ingresoEnEdicion || null;
+                const aviso = document.getElementById('aviso-ingreso-edicion');
+                if(aviso) aviso.style.display = ingresoEnEdicion ? 'block' : 'none';
+            }
             if(tipo === 'ventas') { carritoVentas = b.items; restaurarCampos(b.campos); global.renderCarritoVentas?.(); global.cambiarPestaña?.('ventas'); }
             else if(tipo === 'cotizacion') { carritoCotizacion = b.items; restaurarCampos(b.campos); global.renderCarritoCotizacion?.(); global.cambiarPestaña?.('cotizacion'); }
             else if(tipo === 'ingreso') { carritoIngresos = b.items; restaurarCampos(b.campos); global.renderCarritoIngresos?.(); global.cambiarPestaña?.('ingreso'); }
+            global.subliAbrirPanel?.(tipo === 'ventas' ? 'lista-carrito-ventas' : tipo === 'cotizacion' ? 'lista-carrito-cotizacion' : 'lista-ingresos-pendientes');
             borrarBorrador(tipo);
         } catch(error) { console.warn('No se pudo restaurar borrador.', error); }
     }
