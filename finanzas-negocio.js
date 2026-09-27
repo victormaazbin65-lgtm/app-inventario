@@ -237,23 +237,30 @@
         const origen = document.getElementById('caja-retiro-origen').value;
         const modo = document.getElementById('caja-retiro-modo').value;
         let monto;
-        const motivo = document.getElementById('caja-retiro-motivo').value.trim();
+        let detalles;
+        try { detalles = normalizarDetalleRetiro({ motivo: document.getElementById('caja-retiro-motivo').value, referencia: document.getElementById('caja-retiro-referencia')?.value || '' }); }
+        catch(error) { return alert(error.message); }
+        const { motivo, referencia } = detalles;
         try { monto = normalizarMontoMoneda(document.getElementById('caja-retiro-monto').value); } catch (error) { return alert(error.message); }
         if (!motivo) return alert('Escribe el motivo del retiro.');
         let previo;
         try { previo = desgloseRetiro(monto, fondos, modo); } catch (error) { return alert(error.message); }
         if (!confirm(`Retirar ${dineroNegocio(monto)} de ${origen}?\n\n${formatearDesgloseRetiro(previo)}`)) return;
         isProcessingTransaction = true;
+        let retiroConfirmado = false;
         try {
             const timestamp = Date.now();
-            const retiro = { id: generarIDSeguro(), timestamp, fecha: fechaHoraNegocio(timestamp), tipo: motivo.toUpperCase(), monto: core.redondearMoneda(monto), ubicacion: origen, modoRetiro: modo, desglose: previo, usuarioNombre: currentUserData?.nombre || 'Dueño', versionCalculo: 4 };
-            const movimiento = movimientoCaja('retiro', monto, origen, { referenciaId: retiro.id, motivo });
+            const retiro = { id: generarIDSeguro(), timestamp, fecha: fechaHoraNegocio(timestamp), tipo: 'RETIRO DE CAJA', motivo, referencia, monto: core.redondearMoneda(monto), ubicacion: origen, modoRetiro: modo, desglose: previo, usuarioNombre: currentUserData?.nombre || 'Dueño', versionCalculo: 4 };
+            const movimiento = movimientoCaja('retiro', monto, origen, { referenciaId: retiro.id, motivo, referencia });
             const resultado = await global.runTransaction(global.db, async t => {
                 const configRef = global.doc(global.db, 'sistema', 'config');
                 const configSnap = await t.get(configRef);
                 if (!configSnap.exists()) throw new Error('No se encontró la configuración.');
                 const data = configSnap.data();
                 const desglose = desgloseRetiro(monto, data.fondos, modo);
+                if(core.CLAVES_FONDOS.some(clave => core.aCentavos(desglose[clave]) !== core.aCentavos(previo[clave]))) {
+                    throw new Error('Los fondos cambiaron después de confirmar. Revisa el desglose y vuelve a intentarlo.');
+                }
                 const fondosNuevos = descontarDesglose(data.fondos, desglose);
                 const saldos = cambiarSaldo(saldoServidor(data), origen, monto, -1);
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
@@ -261,11 +268,14 @@
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
                 return { fondosNuevos, saldos, retiro: { ...retiro, desglose } };
             });
+            retiroConfirmado = true;
             fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos;
             historialRetiros = fusionarPorId(historialRetiros, [resultado.retiro]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
             document.getElementById('caja-retiro-monto').value = ''; document.getElementById('caja-retiro-motivo').value = '';
+            const referenciaCampo = document.getElementById('caja-retiro-referencia');
+            if(referenciaCampo) referenciaCampo.value = '';
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Retiro registrado en fondos y ubicación.');
-        } catch (error) { alert('No se realizó el retiro. ' + error.message); }
+        } catch (error) { global.subliRegistrarError?.(error, 'registrarRetiroCaja'); alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para ver el resultado; no lo repitas. ' + error.message : 'No se realizó el retiro. ' + error.message); }
         finally { isProcessingTransaction = false; }
     }
 

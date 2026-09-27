@@ -1,3 +1,18 @@
+(function capturarErroresAntesDeLosModulos() {
+    if(typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    window.subliErroresTempranos = [];
+    window.subliCapturaErroresActiva = true;
+    const registrar = (error, contexto, ubicacion) => {
+        if(typeof window.subliRegistrarError === 'function') window.subliRegistrarError(error, contexto, ubicacion);
+        else {
+            window.subliErroresTempranos.push({ error, contexto, ubicacion });
+            if(window.subliErroresTempranos.length > 10) window.subliErroresTempranos.shift();
+        }
+    };
+    window.addEventListener('error', e => registrar(e.error || e.message, 'window.error', { archivo:e.filename || '', linea:e.lineno || 0, columna:e.colno || 0 }));
+    window.addEventListener('unhandledrejection', e => registrar(e.reason, 'unhandledrejection', {}));
+})();
+
 (function () {
     if(typeof location === 'undefined' || typeof URLSearchParams === 'undefined' || typeof window === 'undefined') return;
     const parametros = new URLSearchParams(location.search);
@@ -110,7 +125,8 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
         ['subli-asistente-ajustes-v130', './asistente-ajustes-v130.js', 220],
         ['subli-profesional-ui-v130', './profesional-ui-v130.js', 260],
         ['subli-profesional-operaciones-v130', './profesional-operaciones-v130.js', 260],
-        ['subli-profesional-compat-v130', './profesional-compat-v130.js', 0]
+        ['subli-profesional-compat-v130', './profesional-compat-v130.js', 180],
+        ['subli-pantallas-v131', './pantallas-v131.js', 0]
     ]);
 
     let cargaMejorasIniciada = false;

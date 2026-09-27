@@ -191,7 +191,7 @@ test('el anticipo acordado solo se vuelve pago al cargar y confirmar la venta', 
   const ids = ['venta-tinta', 'venta-mano-obra', 'venta-envio', 'venta-nombre', 'venta-cliente-id', 'venta-nit', 'venta-factura', 'venta-tipo-cobro', 'venta-metodo-pago', 'venta-pago-inicial', 'venta-aplicar-anticipo'];
   const elementos = Object.fromEntries(ids.map(id => [id, { value: '', checked: false }]));
   const contexto = vm.createContext({
-    Math, Number, JSON, Date,
+    Math, Number, JSON, Date, confirm: () => true,
     document: { getElementById: id => elementos[id] },
     window: { scrollTo() {} }
   });
@@ -199,13 +199,14 @@ test('el anticipo acordado solo se vuelve pago al cargar y confirmar la venta', 
   contexto.SubliNegocioCore = contexto.window.SubliNegocioCore;
   vm.runInContext(`
     let carritoVentas = [];
-    let cotizacionOrigenVentaId = null;
+    let cotizacionOrigenVentaId = null, cotizacionOrigenVentaVersion = null, ventaEnEdicion = null, ventaEdicionVersion = null;
     function actualizarCamposCobroVenta() {}
     function renderCarritoVentas() {}
     function cambiarPestaña() {}
     ${extraerFuncion('copiarDatos')}
     ${extraerFuncion('numeroFinito')}
     ${extraerFuncion('aCentavos')}
+    ${extraerFuncion('versionCotizacion')}
     ${extraerFuncion('cargarCotizacionEnFormularioVenta')}
   `, contexto);
 

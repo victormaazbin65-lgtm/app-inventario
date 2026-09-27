@@ -9,7 +9,7 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
 const pagina = fs.readFileSync(path.join(raiz, 'diagnostico.html'), 'utf8');
 const visual = fs.readFileSync(path.join(raiz, 'visual-preferences.js'), 'utf8');
-const bootstrap = visual.match(/^\(function \(\) \{[\s\S]*?\}\)\(\);/)?.[0];
+const bootstrap = visual.match(/\(function \(\) \{[\s\S]*?\}\)\(\);/)?.[0];
 assert.ok(bootstrap, 'falta el arranque opcional del diagnóstico');
 const codigo = bootstrap;
 

@@ -219,6 +219,8 @@
         const extra = document.getElementById('v126-prestamo-campos');
         const modo = document.getElementById('ret-int-modo')?.closest('.form-group');
         if(extra) extra.style.display = esPrestamo ? 'block' : 'none';
+        const detalleRetiro = document.getElementById('ret-int-detalles');
+        if(detalleRetiro) detalleRetiro.hidden = esPrestamo;
         if(modo) modo.style.display = esPrestamo ? 'none' : '';
         if(esPrestamo) {
             document.getElementById('ret-int-modo').value = 'inteligente';
@@ -234,7 +236,7 @@
         const details = document.createElement('details');
         details.id = 'v126-resumen-financiero';
         details.className = 'fold-card';
-        details.open = true;
+        details.open = false;
         details.innerHTML = `<summary>📈 Ventas y utilidad por día, mes o rango</summary>
             <div class="fold-card-content">
                 <div class="v126-toolbar">
@@ -353,7 +355,7 @@
         const details = document.createElement('details');
         details.id = 'v126-catalogo-surtido';
         details.className = 'fold-card';
-        details.open = true;
+        details.open = false;
         details.innerHTML = `<summary>🏭 Catálogo completo por proveedor</summary>
             <div class="fold-card-content">
                 <p class="compact-note">Selecciona una empresa para ver todos sus productos, incluso los que todavía tienen buena existencia.</p>
