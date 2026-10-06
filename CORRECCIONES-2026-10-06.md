@@ -34,7 +34,7 @@ Base revisada: `1b67cae2dab5099f60c787d086c98f43dc97c225`. Cambios preparados so
 
 ## Validación y alcance
 
-Resultado local final: 232 pruebas aprobadas, cero fallos. Se verificó que los 22 módulos publicados coinciden con sus fuentes y sus hashes SHA-256. La comprobación de navegador aún no se ejecutó: la descarga de Chromium falló en este entorno. La publicación y GitHub Actions permanecen pendientes porque la revisión automática bloqueó el push al repositorio público.
+Validación local y de GitHub: 232 pruebas aprobadas, cero fallos, y 22 módulos coincidentes con sus fuentes y hashes SHA-256. GitHub Actions aprobó también el recorrido de Chromium en escritorio (1365 × 900) y pantalla móvil (393 × 852): 12 comprobaciones, cero errores de JavaScript y Firebase simulado. Ejecución de referencia: [GitHub Actions #118](https://github.com/victormaazbin65-lgtm/app-inventario/actions/runs/37475111932). La rama está publicada en el [PR #35](https://github.com/victormaazbin65-lgtm/app-inventario/pull/35).
 
 Ejecutar `npm run build` y `npm test`. Para la interfaz: instalar `playwright@1.62.1`, ejecutar `npx playwright install --with-deps --only-shell chromium` y `npm run test:browser`. GitHub Actions ejecuta estos controles antes de integrar la entrega.
 
