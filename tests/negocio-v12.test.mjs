@@ -41,7 +41,7 @@ test('las unidades y los lotes convierten cantidad y costo con precisión', () =
   const convertido = core.calcularIngresoConvertido(3, 8, 10, 'total', core.obtenerUnidad('pieza', config));
   assert.equal(convertido.cantidadBase, 24);
   assert.equal(convertido.costoBase, 0.416667);
-  assert.deepEqual(plano(core.calcularIngresoConvertido(3, 12, 297, 'total', core.obtenerUnidad('pieza', config))), { cantidadBase: 36, costoBase: 8.25 });
+  assert.deepEqual(plano(core.calcularIngresoConvertido(3, 12, 297, 'total', core.obtenerUnidad('pieza', config))), { cantidadBase: 36, costoBase: 8.25, costoTotalCompra:297, residuoCostoTotal:0 });
   assert.throws(() => core.calcularIngresoConvertido(1.5, 12, 100, 'total', core.obtenerUnidad('pieza', config)), /número entero/);
   assert.throws(() => core.normalizarCantidad(1.5, core.obtenerUnidad('pieza', config)), /cantidades enteras/);
   assert.equal(core.normalizarCantidad(1.257, core.obtenerUnidad('kilogramo', config)), 1.257);
@@ -201,7 +201,7 @@ test('la interfaz integra clientes en configuración y caja en el panel financie
   assert.match(html, /class="quick-finance-actions"[\s\S]*?cambiarPestaña\('caja'\)/);
   assert.match(html, /accederAjustesProtegidos\('clientes', 'creditos'\)/);
   assert.doesNotMatch(html, /id="tab-(?:clientes|caja)"/);
-  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./${archivo}"`));
+  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./assets/1.4.0/${archivo}"`));
   assert.ok(posiciones.every(posicion => posicion > 0));
   assert.deepEqual([...posiciones].sort((a, b) => a - b), posiciones);
   assert.match(html, /cargarCotizacionEnFormularioVenta/);
@@ -268,8 +268,8 @@ test('reglas, PWA y versión 1.2.5 quedan coordinadas', () => {
   assert.doesNotMatch(reglas, /!proteccionActivada\(\)/);
   assert.doesNotMatch(reglas, /activacionPropiaValida/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.5/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.0' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.4.0');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.0/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });

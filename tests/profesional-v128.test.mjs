@@ -105,17 +105,19 @@ test('los botones y selectores HTML simples apuntan a funciones que existen en e
 
   const permitidas = new Set(['alert','confirm','prompt','setTimeout','clearTimeout','parseInt','parseFloat']);
   const faltantes = [...handlers].filter(nombre => !definidas.has(nombre) && !permitidas.has(nombre)).sort();
-  assert.deepEqual(faltantes, []);
+  assert.equal(faltantes.length, 0);
 });
 
 test('el APP_SHELL conserva solo el arranque esencial y los módulos opcionales siguen disponibles', () => {
-  const entradas = [...sw.matchAll(/^\s*'\.\/([^']+)'/gm)].map(m => m[1]).filter(Boolean);
-  const faltantes = entradas.filter(rel => rel !== '' && !fs.existsSync(path.join(raiz, rel)));
-  assert.deepEqual(faltantes, []);
-  assert.ok(entradas.includes('visual-preferences.js'));
-  assert.ok(entradas.includes('negocio-core.js'));
-  assert.ok(!entradas.includes('mejoras-v128.js'));
-  assert.ok(!entradas.includes('asistente-ajustes-v128.js'));
+  const c = { self:{ addEventListener() {} } };
+  vm.runInNewContext(sw + '\nglobalThis.__shell = APP_SHELL;', c);
+  const entradas = c.__shell;
+  const faltantes = entradas.filter(rel => !fs.existsSync(path.join(raiz, rel)));
+  assert.equal(faltantes.length, 0);
+  assert.ok(entradas.some(p => p.endsWith('/visual-preferences.js')));
+  assert.ok(entradas.some(p => p.endsWith('/negocio-core.js')));
+  assert.ok(!entradas.some(p => p.endsWith('/mejoras-v128.js')));
+  assert.ok(!entradas.some(p => p.endsWith('/asistente-ajustes-v128.js')));
   assert.match(visual, /mejoras-v128\.js/);
   assert.match(visual, /asistente-ajustes-v128\.js/);
 });

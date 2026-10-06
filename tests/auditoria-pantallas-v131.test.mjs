@@ -122,9 +122,9 @@ test('los errores repetidos generan aviso rojo y no crecen sin límite',()=>{
  for(let i=0;i<40;i++)c.capturarError(new Error('Error '+i),'prueba');assert.equal(c.leerErrores().length,30);
 });
 test('los borradores preservan el origen de venta, cotización e ingreso al recuperarlos',()=>{
- const {c,linea}=entorno();const memoria=new Map();Object.assign(c,{DRAFT_PREFIX:'draft_',localStorage:{getItem:k=>memoria.get(k),setItem:(k,v)=>memoria.set(k,v)},capturarCampos:()=>({}),restaurarCampos(){},borrarBorrador(){},cambiarPestaña(){},ingresoEnEdicion:'i-original',carritoIngresos:[]});
- for(const n of ['guardarBorrador','restaurarBorrador'])vm.runInContext(funcion(n,leer('profesional-ui-v130.js')),c);
- c.global=c;c.leerBorrador=t=>JSON.parse(memoria.get('draft_'+t));c.ventaEnEdicion='v-original';c.ventaEdicionVersion=77;c.cotizacionOrigenVentaId='q-origen';c.cotizacionOrigenVentaVersion=3;c.cotizacionBorradorOrigenId='q-edit';c.cotizacionBorradorVersion=5;
+ const {c,linea}=entorno();const memoria=new Map();Object.assign(c,{tiposBorradorActivos:new Set(), DRAFT_PREFIX:'draft_',localStorage:{getItem:k=>memoria.get(k),setItem:(k,v)=>memoria.set(k,v)},capturarCampos:()=>({}),restaurarCampos(){},borrarBorrador(){},cambiarPestaña(){},ingresoEnEdicion:'i-original',carritoIngresos:[]});
+ for(const n of ['usuarioActual','claveBorrador','guardarBorrador','restaurarBorrador'])vm.runInContext(funcion(n,leer('profesional-ui-v130.js')),c);
+ c.global=c;c.leerBorrador=t=>JSON.parse(memoria.get(c.claveBorrador(t)));c.ventaEnEdicion='v-original';c.ventaEdicionVersion=77;c.cotizacionOrigenVentaId='q-origen';c.cotizacionOrigenVentaVersion=3;c.cotizacionBorradorOrigenId='q-edit';c.cotizacionBorradorVersion=5;
  for(const t of ['ventas','cotizacion','ingreso'])c.guardarBorrador(t,[linea()], 'sec-'+t);
  c.ventaEnEdicion=null;c.cotizacionOrigenVentaId=null;c.cotizacionBorradorOrigenId=null;c.ingresoEnEdicion=null;
  for(const t of ['ventas','cotizacion','ingreso'])c.restaurarBorrador(t);

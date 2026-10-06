@@ -1,0 +1,27 @@
+{
+  "version": "1.4.0",
+  "files": {
+    "asistente-ajustes-v127.js": "7c38842eff5aab033269aa3bdfdd1f3ff0ca7303d68ac1a8c2422f7f3efebe40",
+    "asistente-ajustes-v128.js": "d0e1e09eb034a88b9df9fd7998a54ebd6243cc1379a2c806adfe9a803eebe1d5",
+    "asistente-ajustes-v130.js": "7c77555a6754ece6a99b552e1d10a02434f0b452fbd7e66bebf1a326147d7631",
+    "asistente-core.js": "bc73d2a4356df54990f9f98edb444e38639f15ab18ef64d2d799aae7753b58f8",
+    "buscador.js": "f5b104a1b5d0412310f9db1bcb548c4bd9fb7d92cbffd11d962f3b3fa6cf227a",
+    "finanzas-negocio.js": "4598e30aa20e5c337a8b415a2c620ce4b5915fd46e1cf341eb1d88642a9f7206",
+    "gestion-negocio.js": "5734620c6a98f61aab7a19732eaccf09d7b9f3d380cf5918b440ea232e93b81f",
+    "integridad-firebase.js": "b29f2cac8ffe5851b7c39ef7220b84ac55f7109f29a2b50bc18fbab9c3bec116",
+    "mejoras-core.js": "af57cf67b535906f6b571fb0e6454fea7c04c9302c92097c6ad44595e20e7270",
+    "mejoras-v126.js": "0988454eee885e5c28d13d63bfa6615db1151b82d61a13cd054a6003016b0265",
+    "mejoras-v127.js": "ccbba2f1bdb15a478cc3f9bf36534a37b056883f1e624a7c99be62aaeee62185",
+    "mejoras-v128.js": "2c9f3a4f06e4314d48789445d485fa091bf5437854a78a2fe4b1816de4688e49",
+    "negocio-core.js": "591b8274a1f40d69551fc8794bcecdbea3cc2fce485cdd819f08fba0036585bc",
+    "pantallas-v131.js": "55e37fe5ce5511d3a9289ecc2547bef193894784df2ad9eb6b6cd7140a293cb0",
+    "profesional-compat-v130.js": "68882b965c13242d571c21f24b2f55aee8548136759d9a358fdbab13c7ab1ebf",
+    "profesional-core-ajustes-v130.js": "9fefd9ecf5cae0451968dd981182b185f05a8f0d06f6d47286ca43e1481d9449",
+    "profesional-core-v130.js": "9d554fc83dda54818055173ac957732930fc1fbf66a42126762b4ffb1dd3d44b",
+    "profesional-operaciones-v130.js": "911bc1e585f95756e52fed04872cf470a6add8d8c007d3e707659592fc8f214b",
+    "profesional-ui-v130.js": "fd008e9daae3ea8e6123ffded21d287e43bf5cd46d6935e71f3df4b286538d35",
+    "respaldo-negocio.js": "2cfe3f0c5569b972547cdbcb9a59c44b93141a57c0d60e9f70e2901cdf2ac60d",
+    "vendor-cache-v130.js": "cc504376e4107014e152fc145171f481198b12662dbdc2821248490a1f79efac",
+    "visual-preferences.js": "249ce57edc35a9b2b57316053baba1b16f4ba9a344b6a5361d23a83f590c43a7"
+  }
+}

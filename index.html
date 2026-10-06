@@ -11,7 +11,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="./visual-preferences.js"></script>
+    <script src="./assets/1.4.0/visual-preferences.js"></script>
 <style>
         :root {
             /* TEMA OSCURO APLICADO */
@@ -873,7 +873,7 @@
                     <button class="btn-main" onclick="document.getElementById('archivo-restauracion').click()">Seleccionar copia para restaurar</button>
                     <input id="archivo-restauracion" type="file" accept="application/json,.json" style="display:none;" onchange="prepararRestauracion(event)">
                 </div>
-                <p id="estado-restauracion" class="compact-note">La restauración valida el archivo, crea antes una copia del estado actual y nunca borra documentos que no estén incluidos.</p>
+                <p id="estado-restauracion" class="compact-note">La recuperación muestra una vista previa y rechaza copias incompletas o con movimientos posteriores. Crea una copia previa y aplica el estado de forma atómica; no mezcla ventas nuevas con saldos antiguos.</p>
                 </div>
             </details>
 
@@ -1649,10 +1649,11 @@
             </div>
         </div>
     </div>
-<script src="./negocio-core.js"></script>
-    <script src="./gestion-negocio.js"></script>
-    <script src="./finanzas-negocio.js"></script>
-    <script src="./respaldo-negocio.js"></script>
+<script src="./assets/1.4.0/negocio-core.js"></script>
+    <script src="./assets/1.4.0/integridad-firebase.js"></script>
+    <script src="./assets/1.4.0/gestion-negocio.js"></script>
+    <script src="./assets/1.4.0/finanzas-negocio.js"></script>
+    <script src="./assets/1.4.0/respaldo-negocio.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1680,6 +1681,7 @@
         const auth = getAuth(app);
 
         window.db = db; window.setDoc = setDoc; window.doc = doc; window.getDoc = getDoc; window.getDocs = getDocs; window.onSnapshot = onSnapshot; window.collection = collection; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc; window.runTransaction = runTransaction; window.query = query; window.where = where; window.orderBy = orderBy; window.limit = limit; window.startAfter = startAfter; window.writeBatch = writeBatch;
+        window.instalarIntegridadFirebase?.();
         window.firebaseAuth = auth;
         window.firebaseCreateUser = createUserWithEmailAndPassword;
         window.firebaseSignIn = signInWithEmailAndPassword;
@@ -1766,7 +1768,7 @@
         function cargarBuscadorBajoDemanda() {
             if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
             if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
-            promesaBuscadorBajoDemanda = import('./buscador.js')
+            promesaBuscadorBajoDemanda = import('./assets/1.4.0/buscador.js')
                 .then(() => true)
                 .catch(error => {
                     promesaBuscadorBajoDemanda = null;
@@ -2334,11 +2336,14 @@
                 reiniciarTemporizador();
                 notificarAplicacionActiva();
             } else {
-                const usuarioSigueVigente = currentUserData && usuarios.some(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
-                if(!usuarioSigueVigente) {
+                const usuarioVigente = currentUserData && usuarios.find(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
+                if(!usuarioVigente) {
                     currentUserData = null;
                     app.style.display = 'none';
                     login.style.display = 'flex';
+                } else if(JSON.stringify(currentUserData) !== JSON.stringify(usuarioVigente)) {
+                    currentUserData = copiarDatos(usuarioVigente);
+                    aplicarPermisos(currentUserData);
                 }
             }
         }
@@ -3158,7 +3163,7 @@
             if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para renombrar la categoría sin separar los datos entre dispositivos.");
 
             const afectadosLocales = inventario.filter(p => normalizarCategoriaCodigo(p.categoria) === catActual);
-            if(afectadosLocales.length > 440) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
+            if(afectadosLocales.length > 140) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
             isProcessingTransaction = true;
             try {
@@ -3185,7 +3190,19 @@
                     if(!customCats.includes(nuevoNombre)) customCats.push(nuevoNombre);
                     customCats = [...new Set(customCats)].sort();
 
-                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevoNombre }));
+                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevoNombre, revisionFicha:Number(entrada.datos.revisionFicha || 0) + 1 }));
+                    const indices = [];
+                    const clavesLote = new Set();
+                    for(let i = 0; i < productosActualizados.length; i++) {
+                        const producto = productosActualizados[i];
+                        if(!producto.isService) {
+                            const clave = SubliNegocioCore.claveIdentidadProducto(producto);
+                            if(clavesLote.has(clave)) throw new Error('El traslado produciría productos equivalentes. Revisa sus nombres y descripciones.');
+                            clavesLote.add(clave);
+                        }
+                        indices.push(await prepararIndiceProductoEnTransaccion(t, documentos[i].datos, producto));
+                    }
+                    indices.forEach(indice => escribirIndiceProducto(t, indice));
                     productosActualizados.forEach((producto, indice) => t.set(documentos[indice].ref, producto));
                     t.update(configRef, { customCats, codigosInventario: estadoRenombrado, ultimaActualizacionCategorias: Date.now() });
                     return { productosActualizados, estadoRenombrado, customCats };
@@ -3250,7 +3267,7 @@
             if(pass === null) return;
             if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
             if(!window.db || !navigator.onLine) return alert("📡 Necesitas conexión para mover los productos sin dejar cambios parciales.");
-            if(prodsAfectados.length > 440) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
+            if(prodsAfectados.length > 140) return alert("⚠️ Esta categoría supera el límite seguro para una sola transacción. No se realizó ningún cambio.");
             if(isProcessingTransaction) return alert("Hay otra operación en proceso. Espera un momento.");
 
             isProcessingTransaction = true;
@@ -3272,7 +3289,19 @@
                     let customCats = (configSnap.data().customCats || customCatsLocales).map(normalizarCategoriaCodigo).filter(c => c !== catActual);
                     if(documentos.length > 0 && !customCats.includes(nuevaCategoria)) customCats.push(nuevaCategoria);
                     customCats = [...new Set(customCats)].sort();
-                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevaCategoria }));
+                    const productosActualizados = documentos.map(entrada => ({ ...entrada.datos, categoria: nuevaCategoria, revisionFicha:Number(entrada.datos.revisionFicha || 0) + 1 }));
+                    const indices = [];
+                    const clavesLote = new Set();
+                    for(let i = 0; i < productosActualizados.length; i++) {
+                        const producto = productosActualizados[i];
+                        if(!producto.isService) {
+                            const clave = SubliNegocioCore.claveIdentidadProducto(producto);
+                            if(clavesLote.has(clave)) throw new Error('El traslado produciría productos equivalentes. Revisa sus nombres y descripciones.');
+                            clavesLote.add(clave);
+                        }
+                        indices.push(await prepararIndiceProductoEnTransaccion(t, documentos[i].datos, producto));
+                    }
+                    indices.forEach(indice => escribirIndiceProducto(t, indice));
                     // Los códigos físicos permanecen iguales aunque el producto cambie de categoría.
                     productosActualizados.forEach((producto, indice) => t.set(documentos[indice].ref, producto));
                     t.update(configRef, { customCats, ultimaActualizacionCategorias: Date.now() });
@@ -3630,7 +3659,7 @@
                             estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
                             let nubeCustomCats = data.customCats || [];
                             if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
-                            if (Array.isArray(data.usuarios)) {
+                            if (Array.isArray(data.usuarios) && (!docSnap.metadata.fromCache || !configuracionUsuariosConfirmada)) {
                                 usuarios = data.usuarios;
                                 usuariosRevision = Number(data.usuariosRevision || 0);
                                 localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
@@ -4070,7 +4099,7 @@
                 return;
             }
             
-            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, nombreOriginal, actualizarDescripcion: modo !== 'nuevo' && nombreProd !== nombreOriginal, formaIngreso, stock, cantidadComprada, contenidoPorCompra, min: minStock, costoBase, costoIngresado, tipoCosto, proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
+            carritoIngresos.push({ tempId: Date.now(), isNew: modo === 'nuevo', idOriginal: modo !== 'nuevo' ? selectId : null, nombre: nombreProd, nombreOriginal, actualizarDescripcion: modo !== 'nuevo' && nombreProd !== nombreOriginal, formaIngreso, stock, cantidadComprada, contenidoPorCompra, min: minStock, costoBase, costoTotalCompra:conversion.costoTotalCompra ?? redondear(stock * costoBase), residuoCostoTotal:conversion.residuoCostoTotal || 0, costoIngresado, tipoCosto, proveedor, nit, factura, categoria, unidadId: unidad.id, unidadNombre: unidad.nombre, unidadAbreviatura: unidad.abreviatura, unidadPaso: unidad.paso, unidadDivisible: unidad.divisible });
 
             ['inv-stock', 'inv-costo', 'inv-cantidad-lotes', 'inv-unidades-lote', 'inv-costo-lote-total', 'inv-nombre', 'inv-medida-descripcion', 'buscador-ingreso-producto', 'ingreso-producto-id'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('inv-medida-unidad').value = '';
@@ -4084,6 +4113,7 @@
 
         function borrarDelCarritoIngreso(tempId) {
             carritoIngresos = carritoIngresos.filter(item => item.tempId !== tempId);
+            if(!carritoIngresos.length) window.borrarBorradorV130?.('ingreso');
             renderCarritoIngresos();
         }
 
@@ -4107,6 +4137,7 @@
         async function procesarIngresoMultiple() {
             if (isProcessingTransaction) return;
             isProcessingTransaction = true;
+            let ingresoConfirmado = false;
             try {
                 if(carritoIngresos.length === 0) { alert("⚠️ No hay productos en la lista."); return; }
                 if(!window.db || !navigator.onLine) {
@@ -4241,9 +4272,11 @@
                         item.unidadPaso = unidadServidor.paso;
                         item.unidadDivisible = unidadServidor.divisible;
                         const transportePorUnidad = numeroFinito(item.stock) > 0 ? numeroFinito(item.transporteAsignado) / numeroFinito(item.stock) : 0;
-                        const costoFinal = numeroFinito(item.costoBase) + transportePorUnidad;
+                        const costoTotalCompra = item.costoTotalCompra === undefined ? numeroFinito(item.stock) * numeroFinito(item.costoBase) : Number(item.costoTotalCompra);
+                        if(!Number.isFinite(costoTotalCompra) || costoTotalCompra < 0) throw new Error(`El total de compra de "${item.nombre}" no es válido.`);
+                        const costoFinal = (costoTotalCompra / numeroFinito(item.stock)) + transportePorUnidad;
                         if(!Number.isFinite(costoFinal) || costoFinal < 0) throw new Error(`Costo inválido para "${item.nombre}".`);
-                        valorTotalIngresado += numeroFinito(item.stock) * costoFinal;
+                        valorTotalIngresado += costoTotalCompra + numeroFinito(item.transporteAsignado);
 
                         let producto;
                         let stockAntes = 0;
@@ -4275,7 +4308,7 @@
                         }
 
                         productosTrabajo.set(String(producto.id), producto);
-                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: producto.nombre, nombreAnterior: item.actualizarDescripcion ? item.nombreOriginal : null, descripcionActualizada: Boolean(item.actualizarDescripcion), formaIngreso: item.formaIngreso || 'unidad', stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
+                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: producto.nombre, nombreAnterior: item.actualizarDescripcion ? item.nombreOriginal : null, descripcionActualizada: Boolean(item.actualizarDescripcion), formaIngreso: item.formaIngreso || 'unidad', stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, costoTotalCompra: SubliNegocioCore.redondearMoneda(costoTotalCompra), costoTotalConTransporte:SubliNegocioCore.redondearMoneda(costoTotalCompra + numeroFinito(item.transporteAsignado)), residuoCostoTotal:numeroFinito(item.residuoCostoTotal), proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
                     }
 
                     const productosActualizados = Array.from(productosTrabajo.values());
@@ -4288,6 +4321,7 @@
 
                     return { productosActualizados, registroHistorial, valorTotalIngresado, estadoCodigos: estadoCodigosTrabajo };
                 });
+                ingresoConfirmado = true;
 
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
                 historialIngresos = fusionarPorId(historialIngresos, [resultado.registroHistorial]);
@@ -4301,7 +4335,7 @@
                 
                 alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${resultado.valorTotalIngresado.toFixed(2)}`);
             } catch (error) {
-                alert("No se aplicó ningún cambio al inventario. Error al guardar el ingreso: " + error.message);
+                alert(ingresoConfirmado ? 'El ingreso sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : 'No se aplicó ningún cambio al inventario. Error al guardar el ingreso: ' + error.message);
             } finally {
                 isProcessingTransaction = false; 
             }
@@ -4329,7 +4363,7 @@
                 if (reg.anulada) return; 
                 let totalGasto = 0; 
                 const resumen = reg.items.map(i => {
-                    totalGasto += (i.stock * (i.costoIngresado || 0));
+                    totalGasto += i.costoTotalConTransporte === undefined ? (i.stock * (i.costoIngresado || 0)) : numeroFinito(i.costoTotalConTransporte);
                     let info = `+${numeroFinito(i.stock)} ${i.unidadAbreviatura || 'unid'} × ${i.nombre}`;
                     if(i.formaIngreso === 'lote') info += ` [${numeroFinito(i.cantidadComprada)} lote(s) × ${numeroFinito(i.contenidoPorCompra)}]`;
                     if (i.proveedor && i.proveedor !== "NO ESPECIFICADO") info += ` (${i.proveedor})`;
@@ -4503,6 +4537,33 @@
             document.getElementById('edit-costo').placeholder = tipo === 'unitario' ? `${moneda} por ${unidad.abreviatura}` : `${moneda} costo de todo el stock`;
         }
 
+        async function prepararIndiceProductoEnTransaccion(t, anterior, nuevo) {
+            if((nuevo || anterior)?.isService) return null;
+            const claveAnterior = anterior ? SubliNegocioCore.claveIdentidadProducto(anterior) : null;
+            const claveNueva = nuevo ? SubliNegocioCore.claveIdentidadProducto(nuevo) : null;
+            let anteriorRef = null;
+            if(claveAnterior && claveAnterior !== claveNueva) {
+                const ref = window.doc(window.db, 'indices_nombres', `producto_${claveAnterior}`);
+                const snap = await t.get(ref);
+                if(snap.exists() && String(snap.data().entidadId) === String(anterior.id)) anteriorRef = ref;
+            }
+            let ref = null;
+            if(claveNueva) {
+                ref = window.doc(window.db, 'indices_nombres', `producto_${claveNueva}`);
+                const snap = await t.get(ref);
+                if(snap.exists() && String(snap.data().entidadId) !== String(nuevo.id)) {
+                    const propietario = await t.get(window.doc(window.db, 'inventario', String(snap.data().entidadId)));
+                    if(propietario.exists()) throw new Error(`Ya existe un producto equivalente a "${nuevo.nombre}". No se realizó ningún cambio.`);
+                }
+            }
+            return { ref, anteriorRef, datos:nuevo ? { tipo:'producto', entidadId:String(nuevo.id), clave:claveNueva, nombre:nuevo.nombre, actualizadoEn:Date.now() } : null };
+        }
+
+        function escribirIndiceProducto(t, indice) {
+            if(indice?.anteriorRef) t.delete(indice.anteriorRef);
+            if(indice?.ref) t.set(indice.ref, indice.datos);
+        }
+
         async function abrirModalEditar(id) {
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar productos:");
             if(pass === null) return;
@@ -4512,6 +4573,8 @@
             if(!prod) return;
             actualizarListaCategorias();
             renderSelectoresUnidades();
+            document.getElementById('edit-id').dataset.versionProducto = String(numeroFinito(prod.lastModified));
+            document.getElementById('edit-id').dataset.productoOriginal = JSON.stringify(prod);
             document.getElementById('edit-id').value = prod.id; document.getElementById('edit-nombre').value = prod.nombre; document.getElementById('edit-stock').value = prod.stock; document.getElementById('edit-min').value = prod.min !== undefined ? prod.min : 0; document.getElementById('edit-costo').value = numeroFinito(prod.costo).toFixed(6); document.getElementById('edit-proveedor').value = prod.proveedor || ''; document.getElementById('edit-tipo-costo').value = 'unitario';
             document.getElementById('edit-unidad').value = prod.unidadId || 'pieza'; actualizarPasoEdicionUnidad(); cambiarLabelCostoEdit();
             
@@ -4552,7 +4615,7 @@
                     if(tipoCosto === 'total') {
                         if(stockValidado <= 0) throw new Error('El valor total requiere una existencia mayor que cero.');
                         const totalInventario = SubliNegocioCore.normalizarMontoMoneda(costoIngresado, { permitirCero: true });
-                        costo = Math.round((totalInventario / stockValidado) * 1000000) / 1000000;
+                        costo = totalInventario / stockValidado;
                     } else {
                         costo = SubliNegocioCore.normalizarCostoUnitario(costoIngresado);
                     }
@@ -4560,8 +4623,12 @@
                 if(!nombre) { alert("⚠️ Revisa el nombre, la cantidad, el mínimo y el costo."); return; }
                 if(!window.db || !navigator.onLine) { alert("📡 Necesitas conexión para editar el producto sin desincronizar el inventario."); return; }
                 
-                const p = inventario.find(x => String(x.id) === String(id));
+                const contextoEdicion = document.getElementById('edit-id').dataset;
+                if(contextoEdicion.versionProducto === undefined) throw new Error('Vuelve a abrir el producto antes de guardar la edición.');
+                const versionOriginal = Number(contextoEdicion.versionProducto);
+                const p = contextoEdicion.productoOriginal ? JSON.parse(contextoEdicion.productoOriginal) : inventario.find(x => String(x.id) === String(id));
                 if(!p) throw new Error('El producto ya no está disponible en este dispositivo.');
+                if(tipoCosto === 'unitario' && String(costoIngresado) === numeroFinito(p.costo).toFixed(6)) costo = numeroFinito(p.costo);
                 if(!p.isService && String(p.unidadId || 'pieza') !== String(unidad.id)) {
                     const unidadAnterior = SubliNegocioCore.obtenerUnidad(p.unidadId || 'pieza', configuracionNegocio);
                     if(!confirm(`Cambiarás la unidad de ${unidadAnterior.nombre} a ${unidad.nombre}.\n\nLa existencia ${stockValidado} y el costo Q ${numeroFinito(costo).toFixed(6)} se interpretarán directamente en la nueva unidad; no se convertirán solos. ¿Confirmas que ya hiciste la conversión?`)) return;
@@ -4572,7 +4639,7 @@
                     const productoSnap = await t.get(productoRef);
                     if(!productoSnap.exists()) throw new Error('El producto fue eliminado desde otro dispositivo.');
                     const productoServidor = productoSnap.data();
-                    if(numeroFinito(productoServidor.lastModified) !== numeroFinito(p.lastModified)) {
+                    if(numeroFinito(productoServidor.lastModified) !== versionOriginal || (contextoEdicion.productoOriginal && SubliNegocioCore.firmaEstadoProducto(productoServidor) !== SubliNegocioCore.firmaEstadoProducto(p))) {
                         throw new Error('El producto cambió en otro dispositivo. Se canceló la edición; vuelve a abrirlo para revisar los datos nuevos.');
                     }
 
@@ -4588,6 +4655,8 @@
                         antes: { nombre: productoServidor.nombre, stock: productoServidor.stock, min: productoServidor.min, costo: productoServidor.costo, proveedor: productoServidor.proveedor, categoria: productoServidor.categoria, unidadId: productoServidor.unidadId || 'pieza' },
                         despues: { nombre: productoActualizado.nombre, stock: productoActualizado.stock, min: productoActualizado.min, costo: productoActualizado.costo, proveedor: productoActualizado.proveedor, categoria: productoActualizado.categoria, unidadId: productoActualizado.unidadId }
                     };
+                    const indice = await prepararIndiceProductoEnTransaccion(t, productoServidor, productoActualizado);
+                    escribirIndiceProducto(t, indice);
                     t.set(productoRef, productoActualizado);
                     t.set(window.doc(window.db, "ajustes_inventario", String(ajuste.id)), ajuste);
                     return productoActualizado;
@@ -4628,6 +4697,8 @@
                             throw new Error(`El código ${productoServidor.codigoInventario} pertenece a otro producto en el registro permanente. Ejecuta la verificación antes de borrar.`);
                         }
                     }
+                    const indice = await prepararIndiceProductoEnTransaccion(t, productoServidor, null);
+                    escribirIndiceProducto(t, indice);
                     if(registroRef) {
                         t.set(registroRef, crearRegistroCodigoInventario(productoServidor, productoServidor.codigoInventario, Date.now(), 'retirado'), { merge: true });
                     }
@@ -4953,7 +5024,7 @@
             renderCarritoVentas();
         }
 
-        function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); renderCarritoVentas(); }
+        function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); if(!carritoVentas.length) window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); }
         function vaciarCarritoVentas() { if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) { carritoVentas = []; ventaEnEdicion = null; ventaEdicionVersion = null; cotizacionOrigenVentaId = null; cotizacionOrigenVentaVersion = null; document.getElementById('aviso-venta-edicion').style.display = 'none'; window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); } }
 
         function cancelarEdicionVenta() {
@@ -5200,6 +5271,10 @@
                             producto.ventasTotales = desdeMilesimas(Math.max(0, aMilesimas(producto.ventasTotales) - aMilesimas(entrada.anterior.qty)));
                         }
                         if(entrada.existe && entrada.qtyNueva > 0) {
+                            const lineasActuales = carritoSnapshot.filter(item => String(item.idProd) === String(entrada.idProd));
+                            if(Boolean(producto.isService) || lineasActuales.some(item => String(item.unidadId || 'pieza') !== String(producto.unidadId || 'pieza'))) {
+                                throw new Error(`La unidad o el tipo de ${producto.nombre || entrada.idProd} cambió. Revisa y vuelve a agregar el producto al carrito.`);
+                            }
                             const unidadServidor = SubliNegocioCore.obtenerUnidad(producto.unidadId, configuracionVenta);
                             entrada.qtyNueva = SubliNegocioCore.normalizarCantidad(entrada.qtyNueva, unidadServidor);
                         }
@@ -5802,7 +5877,7 @@
             renderCarritoCotizacion();
         }
 
-        function borrarDelCarritoCotizacion(tempId) { carritoCotizacion = carritoCotizacion.filter(item => item.tempId !== tempId); renderCarritoCotizacion(); }
+        function borrarDelCarritoCotizacion(tempId) { carritoCotizacion = carritoCotizacion.filter(item => item.tempId !== tempId); if(!carritoCotizacion.length) window.borrarBorradorV130?.('cotizacion'); renderCarritoCotizacion(); }
         function vaciarCarritoCotizacion() { if(confirm("¿Estás seguro de vaciar toda la cotización?")) { carritoCotizacion = []; cotizacionBorradorOrigenId = null; cotizacionBorradorVersion = null; window.borrarBorradorV130?.('cotizacion'); renderCarritoCotizacion(); } }
 
         function renderCarritoCotizacion() {
@@ -5865,7 +5940,7 @@
                 const manoObraTexto = document.getElementById('cotiza-mano-obra').value.trim();
                 let costoManoObra;
                 const pideFactura = document.getElementById('cotiza-factura').checked;
-                const clienteNombre = document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F';
+                const clienteNombre = (window.nombreClienteFormulario?.('cotiza') ?? document.getElementById('cotiza-nombre').value).trim().toUpperCase() || 'C/F';
                 const clienteNit = document.getElementById('cotiza-nit').value.trim() || 'C/F';
                 const anticipoTexto = document.getElementById('cotiza-anticipo').value.trim();
                 let anticipoCotizado;
@@ -5957,7 +6032,7 @@
             const principales = carritoCotizacion.filter(item => item.rol === 'principal' || item.rol === 'combo' || aCentavos(item.precioCobrado) > 0);
             if(principales.length === 0) { alert("No hay productos principales ni combos para cobrarle al cliente en esta cotización."); return; }
 
-            let clienteNombre = document.getElementById('cotiza-nombre').value.trim(); let clienteNit = document.getElementById('cotiza-nit').value.trim();
+            let clienteNombre = (window.nombreClienteFormulario?.('cotiza') ?? document.getElementById('cotiza-nombre').value).trim(); let clienteNit = document.getElementById('cotiza-nit').value.trim();
             if(clienteNit === '') clienteNit = 'C/F';
             let anticipoCotizado;
             try {
@@ -6165,7 +6240,7 @@
                     anticipoCotizado: leerMonto('cotiza-anticipo'),
                     metodoAnticipoCotizado: document.getElementById('cotiza-metodo-anticipo').value,
                     clienteId: document.getElementById('cotiza-cliente-id').value || null,
-                    clienteNombre: document.getElementById('cotiza-nombre').value.trim().toUpperCase() || 'C/F',
+                    clienteNombre: (window.nombreClienteFormulario?.('cotiza') ?? document.getElementById('cotiza-nombre').value).trim().toUpperCase() || 'C/F',
                     clienteNit: document.getElementById('cotiza-nit').value.trim() || 'C/F'
                 };
             } catch(error) { return alert('⚠️ Revisa los gastos y el anticipo: ' + error.message); }
@@ -7232,7 +7307,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.2.5";
+        const APP_VERSION = "1.4.0";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -7245,23 +7320,39 @@
             return false;
         }
 
+        function mostrarActualizacionDisponible(version) {
+            if(document.getElementById('subli-actualizacion-disponible')) return;
+            const aviso = document.createElement('div');
+            aviso.id = 'subli-actualizacion-disponible'; aviso.className = 'smart-card';
+            const texto = document.createElement('p');
+            texto.textContent = `Hay una actualización disponible (${version}). Instálala cuando hayas terminado tus operaciones.`;
+            const boton = document.createElement('button');
+            boton.className = 'btn-main'; boton.textContent = 'Actualizar ahora';
+            boton.addEventListener('click', () => forzarActualizacionApp(version).catch(error => alert('No se pudo actualizar. Tu información se conserva. ' + error.message)));
+            aviso.append(texto, boton);
+            document.getElementById('main-app').prepend(aviso);
+        }
+
         async function forzarActualizacionApp(versionObjetivo) {
-            console.log("Instalando actualización: " + versionObjetivo);
-            sessionStorage.setItem('subli_actualizacion_intentada', String(versionObjetivo));
-            if ('caches' in window) {
-                const names = await caches.keys();
-                await Promise.all(names.filter(name => name.startsWith('sublicosturas-v')).map(name => caches.delete(name)));
-            }
-            if ('serviceWorker' in navigator) {
+            const pendiente = isProcessingTransaction || carritoVentas.length || carritoIngresos.length || carritoCotizacion.length
+                || ventaEnEdicion || ingresoEnEdicion || cotizacionBorradorOrigenId;
+            if(pendiente) { alert('Termina o descarta la operación pendiente antes de actualizar. Se conserva tu carrito.'); return false; }
+            if(!navigator.onLine) { alert('Necesitas conexión para instalar la actualización.'); return false; }
+            if(!confirm('¿Actualizar ahora? Revisa antes cualquier texto de formulario que aún no agregaste al carrito. Los datos e historiales guardados se conservarán.')) return false;
+            // El cache nuevo se prepara primero. No borrar los archivos de la versión operativa.
+            if('serviceWorker' in navigator) {
                 const registration = await navigator.serviceWorker.getRegistration('./');
-                if(registration) await registration.update().catch(() => undefined);
+                if(registration) {
+                    await registration.update();
+                    if(registration.waiting) registration.waiting.postMessage({ tipo:'ACTIVAR_VERSION' });
+                }
             }
-            // Solamente se limpian archivos temporales de la aplicación. Nunca se borran
-            // el respaldo local, inventario, ventas, ingresos ni datos de Firebase.
-            localStorage.setItem("app_version", versionObjetivo);
-            const url = new URL(window.location.href.split('?')[0]);
+            sessionStorage.setItem('subli_actualizacion_intentada', String(versionObjetivo));
+            localStorage.setItem('app_version', String(versionObjetivo));
+            const url = new URL(window.location.href);
             url.searchParams.set('v', versionObjetivo);
             window.location.replace(url.toString());
+            return true;
         }
 
         function desactivarRuedaEnCamposNumericos(event) {
@@ -7316,8 +7407,8 @@
                 .then(data => {
                     if (data && data.version && esVersionMasNueva(data.version, APP_VERSION)) {
                         if(sessionStorage.getItem('subli_actualizacion_intentada') !== String(data.version)) {
-                            console.log("¡Nueva actualización detectada en la nube! Actualizando de " + APP_VERSION + " a " + data.version);
-                            forzarActualizacionApp(data.version);
+                            console.log("Actualización disponible: " + data.version);
+                            mostrarActualizacionDisponible(data.version);
                         } else {
                             console.warn('La actualización ya se intentó en esta pestaña; se evitó un ciclo de recargas.');
                         }

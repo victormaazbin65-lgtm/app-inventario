@@ -90,5 +90,5 @@ test('la PWA conserva los módulos de mejora bajo demanda sin cambiar la versió
   assert.match(bootstrap, /mejoras-v126\.js/);
   assert.doesNotMatch(sw, /'\.\/mejoras-core\.js'/);
   assert.doesNotMatch(sw, /'\.\/mejoras-v126\.js'/);
-  assert.match(sw, /sublicosturas-v1\.2\.5/);
+  assert.match(sw, /sublicosturas-v1\.4\.0/);
 });

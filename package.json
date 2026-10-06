@@ -1,9 +1,11 @@
 {
   "name": "sublicosturas-inventario",
   "private": true,
-  "version": "1.2.5",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules --test tests/*.test.mjs"
+    "test": "node --experimental-vm-modules --test tests/*.test.mjs",
+    "build": "node scripts/build-release.mjs",
+    "test:browser": "node scripts/smoke-browser.mjs"
   }
 }

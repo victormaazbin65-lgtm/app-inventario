@@ -190,6 +190,6 @@ test('el respaldo reduce a tres las lecturas simultáneas sin omitir colecciones
   vm.runInContext(leer('respaldo-negocio.js').replace('global.SubliRespaldoCoreV4 =',
     'global.__respaldar = construirCopiaSeguridad; global.SubliRespaldoCoreV4 ='), entorno);
   const copia = await entorno.__respaldar();
-  assert.equal(Object.keys(copia.colecciones).length, 20);
+  assert.equal(Object.keys(copia.colecciones).length, 21);
   assert.ok(maximo <= 3 && maximo >= 2);
 });

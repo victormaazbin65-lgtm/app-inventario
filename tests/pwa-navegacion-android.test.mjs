@@ -14,6 +14,7 @@ function simularServiceWorker() {
   const urlArchivo = ruta => new URL(ruta, origen).href;
   const respuesta = texto => ({ texto, ok: true, headers: { get: () => 'text/html' }, clone() { return respuesta(texto); } });
   const cache = {
+    async match(ruta) { return archivos.get(typeof ruta === 'string' ? urlArchivo(ruta) : ruta.url); },
     async addAll(rutas) { rutas.forEach(ruta => archivos.set(urlArchivo(ruta), respuesta(ruta))); },
     async put(ruta, valor) { archivos.set(typeof ruta === 'string' ? urlArchivo(ruta) : ruta.url, valor); }
   };
