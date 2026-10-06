@@ -12,7 +12,7 @@ function tramo(fuente, inicio, fin) {
 }
 function entornoResumen() {
   // Los identificadores proceden del HTML real: no se inventa tab-caja.
-  const elementos = new Map([...html.slice(0, html.indexOf('<script src="./negocio-core.js"')).matchAll(/\bid="([^"]+)"/g)].map(([, id]) => [id, {
+  const elementos = new Map([...html.slice(0, html.indexOf('<script src="./assets/1.4.0/negocio-core.js"')).matchAll(/\bid="([^"]+)"/g)].map(([, id]) => [id, {
     style: { display: id === 'main-app' || id === 'sec-inicio' ? 'block' : 'none' },
     classList: { contains: () => id === 'tab-inicio' }, textContent: '', innerText: '', value: '', open: false
   }]));

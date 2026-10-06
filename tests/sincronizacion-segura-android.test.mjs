@@ -45,7 +45,7 @@ test('las transacciones financieras siguen requiriendo servidor y no se convirti
 });
 
 test('la PWA usa una caché nueva sin cambiar la versión funcional', () => {
-  assert.match(sw, /sublicosturas-v1\.2\.5-auditoria-pantallas-20260927/);
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
+  assert.match(sw, /sublicosturas-v1\.4\.0-integridad-20261006/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.0' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.4.0');
 });

@@ -144,10 +144,10 @@ test('la búsqueda grande cede el hilo, limita la vista y cancela resultados obs
   assert.match(buscador, /transaccion\.oncomplete[\s\S]*resolve\(resultado\)/);
 });
 
-test('la actualización PWA sólo limpia cachés propias y evita ciclos de recarga', () => {
+test('la actualización PWA conserva cachés y evita ciclos de recarga', () => {
   const html = leer('index.html');
   const sw = leer('sw.js');
-  assert.match(html, /names\.filter\(name => name\.startsWith\('sublicosturas-v'\)\)/);
+  assert.doesNotMatch(html, /caches\.delete\(/);
   assert.doesNotMatch(html, /getRegistrations\(\)/);
   assert.doesNotMatch(html, /\.unregister\(\)/);
   assert.match(html, /subli_actualizacion_intentada/);

@@ -110,5 +110,5 @@ test('la PWA conserva los módulos del asistente bajo demanda sin alterar la ver
   assert.doesNotMatch(sw, /'\.\/asistente-core\.js'/);
   assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v127\.js'/);
   assert.doesNotMatch(sw, /'\.\/mejoras-v127\.js'/);
-  assert.match(sw, /sublicosturas-v1\.2\.5/);
+  assert.match(sw, /sublicosturas-v1\.4\.0/);
 });

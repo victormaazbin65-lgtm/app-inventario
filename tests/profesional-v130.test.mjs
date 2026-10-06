@@ -111,7 +111,7 @@ test('el cierre diario compara conteo real sin modificar saldos', () => {
   const bloque = ops.slice(inicio, fin);
   assert.match(bloque, /cierres_diarios/);
   assert.doesNotMatch(bloque, /saldosDinero\s*=/);
-  assert.doesNotMatch(bloque, /['"]sistema['"]\s*,\s*['"]config['"]/);
+  assert.doesNotMatch(bloque, /t\.(?:set|update)\([^;]*['"]sistema['"]/);
 });
 
 test('el código de barras local es determinista y no depende de servicios externos', () => {
@@ -138,8 +138,8 @@ test('auditoría, cierre, órdenes y errores usan colecciones separadas y server
     assert.match(ops, new RegExp(coleccion));
   }
   assert.match(ops, /serverTimestamp/);
-  assert.match(ops, /La auditoría agregada por esta capa es secundaria/);
-  assert.match(ops, /Esto NO modifica los saldos del sistema/);
+  assert.match(ops, /Las operaciones nuevas guardan su bitácora en la misma transacción/);
+  assert.match(ops, /Esto no modifica los saldos/);
 });
 
 test('las reservas concurrentes cubren productos y clientes sin prohibir homónimos por nombre', () => {
@@ -183,9 +183,9 @@ test('la PWA carga todos los módulos v1.3.0 y conserva el corte público coordi
     assert.match(visual + sw, new RegExp(archivo.replaceAll('.', '\\.')));
     assert.ok(fs.existsSync(path.join(raiz, archivo)));
   }
-  assert.equal(build.build, '1.3.0');
-  assert.equal(build.basePublica, '1.2.5');
-  assert.match(sw, /sublicosturas-v1\.2\.5/);
+  assert.equal(build.build, '1.4.0');
+  assert.equal(build.basePublica, '1.4.0');
+  assert.match(sw, /sublicosturas-v1\.4\.0/);
 });
 
 test('el respaldo v4 firma SHA-256, valida tipos y rechaza esquemas posteriores', () => {
@@ -194,7 +194,7 @@ test('el respaldo v4 firma SHA-256, valida tipos y rechaza esquemas posteriores'
   assert.match(respaldo, /schemaVersion > 4/);
   assert.match(respaldo, /validarEsquemaDocumento/);
   assert.match(respaldo, /restauraciones_sistema/);
-  assert.match(respaldo, /estado:\s*'incompleta'/);
+  assert.match(respaldo, /estado:\s*'aplicada_verificacion_pendiente'/);
   assert.match(respaldo, /verificarMuestraRestaurada/);
 });
 

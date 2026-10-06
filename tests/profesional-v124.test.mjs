@@ -180,7 +180,7 @@ test('Opciones permite alternar el modelo profesional y el clásico sin tocar da
   assert.match(html, /html\[data-modelo-visual="profesional"\]/);
   assert.match(html, /Solo cambia la apariencia; no modifica datos, cálculos ni permisos/);
   assert.match(html, /localStorage\.setItem\(KEY_PREFERENCIAS_SISTEMA/);
-  assert.match(leer('sw.js'), /\.\/visual-preferences\.js/);
+  assert.match(leer('sw.js'), /\$\{ASSET_BASE\}visual-preferences\.js/);
 });
 
 test('la preferencia visual temprana se aplica sin red ni escritura remota', () => {
@@ -241,8 +241,8 @@ test('fechas inválidas no pueden crear meses ni HTML en los filtros', () => {
 });
 
 test('la versión profesional mantiene coordinados aplicación y caché', () => {
-  assert.equal(JSON.parse(leer('package.json')).version, '1.2.5');
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.2.5' });
-  assert.match(leer('sw.js'), /sublicosturas-v1\.2\.5/);
-  assert.match(html, /const APP_VERSION = "1\.2\.5"/);
+  assert.equal(JSON.parse(leer('package.json')).version, '1.4.0');
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.0' });
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.0/);
+  assert.match(html, /const APP_VERSION = "1\.4\.0"/);
 });
