@@ -167,6 +167,7 @@ for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
    document.getElementById('devolucion-venta').value=ventas[0].id;actualizarOpcionesDevolucion();document.getElementById('devolucion-item').value='1';document.getElementById('devolucion-cantidad').value='1';renderFinanzasNegocio();
   });
   assert.equal(await page.locator('#devolucion-item').inputValue(),'1');assert.equal(await page.locator('#devolucion-cantidad').inputValue(),'1');
+  await page.locator('#sec-caja summary').filter({hasText:'Devolución o reembolso'}).click();
   await page.locator('#devolucion-reingresar').check();await page.locator('#devolucion-motivo').fill('PRUEBA DEVOLUCION');await page.evaluate(()=>registrarDevolucionVenta());
   assert.equal(await cuenta(page,'devoluciones'),1,dialogs.join('\n'));const sale=await page.evaluate(()=>[...__fixture.base].find(([k])=>k.startsWith('ventas/'))[1]);
   assert.equal(sale.ingresoTotal,30);assert.equal(sale.resumenItems,'2x TAZA');assert.match(sale.resumenItemsOriginal,/2x TAZA.*1x TAZA/);
