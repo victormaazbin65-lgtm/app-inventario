@@ -42,7 +42,7 @@ test('el buscador global encuentra acciones y respeta visibilidad financiera', (
 });
 
 test('la agenda de cobros mantiene crédito y préstamo separados y prioriza vencidos', () => {
-  const hoy = new Date(2026, 8, 7, 12).getTime();
+  const hoy = Date.parse('2026-09-07T12:00:00-06:00');
   const ventas = [
     { id:'v1', timestamp:hoy - 1000, clienteNombre:'Ana', ingresoTotal:100, montoCobradoTotal:40, vencimiento:'2026-09-06' },
     { id:'v2', timestamp:hoy, clienteNombre:'Luis', ingresoTotal:50, montoCobradoTotal:50 }
@@ -58,7 +58,7 @@ test('la agenda de cobros mantiene crédito y préstamo separados y prioriza ven
 });
 
 test('salud y prioridades del negocio no inventan dinero', () => {
-  const ahora = new Date(2026, 8, 7, 12).getTime();
+  const ahora = Date.parse('2026-09-07T12:00:00-06:00');
   const salud = core.resumenSalud({
     ahora,
     inventario:[

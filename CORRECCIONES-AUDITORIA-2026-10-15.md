@@ -1,6 +1,6 @@
-# Correcciones de la auditoría integral · candidata 1.4.2
+# Correcciones de la auditoría integral · versión 1.4.2
 
-Base: versión publicada 1.4.1, commit `33ce9899ae3c27d31d07829f30ddb3c7b205a3cb`. Rama de pruebas: `fix/auditoria-integral-2026-10-15`. No se publica ni fusiona esta entrega. Las pruebas utilizan datos simulados, sin consultar ni modificar Firebase de producción.
+Base: versión publicada 1.4.1, commit `33ce9899ae3c27d31d07829f30ddb3c7b205a3cb`. Rama de pruebas: `fix/auditoria-integral-2026-10-15`. El Dueño autorizó su publicación el 15 de octubre de 2026, después de revisar los resultados y los límites pendientes. Las pruebas utilizan datos simulados, sin consultar ni modificar Firebase de producción.
 
 ## Resultado por hallazgo
 
@@ -31,10 +31,10 @@ La consulta de guardados pendientes exige respuesta del servidor, coincidencia d
 
 La revisión manual libera únicamente comandos financieros reconocidos y confirmados. Para ingresos, ventas y cotizaciones se conserva el borrador y se recupera enviando **la misma solicitud** mediante su formulario original. Los marcadores genéricos de versiones anteriores requieren revisión del historial; no se convierten en confirmaciones nuevas ni se eliminan a ciegas. Los marcadores están en la sesión de ese navegador; no son una cola offline ni una garantía de coordinación entre varios dispositivos.
 
-No se ha probado esta candidata con los datos o las reglas desplegadas en producción. Las pruebas de navegador comprueban el comportamiento de la interfaz y de las transacciones simuladas; no sustituyen pruebas del servidor con identidades independientes. Ver `SEGURIDAD_FIREBASE.md` y `RECUPERACION_SEGURA.md` para los dos trabajos pendientes.
+No se ha probado esta versión con los datos o las reglas desplegadas en producción. Las pruebas de navegador comprueban el comportamiento de la interfaz y de las transacciones simuladas; no sustituyen pruebas del servidor con identidades independientes. Ver `SEGURIDAD_FIREBASE.md` y `RECUPERACION_SEGURA.md` para los dos trabajos pendientes.
 
 ## Validación
 
-Se conservan las pruebas existentes de PIN, permisos, inventario, ingresos, ventas, crédito, anticipos, préstamos, devoluciones, SAT, cierres y respaldo. Los nuevos casos reproducen los hallazgos y prueban la corrección, incluidos respuesta perdida, consulta sin escrituras, selección retirada y análisis inconsistente. La suite automática actual tiene 282 pruebas aprobadas en UTC. El resultado de Chromium en escritorio y móvil se adjuntará al PR tras ejecutar su CI.
+Se conservan las pruebas existentes de PIN, permisos, inventario, ingresos, ventas, crédito, anticipos, préstamos, devoluciones, SAT, cierres y respaldo. Los nuevos casos reproducen los hallazgos y prueban la corrección, incluidos respuesta perdida, consulta sin escrituras, selección retirada y análisis inconsistente. La suite automática tiene 282 pruebas aprobadas en Guatemala, UTC y Asia/Singapore. Chromium aprobó 12 comprobaciones básicas y 46 escenarios ampliados, 58 en total, en escritorio y móvil. Evidencia de la versión funcional: [CI aprobado](https://github.com/victormaazbin65-lgtm/app-inventario/actions/runs/38845301889).
 
-La publicación requiere autorización expresa posterior a esta revisión. El PR se prepara como borrador; no debe tener fusión automática.
+La autorización permite publicar estas correcciones mediante el [PR #37](https://github.com/victormaazbin65-lgtm/app-inventario/pull/37). La migración de identidades y la recuperación grande continúan pendientes; esta publicación no despliega reglas ni realiza restauraciones de datos.

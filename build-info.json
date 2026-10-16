@@ -1,9 +1,9 @@
 {
   "build": "1.4.2",
   "basePublica": "1.4.2",
-  "canal": "pruebas-sin-publicar",
+  "canal": "produccion",
   "fecha": "2026-10-15",
-  "descripcion": "Candidato de auditoría integral: confirmaciones, permisos de pantalla, devoluciones, fechas compatibles y recuperación. Sin publicar.",
+  "descripcion": "Auditoría integral: confirmaciones, permisos de pantalla, devoluciones, fechas compatibles y recuperación. Publicación autorizada por el Dueño.",
   "revision": "auditoria-integral-20261015",
   "fechaRevision": "2026-10-15"
 }

@@ -31,7 +31,7 @@ test('el catálogo por proveedor muestra agotados, bajos y productos con buena e
 });
 
 test('las alertas de préstamos distinguen vencidos, hoy y próximos', () => {
-  const ahora = new Date(2026, 8, 7, 12, 0, 0).getTime();
+  const ahora = Date.parse('2026-09-07T12:00:00-06:00');
   const alertas = core.alertasPrestamos([
     { id:'v', persona:'A', saldoPendiente:100, vencimiento:'2026-09-05', estado:'pendiente' },
     { id:'h', persona:'B', saldoPendiente:80, vencimiento:'2026-09-07', estado:'pendiente' },
@@ -43,8 +43,8 @@ test('las alertas de préstamos distinguen vencidos, hoy y próximos', () => {
 });
 
 test('el resumen por rango conserva ventas, costos, producción, SAT y utilidad por día', () => {
-  const d1 = new Date(2026, 8, 6, 10).getTime();
-  const d2 = new Date(2026, 8, 7, 11).getTime();
+  const d1 = Date.parse('2026-09-06T10:00:00-06:00');
+  const d2 = Date.parse('2026-09-07T11:00:00-06:00');
   const inicio = core.inicioDiaLocal(d1);
   const fin = core.finDiaLocal(d2);
   const resumen = core.resumenVentasRango([
