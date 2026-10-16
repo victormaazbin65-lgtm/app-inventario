@@ -173,7 +173,7 @@ for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
   assert.equal(sale.ingresoTotal,30);assert.equal(sale.resumenItems,'2x TAZA');assert.match(sale.resumenItemsOriginal,/2x TAZA.*1x TAZA/);
  });
  await escenario(viewport,'auditoría integral: una dependencia fallida se descarga de nuevo al reintentar',async page=>{
-  let intentos=0;await page.route('https://fixture.invalid/auditoria.js',async route=>{intentos++;if(intentos===1)return route.abort();return route.fulfill({contentType:'text/javascript',body:'window.__auditLibReady=true;'});});
+  let intentos=0;await page.route('https://fixture.invalid/auditoria.js',async route=>{intentos++;if(intentos===1)return route.abort();return route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:'window.__auditLibReady=true;'});});
   const primera=await page.evaluate(()=>cargarScriptExternoUnaVez('audit-lib','https://fixture.invalid/auditoria.js',()=>Boolean(window.__auditLibReady)).then(()=>true,()=>false));assert.equal(primera,false);
   await page.evaluate(()=>cargarScriptExternoUnaVez('audit-lib','https://fixture.invalid/auditoria.js',()=>Boolean(window.__auditLibReady)));assert.equal(intentos,2);
  });
