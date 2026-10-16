@@ -121,6 +121,47 @@ async function escenario(viewport,nombre,accion,{acceso=true}={}) {
 }
 try {
 for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
+ await escenario(viewport,'Dueño con casillas desactualizadas guarda ingreso, inventario, venta, cotización, finanzas y PIN',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   __fixture.base.get('sistema/config').usuarios[0].permisos={ingreso:false,ventas:false,cotizacion:false,inventario:false,alertas:false,verFinanzas:false};
+   carritoIngresos=[{tempId:71,isNew:true,idOriginal:null,nombre:'ARTICULO PRUEBA DUEÑO',stock:3,min:0,costoBase:10,costoTotalCompra:30,costoIngresado:10,formaIngreso:'unidad',cantidadComprada:3,contenidoPorCompra:1,unidadId:'pieza',unidadNombre:'Pieza',unidadAbreviatura:'pza',unidadPaso:1,unidadDivisible:false,proveedor:'SIMULADO',nit:'',factura:'',categoria:'OTROS'}];
+   await procesarIngresoMultiple();
+  });
+  assert.equal(await cuenta(page,'ingresos'),1,dialogs.join('\n'));
+  const nuevo=await page.evaluate(()=>[...__fixture.base].find(([k,v])=>k.startsWith('inventario/')&&v.nombre==='ARTICULO PRUEBA DUEÑO')?.[1]);
+  assert.equal(nuevo.stock,3);assert.equal(nuevo.costo,10);
+  await page.evaluate(()=>{void abrirModalEditar('p1');});
+  await page.locator('#pass-input').fill('1234');await page.locator('#btn-pass-confirm').click();
+  await page.waitForFunction(()=>document.getElementById('modal-editar').style.display==='flex');
+  await page.locator('#edit-min').fill('4');await page.evaluate(()=>guardarEdicionInventario());
+  assert.equal(await page.evaluate(()=>__fixture.base.get('inventario/p1').min),4,dialogs.join('\n'));
+  await page.evaluate(async()=>{
+   carritoVentas=[{tempId:72,idProd:'p1',nombre:'TAZA',qty:2,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];
+   document.getElementById('venta-tipo-cobro').value='contado';document.getElementById('venta-metodo-pago').value='efectivo';await procesarVentaMultiple();
+   carritoCotizacion=[{tempId:73,idProd:'p1',nombre:'TAZA',qty:1,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];await procesarCotizacion();
+   document.getElementById('traslado-direccion').value='efectivo-banco';document.getElementById('traslado-monto').value='10';document.getElementById('traslado-motivo').value='PRUEBA DE ACCESO DEL DUEÑO';await registrarTrasladoDinero();
+  });
+  assert.equal(await cuenta(page,'ventas'),1);assert.equal(await cuenta(page,'cotizaciones'),1);
+  assert.equal(await page.evaluate(()=>__fixture.base.get('inventario/p1').stock),8);
+  const saldos=await page.evaluate(()=>__fixture.base.get('sistema/config').saldosDinero);assert.equal(saldos.efectivo,220);assert.equal(saldos.banco,10);
+  await page.evaluate(()=>{abrirModalEditarUser('owner');currentUserData.permisos={copiaAntigua:true};});
+  await page.locator('#edit-user-pin').fill('4321');await page.locator('#modal-editar-user button[onclick="guardarEdicionUser()"]').click();
+  assert.equal(await page.evaluate(()=>currentUserData===null),true);await login(page,'4321');
+  assert.equal(await page.evaluate(()=>currentUserData.rol),'dueno');
+  for(const tab of ['ingreso','inventario','ventas','cotizacion','alertas','ajustes'])assert.equal(await page.locator('#tab-'+tab).isVisible(),true,tab);
+  assert.equal(dialogs.some(d=>/Tus permisos cambiaron|No se actualizó|Error al guardar/.test(d)),false,dialogs.join('\n'));
+ });
+ await escenario(viewport,'el acceso completo del Dueño sigue rechazando rol o PIN revocados',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   carritoIngresos=[{tempId:74,isNew:true,idOriginal:null,nombre:'PRUEBA RECHAZADA',stock:1,min:0,costoBase:10,costoTotalCompra:10,unidadId:'pieza',proveedor:'SIMULADO',categoria:'OTROS'}];
+   __fixture.base.get('sistema/config').usuarios[0].rol='empleado';await procesarIngresoMultiple();
+  });
+  assert.equal(await cuenta(page,'ingresos'),0);assert.match(dialogs.at(-1),/permisos cambiaron/);
+  await page.evaluate(async()=>{
+   const servidor=__fixture.base.get('sistema/config').usuarios[0];servidor.rol='dueno';servidor.pin=await hashPIN('4321');await procesarIngresoMultiple();
+  });
+  assert.equal(await cuenta(page,'ingresos'),0);assert.equal(await page.evaluate(()=>carritoIngresos.length),1);assert.match(dialogs.at(-1),/permisos cambiaron/);
+ });
  await escenario(viewport,'PIN propio, PIN anterior rechazado, 9 líneas intactas y un ingreso',async(page,dialogs)=>{
   await lineas(page);
   await page.evaluate(()=>abrirModalEditarUser('owner'));await page.locator('#edit-user-pin').fill('4321');

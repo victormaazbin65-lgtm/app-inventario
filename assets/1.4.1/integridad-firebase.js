@@ -114,7 +114,11 @@
                     if(Array.isArray(data.usuarios) && data.usuarios.length) {
                         if(!usuario) throw new Error('Ingresa con tu PIN antes de registrar una operación.');
                         const vigente = data.usuarios.find(u => String(u.id) === String(usuario.id) && u.pin === usuario.pin);
-                        if(!vigente || vigente.rol !== usuario.rol || serializarEstable(vigente.permisos || {}) !== serializarEstable(usuario.permisos || {})) {
+                        // El rol Dueño vigente concede acceso completo. Sus casillas de
+                        // empleado no pueden invalidar un PIN y un rol aún confirmados.
+                        const permisosEmpleadoCambiaron = vigente?.rol !== 'dueno'
+                            && serializarEstable(vigente?.permisos || {}) !== serializarEstable(usuario.permisos || {});
+                        if(!vigente || vigente.rol !== usuario.rol || permisosEmpleadoCambiaron) {
                             throw new Error('Tus permisos cambiaron. Actualiza el acceso antes de registrar otra operación.');
                         }
                         if(opciones.soloDueno && vigente.rol !== 'dueno') throw new Error('Solo el Dueño puede realizar esta operación.');

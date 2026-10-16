@@ -43,8 +43,8 @@ test('un reintento tras perder la respuesta del commit no duplica el movimiento'
 test('los reintentos internos de Firestore no duplican la bitácora',async()=>{
  const {c,base,state}=entorno();state.reintentar=true;await c.runTransaction(c.db,vender(c));assert.equal(base.get('inventario/p1').stock,8);assert.equal([...base.keys()].filter(k=>k.startsWith('auditoria_sistema/')).length,1);
 });
-for(const [nombre,cambiar]of [['rol revocado',c=>c.currentUserData.rol='empleado'],['usuario eliminado',c=>c.currentUserData.id='otro'],['sin PIN activo',c=>c.currentUserData=null],['permisos revocados',c=>c.currentUserData.permisos={ventas:true}]]) {
- test(nombre+' impide el commit aunque la pantalla esté desactualizada',async()=>{const {c,base}=entorno();cambiar(c);const inicial=JSON.stringify([...base]);await assert.rejects(c.runTransaction(c.db,vender(c)),/permisos cambiaron|Ingresa con tu PIN/);assert.equal(JSON.stringify([...base]),inicial);});
+for(const [nombre,cambiar]of [['rol revocado',c=>c.currentUserData.rol='empleado'],['usuario eliminado',c=>c.currentUserData.id='otro'],['sin PIN activo',c=>c.currentUserData=null],['permisos revocados',(c,base)=>{c.currentUserData.rol='empleado';c.currentUserData.permisos={ventas:true};Object.assign(base.get('sistema/config').usuarios[0],{rol:'empleado',permisos:{ventas:false}});}]]) {
+ test(nombre+' impide el commit aunque la pantalla esté desactualizada',async()=>{const {c,base}=entorno();cambiar(c,base);const inicial=JSON.stringify([...base]);await assert.rejects(c.runTransaction(c.db,vender(c)),/permisos cambiaron|Ingresa con tu PIN/);assert.equal(JSON.stringify([...base]),inicial);});
 }
 test('mantenimiento bloquea escrituras y no crea bitácoras engañosas',async()=>{const {c,base}=entorno();base.get('sistema/config').mantenimiento={activo:true};await assert.rejects(c.runTransaction(c.db,vender(c)),/recuperación/);assert.equal(base.get('inventario/p1').stock,10);});
 test('una revisión corrupta falla cerrada antes de escribir',async()=>{const {c,base}=entorno();base.get('sistema/config').revisionGlobal='invalido';await assert.rejects(c.runTransaction(c.db,vender(c)),/revisión.*inválida/);assert.equal(base.get('inventario/p1').stock,10);});
@@ -95,10 +95,36 @@ test('editar un registro histórico sin autor no inventa un creador nuevo',async
 
 test('permisos equivalentes en otro orden permiten operar',async()=>{
  const {c,base}=entorno();
+ base.get('sistema/config').usuarios[0].rol='empleado';c.currentUserData.rol='empleado';
  base.get('sistema/config').usuarios[0].permisos={ingreso:true,ventas:false};
  c.currentUserData.permisos={ventas:false,ingreso:true};
  await c.runTransaction(c.db,vender(c));
  assert.equal(base.get('inventario/p1').stock,8);
+});
+
+test('el Dueño confirmado conserva acceso completo aunque sus casillas estén desactualizadas',async()=>{
+ const {c,base}=entorno();
+ base.get('sistema/config').usuarios[0].permisos={ingreso:false,ventas:false,cotizacion:false,inventario:false,alertas:false,verFinanzas:false};
+ c.currentUserData.permisos={ingreso:true};
+ for(const permiso of ['ingreso','ventas','cotizacion','inventario','verFinanzas']) {
+  await c.runTransaction(c.db,async t=>{t.set(c.doc(c.db,'pruebas',permiso),{permitido:true});},{permisoRequerido:permiso,claveOperacion:'dueno:'+permiso});
+  assert.equal(base.get('pruebas/'+permiso).permitido,true);
+ }
+ await c.runTransaction(c.db,async t=>{t.set(c.doc(c.db,'pruebas','usuarios'),{permitido:true});},{soloDueno:true,claveOperacion:'dueno:usuarios'});
+ assert.equal(base.get('pruebas/usuarios').permitido,true);
+ assert.equal(base.get('sistema/config').usuarios[0].permisos.ingreso,false,'No necesita reescribir usuarios para conservar el acceso del Dueño');
+});
+
+test('la autorización completa del Dueño no acepta un PIN revocado',async()=>{
+ const {c,base}=entorno();base.get('sistema/config').usuarios[0].pin='otro-hash';
+ await assert.rejects(c.runTransaction(c.db,vender(c),{permisoRequerido:'ingreso'}),/permisos cambiaron/);
+ assert.equal(base.get('inventario/p1').stock,10);
+});
+
+test('un empleado no puede obtener acceso completo modificando su rol local a Dueño',async()=>{
+ const {c,base}=entorno();base.get('sistema/config').usuarios[0].rol='empleado';
+ await assert.rejects(c.runTransaction(c.db,vender(c),{soloDueno:true}),/permisos cambiaron/);
+ assert.equal(base.get('inventario/p1').stock,10);
 });
 
 test('una respuesta perdida no puede confirmar un formulario distinto',async()=>{
