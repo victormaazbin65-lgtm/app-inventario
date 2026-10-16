@@ -2280,13 +2280,14 @@
                 alert('Primero inicia sesión con el correo del Dueño.');
                 return;
             }
-            if(!configuracionUsuariosConfirmada && !usuarios.some(u => u.rol === 'dueno')) {
+            if(!configuracionUsuariosConfirmada) {
                 alert('Espera a que Firebase confirme la configuración de usuarios. La aplicación permanece bloqueada para evitar un acceso libre por error.');
                 return;
             }
             const pass = document.getElementById('login-pass').value.trim();
             const hashedPass = await hashPIN(pass);
-            currentUserData = usuarios.find(u => u.pin === hashedPass);
+            // Sesión independiente del arreglo de usuarios editable.
+            currentUserData = copiarDatos(usuarios.find(u => u.pin === hashedPass) || null);
 
             if (currentUserData) {
                 window.subliMarcar?.('pin_correcto');
@@ -2502,39 +2503,32 @@
         async function guardarEdicionUser() {
             if (!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos para editar usuarios.");
             const id = document.getElementById('edit-user-id').value;
-            const user = usuarios.find(u => u.id == id);
+            const user = usuarios.find(u => String(u.id) === String(id));
             if (!user) return;
 
             const nombre = document.getElementById('edit-user-nombre').value.trim();
             const nuevoPinCrudo = document.getElementById('edit-user-pin').value.trim();
             const rol = document.getElementById('edit-user-rol').value;
-
             if(!nombre) return alert('El nombre no puede estar vacío');
             if(nuevoPinCrudo && nuevoPinCrudo.length < 4) return alert('El PIN debe tener al menos 4 caracteres.');
-
-            // --- NUEVO SEGURO CONTRA AUTO-BLOQUEO ---
-            if (user.rol === 'dueno' && rol === 'empleado') {
-                const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
-                if (totalDuenos <= 1) {
-                    return alert("❌ No puedes degradar a este usuario a Empleado porque es el ÚNICO DUEÑO en el sistema. Debes crear otro Dueño primero.");
-                }
+            if(user.rol === 'dueno' && rol === 'empleado' && usuarios.filter(u => u.rol === 'dueno').length <= 1) {
+                return alert("❌ No puedes degradar a este usuario a Empleado porque es el ÚNICO DUEÑO en el sistema. Debes crear otro Dueño primero.");
             }
-            // ----------------------------------------
 
-            const usuariosAnteriores = copiarDatos(usuarios);
-            if (nuevoPinCrudo !== '') {
+            // No alterar el usuario activo ni la lista local antes de confirmar Firebase.
+            const usuarioPropuesto = copiarDatos(user);
+            const esSesionPropia = String(currentUserData.id) === String(id);
+            if(nuevoPinCrudo !== '') {
                 const hashedNuevoPin = await hashPIN(nuevoPinCrudo);
-                if(usuarios.find(u => u.pin === hashedNuevoPin && String(u.id) !== String(id))) {
+                if(usuarios.some(u => u.pin === hashedNuevoPin && String(u.id) !== String(id))) {
                     return alert('Este PIN ya está en uso. Elige otro.');
                 }
-                user.pin = hashedNuevoPin;
+                usuarioPropuesto.pin = hashedNuevoPin;
             }
-
-            user.nombre = nombre;
-            user.rol = rol;
-
-            if (rol === 'empleado') {
-                user.permisos = {
+            usuarioPropuesto.nombre = nombre;
+            usuarioPropuesto.rol = rol;
+            if(rol === 'empleado') {
+                usuarioPropuesto.permisos = {
                     ventas: document.getElementById('edit-perm-ventas').checked,
                     cotizacion: document.getElementById('edit-perm-cotizacion').checked,
                     inventario: document.getElementById('edit-perm-inventario').checked,
@@ -2542,15 +2536,23 @@
                     alertas: document.getElementById('edit-perm-alertas').checked
                 };
             }
-
+            const usuariosPropuestos = usuarios.map(u => String(u.id) === String(id) ? usuarioPropuesto : u);
             try {
-                await guardarUsuarios();
+                await guardarUsuarios(usuariosPropuestos);
             } catch(error) {
-                usuarios = usuariosAnteriores;
                 return alert('❌ No se actualizó el usuario. ' + error.message);
             }
             cerrarModalEditarUser();
             renderUsuarios();
+            if(esSesionPropia) {
+                // Reautenticar incluso si el cambio fue solo de rol/permisos.
+                currentUserData = null;
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('login-pass').value = '';
+                alert('✅ Usuario actualizado. Ingresa con tu PIN vigente para continuar.');
+                return;
+            }
             alert('✅ Usuario actualizado correctamente');
         }
 
@@ -2575,10 +2577,10 @@
             }
         }
 
-        async function guardarUsuarios() {
+        async function guardarUsuarios(usuariosPropuestos = usuarios) {
             if(!currentUserData || currentUserData.rol !== 'dueno') throw new Error('Solo el Dueño puede cambiar usuarios.');
             if(!window.db || !navigator.onLine) throw new Error('Necesitas conexión para cambiar usuarios de forma segura.');
-            const usuariosNuevos = copiarDatos(usuarios);
+            const usuariosNuevos = copiarDatos(usuariosPropuestos);
             const revisionEsperada = usuariosRevision;
             await window.runTransaction(window.db, async t => {
                 const configRef = window.doc(window.db, "sistema", "config");
@@ -2588,6 +2590,8 @@
                 if(revisionServidor !== revisionEsperada) throw new Error('Otro dispositivo cambió los usuarios. Espera la sincronización y vuelve a intentarlo.');
                 t.update(configRef, { usuarios: usuariosNuevos, usuariosRevision: revisionServidor + 1, ultimaActualizacionUsuarios: Date.now() });
             });
+            // Cambiar el estado local únicamente después del éxito remoto.
+            usuarios = copiarDatos(usuariosNuevos);
             usuariosRevision = revisionEsperada + 1;
             localStorage.setItem('subli_usuarios', JSON.stringify(usuariosNuevos));
         }
