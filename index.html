@@ -2286,10 +2286,18 @@
             }
             const pass = document.getElementById('login-pass').value.trim();
             const hashedPass = await hashPIN(pass);
+            if(!configuracionUsuariosConfirmada || !cuentaPropietarioAutorizada()) return;
             // Sesión independiente del arreglo de usuarios editable.
-            currentUserData = copiarDatos(usuarios.find(u => u.pin === hashedPass) || null);
+            const candidato = copiarDatos(usuarios.find(u => u.pin === hashedPass) || null);
+            if(candidato && window.subliUsuarioCarritosPIN != null && String(window.subliUsuarioCarritosPIN) !== String(candidato.id)
+                && (carritoIngresos.length || carritoVentas.length || carritoCotizacion.length || ingresoEnEdicion || ventaEnEdicion || cotizacionBorradorOrigenId)) {
+                alert('Hay una operación pendiente del usuario anterior. Ingresa con su PIN vigente para terminarla antes de cambiar de usuario. La lista se conserva.');
+                return;
+            }
+            currentUserData = candidato;
 
             if (currentUserData) {
+                window.subliUsuarioCarritosPIN = String(currentUserData.id);
                 window.subliMarcar?.('pin_correcto');
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
@@ -2556,6 +2564,7 @@
 
         async function borrarUsuario(id) {
             if (!currentUserData || currentUserData.rol !== 'dueno') return alert("No tienes permisos para borrar usuarios.");
+            if(String(currentUserData.id) === String(id) && (carritoIngresos.length || carritoVentas.length || carritoCotizacion.length)) return alert('Termina las operaciones pendientes antes de eliminar tu propio usuario. Las listas se conservan.');
             const user = usuarios.find(u => u.id == id);
             if (user && user.rol === 'dueno') {
                 const totalDuenos = usuarios.filter(u => u.rol === 'dueno').length;
@@ -3684,18 +3693,23 @@
                             sincronizarEstadoNegocio(data);
                             estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
                             let nubeCustomCats = data.customCats || [];
-                            if(Array.isArray(data.customCats)) localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats));
+                            if(Array.isArray(data.customCats)) {
+                                try { localStorage.setItem('subli_custom_cats', JSON.stringify(nubeCustomCats)); }
+                                catch(error) { console.warn('No se pudo actualizar la copia local de categorías.', error); }
+                            }
                             if (Array.isArray(data.usuarios) && (!docSnap.metadata.fromCache || !configuracionUsuariosConfirmada)) {
                                 usuarios = data.usuarios;
                                 usuariosRevision = Number(data.usuariosRevision || 0);
-                                localStorage.setItem('subli_usuarios', JSON.stringify(usuarios));
+                                try { localStorage.setItem('subli_usuarios', JSON.stringify(usuarios)); }
+                                catch(error) { console.warn('Firebase confirmó los usuarios; la copia local no está disponible.', error); }
                                 if(document.getElementById('sec-ajustes') && document.getElementById('sec-ajustes').style.display === 'block') {
                                     renderUsuarios();
                                 }
                             } else if(!docSnap.metadata.fromCache) {
                                 usuarios = [];
                                 usuariosRevision = Number(data.usuariosRevision || 0);
-                                localStorage.removeItem('subli_usuarios');
+                                try { localStorage.removeItem('subli_usuarios'); }
+                                catch(error) { console.warn('No se pudo retirar la copia local de usuarios.', error); }
                             }
                             programarGuardadoSnapshot('config', 'fondos', 'codigos', 'negocio', 'saldos');
                             actualizarUI();

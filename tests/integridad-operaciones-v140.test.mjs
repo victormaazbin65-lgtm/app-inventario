@@ -7,13 +7,14 @@ const source = file => fs.readFileSync(new URL('../'+file,import.meta.url),'utf8
 const clone = data => data === undefined ? undefined : JSON.parse(JSON.stringify(data));
 function entorno() {
  const base = new Map([['sistema/config',{usuarios:[{id:'owner',pin:'hash',rol:'dueno'}],revisionGlobal:0,saldosDinero:{efectivo:200,banco:0}}],['inventario/p1',{id:'p1',stock:10,costo:5}]]);
- const session = new Map(); const state = {fallaDespues:false,reintentar:false,llamadas:0};
+ const session = new Map(); const state = {fallaDespues:false,fallaAntes:false,reintentar:false,llamadas:0};
  const c = vm.createContext({console,crypto:webcrypto,TextEncoder,Date,Math,JSON,Map,Set,setTimeout,navigator:{onLine:true},db:{},currentUserData:{id:'owner',pin:'hash',rol:'dueno',nombre:'Victor'},firebaseAuthUser:{uid:'uid'},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}});
  c.window=c;
  c.doc = (_,col,id)=>({path:col+'/'+id}); c.collection=(_,col)=>({path:col});
  c.getDoc = async ref=>({exists:()=>base.has(ref.path),data:()=>clone(base.get(ref.path)),metadata:{fromCache:false,hasPendingWrites:false}});
  c.runTransaction = async (_,fn)=>{
   state.llamadas++;
+  if(state.fallaAntes) {state.fallaAntes=false;const e=Error('Servidor temporalmente inaccesible');e.code='unavailable';throw e;}
   let queue=[],escribiendo=false;
   const tx = {get:async ref=>{assert.equal(escribiendo,false);return c.getDoc(ref);},set:(ref,data,opts)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts});},update:(ref,data)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts:{merge:true}});},delete:ref=>{escribiendo=true;queue.push({tipo:'delete',ref});}};
   if(state.reintentar) {await fn(tx);queue=[];escribiendo=false;state.reintentar=false;}
@@ -36,8 +37,8 @@ test('un error antes del commit no cambia documentos ni fondos',async()=>{
  const {c,base}=entorno();const inicial=JSON.stringify([...base]);await assert.rejects(c.runTransaction(c.db,async t=>{t.set(c.doc(c.db,'inventario','p1'),{stock:0});throw Error('fallo validación');}),/fallo validación/);assert.equal(JSON.stringify([...base]),inicial);
 });
 test('un reintento tras perder la respuesta del commit no duplica el movimiento',async()=>{
- const {c,base,state}=entorno();const accion=vender(c);state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion),/Respuesta perdida/);assert.equal(base.get('inventario/p1').stock,8);
- const result=await c.runTransaction(c.db,accion);assert.equal(result.stock,8);assert.equal(base.get('inventario/p1').stock,8);assert.equal(base.get('sistema/config').revisionGlobal,1);assert.equal([...base.keys()].filter(k=>k.startsWith('operaciones_sistema/')).length,1);
+ const {c,base,state}=entorno();const accion=vender(c);state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion,{claveOperacion:"p1:2"}),/Respuesta perdida/);assert.equal(base.get('inventario/p1').stock,8);
+ const result=await c.runTransaction(c.db,accion,{claveOperacion:"p1:2"});assert.equal(result.stock,8);assert.equal(base.get('inventario/p1').stock,8);assert.equal(base.get('sistema/config').revisionGlobal,1);assert.equal([...base.keys()].filter(k=>k.startsWith('operaciones_sistema/')).length,1);
 });
 test('los reintentos internos de Firestore no duplican la bitácora',async()=>{
  const {c,base,state}=entorno();state.reintentar=true;await c.runTransaction(c.db,vender(c));assert.equal(base.get('inventario/p1').stock,8);assert.equal([...base.keys()].filter(k=>k.startsWith('auditoria_sistema/')).length,1);
@@ -111,7 +112,7 @@ test('una respuesta perdida no puede confirmar un formulario distinto',async()=>
 
 test('dos confirmaciones simultáneas del mismo comando comparten un solo commit',async()=>{
  const {c,base,state}=entorno();const accion=vender(c);
- const resultados=await Promise.all([c.runTransaction(c.db,accion),c.runTransaction(c.db,accion)]);
+ const resultados=await Promise.all([c.runTransaction(c.db,accion,{claveOperacion:'p1:2'}),c.runTransaction(c.db,accion,{claveOperacion:'p1:2'})]);
  assert.deepEqual(resultados.map(r=>r.stock),[8,8]);
  assert.equal([...base.keys()].filter(k=>k.startsWith('operaciones_sistema/')).length,1);
  assert.equal(state.llamadas,1);
@@ -128,4 +129,28 @@ test('el rechazo por permisos no conserva una operación que nunca se envió',as
  const {c,session}=entorno();c.currentUserData.rol='empleado';
  await assert.rejects(c.runTransaction(c.db,vender(c)),/permisos cambiaron/);
  assert.equal(session.size,0);
+});
+
+test('dos respuestas perdidas mantienen el identificador original hasta confirmar',async()=>{
+ const {c,base,state,session}=entorno();const accion=vender(c);
+ state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion,{claveOperacion:"p1:2"}),/Respuesta perdida/);
+ state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion,{claveOperacion:"p1:2"}),/Respuesta perdida/);
+ assert.equal(session.size,1);await c.runTransaction(c.db,accion,{claveOperacion:"p1:2"});
+ assert.equal(base.get('inventario/p1').stock,8);assert.equal(base.get('sistema/config').revisionGlobal,1);
+});
+
+test('un fallo de conexión al consultar un commit incierto no pierde su identificador',async()=>{
+ const {c,base,state,session}=entorno();const accion=vender(c);
+ state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion,{claveOperacion:"p1:2"}),/Respuesta perdida/);
+ state.fallaAntes=true;await assert.rejects(c.runTransaction(c.db,accion,{claveOperacion:"p1:2"}),/inaccesible/);
+ assert.equal(session.size,1);await c.runTransaction(c.db,accion,{claveOperacion:"p1:2"});
+ assert.equal(base.get('inventario/p1').stock,8);assert.equal(base.get('sistema/config').revisionGlobal,1);
+});
+
+
+test('un flujo sin firma de datos detiene una repetición ambigua sin duplicar',async()=>{
+ const {c,base,state}=entorno();const accion=vender(c);
+ state.fallaDespues=true;await assert.rejects(c.runTransaction(c.db,accion),/Respuesta perdida/);
+ await assert.rejects(c.runTransaction(c.db,accion),/necesita revisión del historial/);
+ assert.equal(base.get('inventario/p1').stock,8);assert.equal(base.get('sistema/config').revisionGlobal,1);
 });

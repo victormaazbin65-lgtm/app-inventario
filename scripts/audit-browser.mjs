@@ -195,6 +195,34 @@ for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
   assert.equal(await page.evaluate(()=>__fixture.base.get('inventario/p1').stock),7);assert.equal(await page.evaluate(()=>__fixture.base.get('sistema/config').saldosDinero.efectivo),245);assert.equal(await cuenta(page,'ventas'),2);
   assert.equal(await page.evaluate(()=>Boolean([...__fixture.base].find(([k])=>k.startsWith('cotizaciones/'))[1].convertidaEnVentaId)),true);
  });
+ await escenario(viewport,'una venta con respuesta perdida descuenta stock y caja una sola vez',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   carritoVentas=[{tempId:1,idProd:'p1',nombre:'TAZA',qty:2,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];
+   document.getElementById('venta-tipo-cobro').value='contado';document.getElementById('venta-metodo-pago').value='efectivo';__fixture.failAfter='ventas';await procesarVentaMultiple();
+  });
+  assert.equal(await cuenta(page,'ventas'),1);assert.match(dialogs.at(-1),/No se pudo confirmar/);assert.equal(await page.evaluate(()=>carritoVentas.length),1);
+  await page.evaluate(()=>procesarVentaMultiple());assert.equal(await cuenta(page,'ventas'),1);
+  assert.equal(await page.evaluate(()=>__fixture.base.get('inventario/p1').stock),8);assert.equal(await page.evaluate(()=>__fixture.base.get('sistema/config').saldosDinero.efectivo),230);
+ });
+ await escenario(viewport,'cambiar el rol propio exige PIN y aplica los nuevos permisos',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   document.getElementById('nuevo-user-nombre').value='SEGUNDO DUEÑO';document.getElementById('nuevo-user-pin').value='9999';document.getElementById('nuevo-user-rol').value='dueno';await crearUsuario();abrirModalEditarUser('owner');
+  });
+  await page.locator('#edit-user-rol').selectOption('empleado');await page.locator('#edit-perm-ingreso').uncheck();
+  await page.locator('#modal-editar-user button[onclick="guardarEdicionUser()"]').click();
+  assert.equal(await page.evaluate(()=>currentUserData===null),true);await login(page);
+  assert.equal(await page.evaluate(()=>currentUserData.rol),'empleado');assert.equal(await page.locator('#tab-ingreso').isVisible(),false);
+  await lineas(page);await page.evaluate(()=>procesarIngresoMultiple());assert.equal(await cuenta(page,'ingresos'),0);assert.match(dialogs.at(-1),/permiso para ingreso/);
+ });
+ await escenario(viewport,'un cambio de PIN no entrega el carrito pendiente a otro usuario',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   document.getElementById('nuevo-user-nombre').value='OTRO USUARIO';document.getElementById('nuevo-user-pin').value='9999';document.getElementById('nuevo-user-rol').value='dueno';await crearUsuario();
+  });
+  await lineas(page);await page.evaluate(()=>abrirModalEditarUser('owner'));await page.locator('#edit-user-pin').fill('4321');
+  await page.locator('#modal-editar-user button[onclick="guardarEdicionUser()"]').click();await login(page,'9999');
+  assert.equal(await page.locator('#main-app').isVisible(),false);assert.match(dialogs.at(-1),/operación pendiente del usuario anterior/);
+  await login(page,'4321');assert.equal(await page.evaluate(()=>carritoIngresos.length),9);assert.equal(await page.locator('#ingreso-transporte-global').inputValue(),'50.50');
+ });
  await escenario(viewport,'una respuesta perdida de cotización no la duplica',async(page,dialogs)=>{
   await page.evaluate(async()=>{carritoCotizacion=[{tempId:2,idProd:'p1',nombre:'TAZA',qty:1,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];__fixture.failAfter='cotizaciones';await procesarCotizacion();});
   assert.equal(await cuenta(page,'cotizaciones'),1);assert.match(dialogs.at(-1),/No se pudo confirmar/);

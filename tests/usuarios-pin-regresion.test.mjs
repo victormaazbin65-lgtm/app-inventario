@@ -17,7 +17,7 @@ const guardar = funcion('async function guardarUsuarios(', 'function renderUsuar
 const editar = funcion('async function guardarEdicionUser()', 'async function borrarUsuario(');
 const ingresar = funcion('async function verificarLogin()', 'function comprobarIngresoInicialLibre()');
 
-function entorno({fallar=false, empleados=false, falloLocal=false, antesCommit=null}={}) {
+function entorno({fallar=false, empleados=false, falloLocal=false, antesCommit=null, despuesCommit=null}={}) {
   const propietario = {id:'propietario', nombre:'Dueño',pin:'hash-1234',rol:'dueno',permisos:{}};
   const empleado = {id:'empleado', nombre:'Ayudante',pin:'hash-5555',rol:'empleado',permisos:{ingreso:false,ventas:true}};
   const usuarios = empleados ? [propietario,empleado] : [propietario];
@@ -59,6 +59,7 @@ function entorno({fallar=false, empleados=false, falloLocal=false, antesCommit=n
         if(fallar) throw new Error('Fallo simulado antes del commit');
         if(antesCommit) await antesCommit(contexto,servidor);
         if(staged) Object.assign(servidor,staged);
+        if(despuesCommit) await despuesCommit(contexto,servidor);
         return resultado;
       }
     },
@@ -127,6 +128,34 @@ test('guardarUsuarios rechaza PIN duplicado y una lista sin dueño',async()=>{
  await assert.rejects(ctx.guardarUsuarios([{...ctx.usuarios[0]},{...ctx.usuarios[1],pin:ctx.usuarios[0].pin}]),/PIN.*repetido|PIN.*uso/);
  await assert.rejects(ctx.guardarUsuarios([{...ctx.usuarios[1]}]),/Dueño/);
  assert.equal(servidor.usuarios.length,2);
+});
+
+test('una revisión posterior recibida antes de resolver el guardado no se sobrescribe',async()=>{
+ const {ctx}=entorno({despuesCommit:async(c,s)=>{s.usuariosRevision=9;s.usuarios[0].nombre='CAMBIO POSTERIOR';c.usuariosRevision=9;c.usuarios=copia(s.usuarios);}});
+ await ctx.guardarUsuarios(copia(ctx.usuarios));
+ assert.equal(ctx.usuariosRevision,9);assert.equal(ctx.usuarios[0].nombre,'CAMBIO POSTERIOR');
+});
+
+test('dos cambios simultáneos de usuarios no se envían en paralelo',async()=>{
+ let liberar;const pausa=new Promise(r=>{liberar=r;});
+ const {ctx}=entorno({antesCommit:()=>pausa});
+ const primero=ctx.guardarUsuarios(copia(ctx.usuarios));
+ await assert.rejects(ctx.guardarUsuarios(copia(ctx.usuarios)),/en proceso/);
+ liberar();await primero;
+ assert.equal(ctx.usuariosRevision,8);
+});
+
+test('el único dueño no puede degradarse y el PIN de un empleado no se puede duplicar',async()=>{
+ const {ctx,servidor,elementos,alertas}=entorno({empleados:true});
+ elementos.get('edit-user-rol').value='empleado';await ctx.guardarEdicionUser();assert.match(alertas.at(-1),/ÚNICO DUEÑO/);
+ elementos.get('edit-user-rol').value='dueno';elementos.get('edit-user-pin').value='5555';await ctx.guardarEdicionUser();assert.match(alertas.at(-1),/PIN ya está en uso/);
+ assert.equal(servidor.usuarios[0].pin,'hash-1234');
+});
+
+test('si la autorización cambia mientras se calcula el hash no abre la aplicación',async()=>{
+ const {ctx}=entorno();ctx.currentUserData=null;
+ ctx.hashPIN=async()=>{ctx.configuracionUsuariosConfirmada=false;return 'hash-1234';};
+ await ctx.verificarLogin();assert.equal(ctx.currentUserData,null);
 });
 
 test('si falla guardar el nuevo PIN, conserva la sesión y los usuarios originales',async()=>{

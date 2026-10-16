@@ -16,7 +16,7 @@ function funcion(nombre, fuente=html) {
 }
 function entorno() {
  const elementos=new Map(); const avisos=[]; let seq=0;
- const el=id=>{if(!elementos.has(id))elementos.set(id,{value:'',checked:false,style:{},textContent:'',innerHTML:''});return elementos.get(id);};
+ const el=id=>{if(!elementos.has(id))elementos.set(id,{value:'',checked:false,style:{},textContent:'',innerHTML:'',remove(){elementos.delete(id);}});return elementos.get(id);};
  const c=vm.createContext({console,Date,Math,Number,JSON,Map,Set,Object,Array,String,Error,Boolean,parseInt,
   navigator:{onLine:true},document:{getElementById:el},alert:m=>avisos.push(m),confirm:()=>true,
   isProcessingTransaction:false,currentUserData:{id:'owner',nombre:'Victor',rol:'dueno'},
@@ -123,7 +123,7 @@ test('los errores repetidos generan aviso rojo y no crecen sin límite',()=>{
 });
 test('los borradores preservan el origen de venta, cotización e ingreso al recuperarlos',()=>{
  const {c,linea}=entorno();const memoria=new Map();Object.assign(c,{tiposBorradorActivos:new Set(), DRAFT_PREFIX:'draft_',localStorage:{getItem:k=>memoria.get(k),setItem:(k,v)=>memoria.set(k,v)},capturarCampos:()=>({}),restaurarCampos(){},borrarBorrador(){},cambiarPestaña(){},ingresoEnEdicion:'i-original',carritoIngresos:[]});
- for(const n of ['usuarioActual','claveBorrador','guardarBorrador','restaurarBorrador'])vm.runInContext(funcion(n,leer('profesional-ui-v130.js')),c);
+ for(const n of ['usuarioActual','claveBorrador','guardarBorrador','capturarBorradores','restaurarBorrador'])vm.runInContext(funcion(n,leer('profesional-ui-v130.js')),c);
  c.global=c;c.leerBorrador=t=>JSON.parse(memoria.get(c.claveBorrador(t)));c.ventaEnEdicion='v-original';c.ventaEdicionVersion=77;c.cotizacionOrigenVentaId='q-origen';c.cotizacionOrigenVentaVersion=3;c.cotizacionBorradorOrigenId='q-edit';c.cotizacionBorradorVersion=5;
  for(const t of ['ventas','cotizacion','ingreso'])c.guardarBorrador(t,[linea()], 'sec-'+t);
  c.ventaEnEdicion=null;c.cotizacionOrigenVentaId=null;c.cotizacionBorradorOrigenId=null;c.ingresoEnEdicion=null;
