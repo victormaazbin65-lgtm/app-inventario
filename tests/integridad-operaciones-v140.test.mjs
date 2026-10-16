@@ -7,12 +7,13 @@ const source = file => fs.readFileSync(new URL('../'+file,import.meta.url),'utf8
 const clone = data => data === undefined ? undefined : JSON.parse(JSON.stringify(data));
 function entorno() {
  const base = new Map([['sistema/config',{usuarios:[{id:'owner',pin:'hash',rol:'dueno'}],revisionGlobal:0,saldosDinero:{efectivo:200,banco:0}}],['inventario/p1',{id:'p1',stock:10,costo:5}]]);
- const session = new Map(); const state = {fallaDespues:false,reintentar:false};
- const c = vm.createContext({console,crypto:webcrypto,Date,Math,JSON,Map,Set,setTimeout,navigator:{onLine:true},db:{},currentUserData:{id:'owner',pin:'hash',rol:'dueno',nombre:'Victor'},firebaseAuthUser:{uid:'uid'},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}});
+ const session = new Map(); const state = {fallaDespues:false,reintentar:false,llamadas:0};
+ const c = vm.createContext({console,crypto:webcrypto,TextEncoder,Date,Math,JSON,Map,Set,setTimeout,navigator:{onLine:true},db:{},currentUserData:{id:'owner',pin:'hash',rol:'dueno',nombre:'Victor'},firebaseAuthUser:{uid:'uid'},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}});
  c.window=c;
  c.doc = (_,col,id)=>({path:col+'/'+id}); c.collection=(_,col)=>({path:col});
  c.getDoc = async ref=>({exists:()=>base.has(ref.path),data:()=>clone(base.get(ref.path)),metadata:{fromCache:false,hasPendingWrites:false}});
  c.runTransaction = async (_,fn)=>{
+  state.llamadas++;
   let queue=[],escribiendo=false;
   const tx = {get:async ref=>{assert.equal(escribiendo,false);return c.getDoc(ref);},set:(ref,data,opts)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts});},update:(ref,data)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts:{merge:true}});},delete:ref=>{escribiendo=true;queue.push({tipo:'delete',ref});}};
   if(state.reintentar) {await fn(tx);queue=[];escribiendo=false;state.reintentar=false;}
@@ -89,4 +90,42 @@ test('editar un registro histórico sin autor no inventa un creador nuevo',async
  const {c,base}=entorno();base.set('ventas/legacy',{id:'legacy',ingresoTotal:10});
  await c.updateDoc(c.doc(c.db,'ventas','legacy'),{ingresoTotal:12});
  assert.equal(base.get('ventas/legacy').creadoPorId,null);assert.equal(base.get('ventas/legacy').creadoPorNombre,'Usuario anterior sin registrar');assert.equal(base.get('ventas/legacy').editadoPorNombre,'Victor');
+});
+
+test('permisos equivalentes en otro orden permiten operar',async()=>{
+ const {c,base}=entorno();
+ base.get('sistema/config').usuarios[0].permisos={ingreso:true,ventas:false};
+ c.currentUserData.permisos={ventas:false,ingreso:true};
+ await c.runTransaction(c.db,vender(c));
+ assert.equal(base.get('inventario/p1').stock,8);
+});
+
+test('una respuesta perdida no puede confirmar un formulario distinto',async()=>{
+ const {c,base,state}=entorno();state.fallaDespues=true;
+ await assert.rejects(c.runTransaction(c.db,vender(c),{tipoOperacion:'venta',claveOperacion:'carrito A'}),/Respuesta perdida/);
+ await assert.rejects(c.runTransaction(c.db,vender(c),{tipoOperacion:'venta',claveOperacion:'carrito B'}),/anterior.*confirmación/);
+ assert.equal(base.get('inventario/p1').stock,8);
+ const r=await c.runTransaction(c.db,vender(c),{tipoOperacion:'venta',claveOperacion:'carrito A'});
+ assert.equal(r.stock,8);assert.equal(base.get('inventario/p1').stock,8);
+});
+
+test('dos confirmaciones simultáneas del mismo comando comparten un solo commit',async()=>{
+ const {c,base,state}=entorno();const accion=vender(c);
+ const resultados=await Promise.all([c.runTransaction(c.db,accion),c.runTransaction(c.db,accion)]);
+ assert.deepEqual(resultados.map(r=>r.stock),[8,8]);
+ assert.equal([...base.keys()].filter(k=>k.startsWith('operaciones_sistema/')).length,1);
+ assert.equal(state.llamadas,1);
+});
+
+test('un empleado sin permiso de ingreso no puede confirmar el comando',async()=>{
+ const {c,base}=entorno();const user={id:'e',pin:'hash',rol:'empleado',permisos:{ingreso:false}};
+ c.currentUserData=clone(user);base.get('sistema/config').usuarios=[user];
+ await assert.rejects(c.runTransaction(c.db,vender(c),{permisoRequerido:'ingreso'}),/permiso.*ingreso/);
+ assert.equal(base.get('inventario/p1').stock,10);
+});
+
+test('el rechazo por permisos no conserva una operación que nunca se envió',async()=>{
+ const {c,session}=entorno();c.currentUserData.rol='empleado';
+ await assert.rejects(c.runTransaction(c.db,vender(c)),/permisos cambiaron/);
+ assert.equal(session.size,0);
 });

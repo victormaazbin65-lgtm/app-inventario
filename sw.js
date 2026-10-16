@@ -1,5 +1,5 @@
-const RELEASE = '1.4.0';
-const CACHE_NAME = 'sublicosturas-v1.4.0-integridad-20261006';
+const RELEASE = '1.4.1';
+const CACHE_NAME = 'sublicosturas-v1.4.1-pin-permisos-20261015';
 const ASSET_BASE = `./assets/${RELEASE}/`;
 const APP_SHELL = [
   './index.html',

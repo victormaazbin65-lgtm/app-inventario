@@ -11,7 +11,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="./assets/1.4.0/visual-preferences.js"></script>
+    <script src="./assets/1.4.1/visual-preferences.js"></script>
 <style>
         :root {
             /* TEMA OSCURO APLICADO */
@@ -1649,11 +1649,11 @@
             </div>
         </div>
     </div>
-<script src="./assets/1.4.0/negocio-core.js"></script>
-    <script src="./assets/1.4.0/integridad-firebase.js"></script>
-    <script src="./assets/1.4.0/gestion-negocio.js"></script>
-    <script src="./assets/1.4.0/finanzas-negocio.js"></script>
-    <script src="./assets/1.4.0/respaldo-negocio.js"></script>
+<script src="./assets/1.4.1/negocio-core.js"></script>
+    <script src="./assets/1.4.1/integridad-firebase.js"></script>
+    <script src="./assets/1.4.1/gestion-negocio.js"></script>
+    <script src="./assets/1.4.1/finanzas-negocio.js"></script>
+    <script src="./assets/1.4.1/respaldo-negocio.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1768,7 +1768,7 @@
         function cargarBuscadorBajoDemanda() {
             if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
             if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
-            promesaBuscadorBajoDemanda = import('./assets/1.4.0/buscador.js')
+            promesaBuscadorBajoDemanda = import('./assets/1.4.1/buscador.js')
                 .then(() => true)
                 .catch(error => {
                     promesaBuscadorBajoDemanda = null;
@@ -2316,7 +2316,7 @@
                 return;
             }
 
-            if(!dueñosRegistrados && !configuracionUsuariosConfirmada) {
+            if(!configuracionUsuariosConfirmada) {
                 currentUserData = null;
                 app.style.display = 'none';
                 login.style.display = 'flex';
@@ -2339,6 +2339,7 @@
             } else {
                 const usuarioVigente = currentUserData && usuarios.find(u => String(u.id) === String(currentUserData.id) && u.pin === currentUserData.pin);
                 if(!usuarioVigente) {
+                    window.guardarBorradoresV130?.();
                     currentUserData = null;
                     app.style.display = 'none';
                     login.style.display = 'flex';
@@ -2465,13 +2466,11 @@
                 permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
             }
 
-            const usuariosAnteriores = copiarDatos(usuarios);
-            usuarios.push({ id: generarIDSeguro(), nombre, pin: hashedPin, rol, permisos });
+            const usuariosPropuestos = [...usuarios, { id: generarIDSeguro(), nombre, pin: hashedPin, rol, permisos }];
             try {
-                await guardarUsuarios();
+                await guardarUsuarios(usuariosPropuestos);
             } catch(error) {
-                usuarios = usuariosAnteriores;
-                return alert('❌ No se creó el usuario. ' + error.message);
+                return alert((error.commitIncierto ? 'No se pudo confirmar el cambio. Revisa la lista de usuarios antes de repetirlo. ' : '❌ No se creó el usuario. ') + error.message);
             }
             document.getElementById('nuevo-user-nombre').value = '';
             document.getElementById('nuevo-user-pin').value = '';
@@ -2540,20 +2539,19 @@
             try {
                 await guardarUsuarios(usuariosPropuestos);
             } catch(error) {
-                return alert('❌ No se actualizó el usuario. ' + error.message);
+                return alert((error.commitIncierto ? 'No se pudo confirmar el cambio. Revisa el PIN vigente y la lista de usuarios antes de repetirlo. ' : '❌ No se actualizó el usuario. ') + error.message);
             }
-            cerrarModalEditarUser();
-            renderUsuarios();
             if(esSesionPropia) {
                 // Reautenticar incluso si el cambio fue solo de rol/permisos.
+                window.guardarBorradoresV130?.();
                 currentUserData = null;
                 document.getElementById('main-app').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('login-pass').value = '';
-                alert('✅ Usuario actualizado. Ingresa con tu PIN vigente para continuar.');
-                return;
             }
-            alert('✅ Usuario actualizado correctamente');
+            cerrarModalEditarUser();
+            renderUsuarios();
+            alert(esSesionPropia ? '✅ Usuario actualizado. Ingresa con tu PIN vigente para continuar.' : '✅ Usuario actualizado correctamente');
         }
 
         async function borrarUsuario(id) {
@@ -2565,13 +2563,18 @@
             }
 
             if(confirm('¿Eliminar definitivamente este usuario?')) {
-                const usuariosAnteriores = copiarDatos(usuarios);
-                usuarios = usuarios.filter(u => String(u.id) !== String(id));
+                const usuariosPropuestos = usuarios.filter(u => String(u.id) !== String(id));
                 try {
-                    await guardarUsuarios();
+                    await guardarUsuarios(usuariosPropuestos);
                 } catch(error) {
-                    usuarios = usuariosAnteriores;
-                    return alert('❌ No se eliminó el usuario. ' + error.message);
+                    return alert((error.commitIncierto ? 'No se pudo confirmar el cambio. Revisa la lista de usuarios antes de repetirlo. ' : '❌ No se eliminó el usuario. ') + error.message);
+                }
+                if(String(currentUserData?.id) === String(id)) {
+                    window.guardarBorradoresV130?.();
+                    currentUserData = null;
+                    document.getElementById('main-app').style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('login-pass').value = '';
                 }
                 renderUsuarios();
             }
@@ -2580,20 +2583,37 @@
         async function guardarUsuarios(usuariosPropuestos = usuarios) {
             if(!currentUserData || currentUserData.rol !== 'dueno') throw new Error('Solo el Dueño puede cambiar usuarios.');
             if(!window.db || !navigator.onLine) throw new Error('Necesitas conexión para cambiar usuarios de forma segura.');
+            if(guardarUsuarios.enCurso) throw new Error('Hay un cambio de usuarios en proceso. Espera antes de repetirlo.');
             const usuariosNuevos = copiarDatos(usuariosPropuestos);
+            if(!Array.isArray(usuariosNuevos) || !usuariosNuevos.some(u => u?.rol === 'dueno')) throw new Error('Debe conservarse al menos un Dueño.');
+            const ids = new Set(), pines = new Set();
+            for(const u of usuariosNuevos) {
+                if(!u || !String(u.id ?? '').trim() || !String(u.nombre || '').trim() || !u.pin || !['dueno','empleado'].includes(u.rol)) throw new Error('La configuración del usuario no es válida.');
+                if(ids.has(String(u.id))) throw new Error('Hay un identificador de usuario repetido.');
+                if(pines.has(u.pin)) throw new Error('Hay un PIN repetido; elige otro PIN.');
+                ids.add(String(u.id)); pines.add(u.pin);
+            }
             const revisionEsperada = usuariosRevision;
-            await window.runTransaction(window.db, async t => {
+            if(!Number.isSafeInteger(revisionEsperada) || revisionEsperada < 0) throw new Error('La revisión de usuarios no es válida. Espera la sincronización.');
+            guardarUsuarios.enCurso = true;
+            try {
+              window.guardarBorradoresV130?.();
+              await window.runTransaction(window.db, async t => {
                 const configRef = window.doc(window.db, "sistema", "config");
                 const configSnap = await t.get(configRef);
                 if(!configSnap.exists()) throw new Error('No se encontró la configuración maestra.');
                 const revisionServidor = Number(configSnap.data().usuariosRevision || 0);
-                if(revisionServidor !== revisionEsperada) throw new Error('Otro dispositivo cambió los usuarios. Espera la sincronización y vuelve a intentarlo.');
+                if(!Number.isSafeInteger(revisionServidor) || revisionServidor !== revisionEsperada) throw new Error('Otro dispositivo cambió los usuarios. Espera la sincronización y vuelve a intentarlo.');
                 t.update(configRef, { usuarios: usuariosNuevos, usuariosRevision: revisionServidor + 1, ultimaActualizacionUsuarios: Date.now() });
-            });
+              }, {tipoOperacion:'usuarios', claveOperacion:JSON.stringify({revisionEsperada, usuarios:usuariosNuevos}), soloDueno:true});
             // Cambiar el estado local únicamente después del éxito remoto.
-            usuarios = copiarDatos(usuariosNuevos);
-            usuariosRevision = revisionEsperada + 1;
-            localStorage.setItem('subli_usuarios', JSON.stringify(usuariosNuevos));
+              if(usuariosRevision <= revisionEsperada + 1) {
+                  usuarios = copiarDatos(usuariosNuevos);
+                  usuariosRevision = revisionEsperada + 1;
+              }
+              try { localStorage.setItem('subli_usuarios', JSON.stringify(usuarios)); }
+              catch(error) { console.warn('Los usuarios se confirmaron en Firebase; no se pudo actualizar la copia local.', error); }
+            } finally { guardarUsuarios.enCurso = false; }
         }
 
         function renderUsuarios() {
@@ -3654,6 +3674,8 @@
                     window.onSnapshot(window.doc(window.db, "sistema", "config"), { includeMetadataChanges: true }, (docSnap) => {
                         registrarEstadoSincronizacion('config', docSnap);
                         window.subliMarcar?.('config_recibida', { cache: Boolean(docSnap.metadata.fromCache) });
+                        // Una escritura local pendiente nunca confirma credenciales ni permisos.
+                        if(docSnap.metadata.hasPendingWrites) return;
                         if (docSnap.exists()) {
                             datosCargadosDeLaNube = true;
                             if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
@@ -3687,6 +3709,7 @@
                             confirmarAccesoFirebaseDisponible();
                         }
                     }, error => {
+                        configuracionUsuariosConfirmada = false;
                         registrarEstadoSincronizacion('config', null, error);
                         console.warn("No se pudo sincronizar la configuración; se conserva el respaldo local.", error);
                         if(error?.code === 'permission-denied') marcarAccesoFirebaseProtegido();
@@ -4173,6 +4196,8 @@
                 const timestampActual = Date.now();
                 const ingresoEditadoId = ingresoEnEdicion;
                 const registroId = ingresoEditadoId || generarIDSeguro();
+                const claveIngreso = JSON.stringify({ingresoEnEdicion, carrito:carritoIngresos, transporteGlobal});
+                window.guardarBorradoresV130?.();
 
                 const resultado = await window.runTransaction(window.db, async (t) => {
                     const configRef = window.doc(window.db, "sistema", "config");
@@ -4324,7 +4349,7 @@
                     t.update(configRef, { codigosInventario: estadoCodigosTrabajo, ultimaActualizacion: timestampActual });
 
                     return { productosActualizados, registroHistorial, valorTotalIngresado, estadoCodigos: estadoCodigosTrabajo };
-                });
+                }, {tipoOperacion:'ingreso', claveOperacion:claveIngreso, permisoRequerido:'ingreso'});
                 ingresoConfirmado = true;
 
                 inventario = fusionarPorId(inventario, resultado.productosActualizados);
@@ -4332,6 +4357,7 @@
                 estadoCodigosInventario = resultado.estadoCodigos;
 
                 carritoIngresos = [];
+                window.borrarBorradorV130?.('ingreso');
                 ingresoEnEdicion = null;
                 document.getElementById('aviso-ingreso-edicion').style.display = 'none';
                 document.getElementById('ingreso-transporte-global').value = ''; document.getElementById('inv-proveedor').value = ''; document.getElementById('inv-nit').value = ''; document.getElementById('inv-factura').value = '';
@@ -4339,7 +4365,7 @@
                 
                 alert(`✅ ¡Guardado! Se agregaron a tu inventario.\n\nValor total de este ingreso (Costos + Envío): Q ${resultado.valorTotalIngresado.toFixed(2)}`);
             } catch (error) {
-                alert(ingresoConfirmado ? 'El ingreso sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : 'No se aplicó ningún cambio al inventario. Error al guardar el ingreso: ' + error.message);
+                alert(ingresoConfirmado ? 'El ingreso sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Conserva la lista y revisa el historial antes de repetir el ingreso. ' : 'No se aplicó ningún cambio al inventario. Error al guardar el ingreso: ') + error.message);
             } finally {
                 isProcessingTransaction = false; 
             }
@@ -5155,6 +5181,8 @@
                 const timestampActual = Date.now();
                 const pagoInicialId = generarIDSeguro();
                 const movimientoVentaId = generarIDSeguro();
+                const claveVenta = JSON.stringify({carrito:carritoSnapshot, ventaEditadaId, ventaEdicionVersion, cotizacionFuenteId, cotizacionFuenteVersion, costoTinta, costoEnvio, costoManoObra, pideFactura, tipoCobroSeleccionado, metodoPago, clienteId, clienteNombre, clienteNit, pagoInicialSolicitado, anticipoSolicitado});
+                window.guardarBorradoresV130?.();
 
                 let stockAExtraer = {};
                 for (let item of carritoSnapshot) {
@@ -5456,7 +5484,7 @@
                     if(movimientoRegistrado) t.set(window.doc(window.db, 'movimientos_caja', String(movimientoRegistrado.id)), movimientoRegistrado);
 
                     return { nuevaVenta, clienteActualizado, fondosActualizados: fondosBase, saldosActualizados: saldosBase, anticiposActualizados, productosActualizados: productosActualizados.map(x => x.datos), movimiento: movimientoRegistrado };
-                });
+                }, {tipoOperacion:'venta', claveOperacion:claveVenta, permisoRequerido:'ventas'});
 
                 ventaConfirmada = resultado.nuevaVenta.id;
                 carritoVentas = [];
@@ -5500,7 +5528,7 @@
 
             } catch (error) {
                 window.subliRegistrarError?.(error, 'procesarVentaMultiple');
-                alert(ventaConfirmada ? `La venta ${ventaConfirmada} sí quedó registrada. Falló la actualización de pantalla; recarga y revisa el historial antes de repetirla. ${error.message}` : 'No se aplicó ningún cambio. Tu carrito sigue completo. Error: ' + error.message);
+                alert(ventaConfirmada ? `La venta ${ventaConfirmada} sí quedó registrada. Falló la actualización de pantalla; recarga y revisa el historial antes de repetirla. ${error.message}` : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Conserva el carrito y revisa el historial antes de repetir la venta. ' : 'No se aplicó ningún cambio. Tu carrito sigue completo. Error: ') + error.message);
             } finally {
                 isProcessingTransaction = false;
             }
@@ -5991,6 +6019,8 @@
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
                 let nuevaCotiz = { id: cotizacionBorradorOrigenId || generarIDSeguro(), revision: 1, timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), detalleItems: copiarDatos(carritoCotizacion), costoTinta: costoTinta, costoEnvio: costoEnvio, costoManoObra: costoManoObra, impuestoSAT: impuestoSAT, porcentajeSAT: desglose.porcentajeSAT, tasaSAT: desglose.tasaSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, totalGastos: totalGastos, gananciaNeta: gananciaNeta, anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false, clienteId: document.getElementById('cotiza-cliente-id').value || null, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false, versionCalculo: 4 };
+                const opcionesCotizacion = {tipoOperacion:'cotizacion', permisoRequerido:'cotizacion', claveOperacion:JSON.stringify({...nuevaCotiz, id:cotizacionBorradorOrigenId || null, timestamp:null, fecha:null, revisionEsperada:cotizacionBorradorVersion})};
+                window.guardarBorradoresV130?.();
                 if(cotizacionBorradorOrigenId) {
                     const revisionEsperada = cotizacionBorradorVersion;
                     nuevaCotiz = await window.runTransaction(window.db, async t => {
@@ -6002,8 +6032,13 @@
                         const actualizada = { ...anterior, ...nuevaCotiz, timestamp: anterior.timestamp, fecha: anterior.fecha, revision: numeroFinito(anterior.revision) + 1, editadoEn: Date.now() };
                         t.set(ref, actualizada);
                         return actualizada;
-                    });
-                } else await window.setDoc(window.doc(window.db, "cotizaciones", String(nuevaCotiz.id)), nuevaCotiz);
+                    }, opcionesCotizacion);
+                } else nuevaCotiz = await window.runTransaction(window.db, async t => {
+                    const ref = window.doc(window.db, 'cotizaciones', String(nuevaCotiz.id));
+                    if((await t.get(ref)).exists()) throw new Error('El identificador de cotización ya existe.');
+                    t.set(ref, nuevaCotiz);
+                    return nuevaCotiz;
+                }, opcionesCotizacion);
                 cotizacionConfirmada = nuevaCotiz.id;
                 carritoCotizacion = [];
                 window.borrarBorradorV130?.('cotizacion');
@@ -6016,7 +6051,7 @@
                 alert(resumen);
             } catch (error) {
                 window.subliRegistrarError?.(error, 'procesarCotizacion');
-                alert(cotizacionConfirmada ? `La cotización ${cotizacionConfirmada} sí quedó guardada. Recarga para verla; no es necesario guardarla de nuevo. ${error.message}` : 'No se guardó la cotización: ' + error.message);
+                alert(cotizacionConfirmada ? `La cotización ${cotizacionConfirmada} sí quedó guardada. Recarga para verla; no es necesario guardarla de nuevo. ${error.message}` : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Revisa el historial antes de repetir la cotización. ' : 'No se guardó la cotización: ') + error.message);
             } finally {
                 isProcessingTransaction = false; 
             }
@@ -7311,7 +7346,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.4.0";
+        const APP_VERSION = "1.4.1";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);

@@ -5,10 +5,16 @@
         try { return currentUserData || null; } catch { return null; }
     }
 
-    function claveOperacion(texto) {
-        let hash = 2166136261;
-        for(const caracter of String(texto)) hash = Math.imul(hash ^ caracter.charCodeAt(0), 16777619);
-        return (hash >>> 0).toString(36);
+    async function claveOperacion(texto) {
+        const bytes = new TextEncoder().encode(String(texto));
+        const digest = await global.crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function serializarEstable(valor) {
+        if(Array.isArray(valor)) return '[' + valor.map(serializarEstable).join(',') + ']';
+        if(valor && typeof valor === 'object') return '{' + Object.keys(valor).sort().map(k => JSON.stringify(k) + ':' + serializarEstable(valor[k])).join(',') + '}';
+        return JSON.stringify(valor);
     }
 
     async function leerRangoConfirmado(colecciones, inicio, fin) {
@@ -44,14 +50,19 @@
         if(global.subliIntegridadFirebase || typeof global.runTransaction !== 'function') return;
         const nativo = global.runTransaction;
         const pendientes = new Map();
+        const enVuelo = new Map();
         const claveRef = ref => ref.path || String(ref);
         const idNuevo = () => global.crypto?.randomUUID?.() || `op_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const obtenerId = clave => {
-            let id = pendientes.get(clave);
-            try { id ||= global.sessionStorage?.getItem(clave); } catch {}
-            id ||= idNuevo(); pendientes.set(clave, id);
-            try { global.sessionStorage?.setItem(clave, id); } catch {}
-            return id;
+        const obtenerId = (clave, solicitud) => {
+            let pendiente = pendientes.get(clave);
+            try { pendiente ||= JSON.parse(global.sessionStorage?.getItem(clave) || 'null'); } catch {}
+            if(pendiente && pendiente.solicitud !== solicitud) {
+                throw new Error('Hay una operación anterior sin confirmación. Conserva esta lista y revisa el historial antes de cambiar o repetir la operación.');
+            }
+            pendiente ||= {id:idNuevo(), solicitud};
+            pendientes.set(clave, pendiente);
+            try { global.sessionStorage?.setItem(clave, JSON.stringify(pendiente)); } catch {}
+            return pendiente.id;
         };
         const olvidarId = clave => {
             pendientes.delete(clave);
@@ -65,22 +76,44 @@
         };
 
         global.runTransaction = async function(db, accion, opciones = {}) {
-            const usuario = usuarioOperativo();
-            const clave = `subli_op_pendiente_${global.firebaseAuthUser?.uid || 'local'}_${usuario?.id || 'inicio'}_${claveOperacion(opciones.claveOperacion || accion.toString())}`;
-            const opId = opciones.opId || obtenerId(clave);
-            const resultado = await nativo(db, async original => {
+            const usuario = JSON.parse(JSON.stringify(usuarioOperativo()));
+            const autorUID = global.firebaseAuthUser?.uid || null;
+            const textoGrupo = opciones.tipoOperacion || opciones.claveOperacion || accion.toString();
+            const textoSolicitud = opciones.claveOperacion || accion.toString();
+            const claveVuelo = JSON.stringify([autorUID, usuario?.id ?? null, textoGrupo]);
+            if(enVuelo.has(claveVuelo)) {
+                const actual = enVuelo.get(claveVuelo);
+                if(actual.solicitud !== textoSolicitud) throw new Error('Hay una operación anterior sin confirmación. Espera a que termine antes de cambiar la solicitud.');
+                return actual.promesa;
+            }
+            const operacion = (async () => {
+            const grupo = await claveOperacion(textoGrupo);
+            const solicitud = await claveOperacion(textoSolicitud);
+            const clave = `subli_op_pendiente_${autorUID || 'local'}_${usuario?.id ?? 'inicio'}_${grupo}`;
+            const opId = opciones.opId || obtenerId(clave, solicitud);
+            let escrituraIntentada = false;
+            const promesa = nativo(db, async original => {
                 const configRef = global.doc(db,'sistema','config');
                 const configSnap = await original.get(configRef);
                 const data = configSnap.exists() ? configSnap.data() : {};
                 const registroRef = global.doc(db,'operaciones_sistema',opId);
                 const previa = await original.get(registroRef);
-                if(previa.exists()) return previa.data().tieneResultado ? previa.data().resultado : undefined;
+                if(previa.exists()) {
+                    const registro = previa.data();
+                    if(registro.solicitud && registro.solicitud !== solicitud) throw new Error('La operación anterior corresponde a otra solicitud. Revisa el historial antes de continuar.');
+                    if(String(registro.usuarioId ?? '') !== String(usuario?.id ?? '')) throw new Error('La operación pertenece a otro usuario.');
+                    return registro.tieneResultado ? registro.resultado : undefined;
+                }
                 if(data.mantenimiento?.activo) throw new Error('El sistema está en recuperación. Las operaciones están pausadas para proteger tus datos.');
                 if(Array.isArray(data.usuarios) && data.usuarios.length) {
                     if(!usuario) throw new Error('Ingresa con tu PIN antes de registrar una operación.');
                     const vigente = data.usuarios.find(u => String(u.id) === String(usuario.id) && u.pin === usuario.pin);
-                    if(!vigente || vigente.rol !== usuario.rol || JSON.stringify(vigente.permisos || {}) !== JSON.stringify(usuario.permisos || {})) {
+                    if(!vigente || vigente.rol !== usuario.rol || serializarEstable(vigente.permisos || {}) !== serializarEstable(usuario.permisos || {})) {
                         throw new Error('Tus permisos cambiaron. Actualiza el acceso antes de registrar otra operación.');
+                    }
+                    if(opciones.soloDueno && vigente.rol !== 'dueno') throw new Error('Solo el Dueño puede realizar esta operación.');
+                    if(opciones.permisoRequerido && vigente.rol !== 'dueno' && vigente.permisos?.[opciones.permisoRequerido] !== true) {
+                        throw new Error('No tienes permiso para ' + opciones.permisoRequerido + '.');
                     }
                 }
                 const lecturas = new Map([[claveRef(configRef), configSnap], [claveRef(registroRef), previa]]);
@@ -121,28 +154,41 @@
                 // Los resultados de los comandos son datos JSON. Nunca guardar referencias/credenciales.
                 const resultadoGuardado = valor === undefined ? null : JSON.parse(JSON.stringify(valor));
                 if(JSON.stringify(resultadoGuardado).length > 600000) throw new Error('El resultado de la operación es demasiado grande para confirmar de forma segura.');
+                escrituraIntentada = true;
                 for(const e of escrituras) {
                     if(e.tipo === 'delete') original.delete(e.ref);
                     else original[e.tipo](e.ref, e.datos, ...(e.opciones ? [e.opciones] : []));
                 }
                 const timestamp = Date.now();
                 original.set(configRef, { revisionGlobal:revision + 1, ultimaOperacionEn:timestamp }, { merge:true });
-                original.set(registroRef, { id:opId, timestamp, usuarioId:usuario?.id || null, tieneResultado:valor !== undefined, resultado:resultadoGuardado });
+                original.set(registroRef, { id:opId, timestamp, usuarioId:usuario?.id ?? null, autorUID, solicitud, tieneResultado:valor !== undefined, resultado:resultadoGuardado });
                 original.set(global.doc(db,'auditoria_sistema',opId), {
                     id:opId, timestamp, tipo:'operacion_atomica', usuarioId:usuario?.id || null,
-                    usuarioNombre:usuario?.nombre || 'Acceso del propietario', autorUID:global.firebaseAuthUser?.uid || null,
-                    operaciones, version:'1.4.0'
+                    usuarioNombre:usuario?.nombre || 'Acceso del propietario', autorUID,
+                    operaciones, version:'1.4.1'
                 });
                 return valor;
             }, { maxAttempts:opciones.maxAttempts || 5 });
-            olvidarId(clave);
-            return resultado;
+            try {
+                const resultado = await promesa;
+                olvidarId(clave);
+                return resultado;
+            } catch(error) {
+                // Una validación que falló antes de enviar escrituras no deja un commit incierto.
+                if(!escrituraIntentada || ['permission-denied','unauthenticated','invalid-argument','failed-precondition','aborted'].includes(error?.code)) olvidarId(clave);
+                else error.commitIncierto = true;
+                throw error;
+            }
+            })();
+            enVuelo.set(claveVuelo, {solicitud:textoSolicitud, promesa:operacion});
+            try { return await operacion; }
+            finally { enVuelo.delete(claveVuelo); }
         };
         // Las escrituras administrativas también participan de revisión, permisos y bitácora.
         global.setDoc = (ref,datos,opciones) => global.runTransaction(global.db, async t => { await t.get(ref); t.set(ref,datos,opciones); }, { claveOperacion:`set:${claveRef(ref)}:${JSON.stringify(datos)}:${JSON.stringify(opciones)}` });
         global.updateDoc = (ref,datos) => global.runTransaction(global.db, async t => { await t.get(ref); t.update(ref,datos); }, { claveOperacion:`update:${claveRef(ref)}:${JSON.stringify(datos)}` });
         global.deleteDoc = ref => global.runTransaction(global.db, async t => { await t.get(ref); t.delete(ref); }, { claveOperacion:`delete:${claveRef(ref)}` });
-        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.0' });
+        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.1' });
     }
     global.instalarIntegridadFirebase = instalarIntegridadFirebase;
     global.leerRangoConfirmadoSubli = leerRangoConfirmado;

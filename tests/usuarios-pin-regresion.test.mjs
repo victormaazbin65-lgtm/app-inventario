@@ -17,7 +17,7 @@ const guardar = funcion('async function guardarUsuarios(', 'function renderUsuar
 const editar = funcion('async function guardarEdicionUser()', 'async function borrarUsuario(');
 const ingresar = funcion('async function verificarLogin()', 'function comprobarIngresoInicialLibre()');
 
-function entorno({fallar=false, empleados=false}={}) {
+function entorno({fallar=false, empleados=false, falloLocal=false, antesCommit=null}={}) {
   const propietario = {id:'propietario', nombre:'Dueño',pin:'hash-1234',rol:'dueno',permisos:{}};
   const empleado = {id:'empleado', nombre:'Ayudante',pin:'hash-5555',rol:'empleado',permisos:{ingreso:false,ventas:true}};
   const usuarios = empleados ? [propietario,empleado] : [propietario];
@@ -57,6 +57,7 @@ function entorno({fallar=false, empleados=false}={}) {
           throw new Error('Tus permisos cambiaron. Actualiza el acceso antes de registrar otra operación.');
         }
         if(fallar) throw new Error('Fallo simulado antes del commit');
+        if(antesCommit) await antesCommit(contexto,servidor);
         if(staged) Object.assign(servidor,staged);
         return resultado;
       }
@@ -66,7 +67,7 @@ function entorno({fallar=false, empleados=false}={}) {
       return elementos.get(id);
     }},
     navigator:{onLine:true},
-    localStorage:{setItem:(k,v)=>local.set(k,v)},
+    localStorage:{setItem:(k,v)=>{if(falloLocal) throw new Error('QuotaExceededError');local.set(k,v);}},
     copiarDatos:copia,
     hashPIN:async pin=>'hash-'+pin,
     cuentaPropietarioAutorizada:()=>true,
@@ -76,9 +77,13 @@ function entorno({fallar=false, empleados=false}={}) {
     notificarAplicacionActiva(){},
     cerrarModalEditarUser(){},
     renderUsuarios(){},
+    generarIDSeguro:()=> 'nuevo-id',
+    confirm:()=>true,
+    console:{warn(){}},
     alert:message=>alertas.push(message)
   };
   runInNewContext(guardar+'\n'+editar+'\n'+ingresar,contexto);
+  runInNewContext(funcion('async function crearUsuario()', 'function abrirModalEditarUser(')+'\n'+funcion('async function borrarUsuario(', 'async function guardarUsuarios('),contexto);
   return {ctx:contexto,servidor,elementos,alertas,local};
 }
 
@@ -90,6 +95,38 @@ test('cambiar el PIN propio mantiene las credenciales anteriores durante la tran
   assert.equal(ctx.currentUserData,null,'Exige volver a identificarse tras cambiar PIN');
   assert.equal(elementos.get('login-screen').style.display,'flex');
   assert.match(alertas.at(-1),/PIN vigente/);
+});
+
+test('un fallo de respaldo local después del commit no anuncia un PIN fallido',async()=>{
+  const {ctx,servidor,elementos,alertas}=entorno({falloLocal:true});
+  await ctx.guardarEdicionUser();
+  assert.equal(servidor.usuarios[0].pin,'hash-4321');
+  assert.equal(ctx.currentUserData,null);
+  assert.equal(elementos.get('main-app').style.display,'none');
+  assert.match(alertas.at(-1),/actualizado/);
+  assert.doesNotMatch(alertas.at(-1),/No se actualizó/);
+});
+
+test('crear un usuario no lo publica antes del commit',async()=>{
+ const {ctx,elementos}=entorno({antesCommit:async c=>assert.equal(c.usuarios.length,1)});
+ ctx.document.getElementById('nuevo-user-nombre').value='Nuevo';
+ ctx.document.getElementById('nuevo-user-pin').value='9999';
+ ctx.document.getElementById('nuevo-user-rol').value='dueno';
+ await ctx.crearUsuario();
+ assert.equal(ctx.usuarios.length,2);
+});
+
+test('borrar un empleado no lo retira de memoria antes del commit',async()=>{
+ const {ctx,servidor}=entorno({empleados:true,antesCommit:async c=>assert.equal(c.usuarios.length,2)});
+ await ctx.borrarUsuario('empleado');
+ assert.equal(ctx.usuarios.length,1);assert.equal(servidor.usuarios.length,1);
+});
+
+test('guardarUsuarios rechaza PIN duplicado y una lista sin dueño',async()=>{
+ const {ctx,servidor}=entorno({empleados:true});
+ await assert.rejects(ctx.guardarUsuarios([{...ctx.usuarios[0]},{...ctx.usuarios[1],pin:ctx.usuarios[0].pin}]),/PIN.*repetido|PIN.*uso/);
+ await assert.rejects(ctx.guardarUsuarios([{...ctx.usuarios[1]}]),/Dueño/);
+ assert.equal(servidor.usuarios.length,2);
 });
 
 test('si falla guardar el nuevo PIN, conserva la sesión y los usuarios originales',async()=>{

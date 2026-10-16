@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.0' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.1' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -637,9 +637,9 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.0"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.0/);
-  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.0\/buscador\.js'\)/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.1"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.1/);
+  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.1\/buscador\.js'\)/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');
@@ -680,7 +680,7 @@ test('la rueda del mouse no modifica inputs numéricos y conserva el desplazamie
 test('el acceso inicial espera confirmación de Firebase y los usuarios usan revisión transaccional', () => {
   const acceso = extraerFuncion('comprobarIngresoInicialLibre');
   const guardado = extraerFuncion('guardarUsuarios');
-  assert.match(acceso, /!dueñosRegistrados\s*&&\s*!configuracionUsuariosConfirmada/);
+  assert.match(acceso, /if\(!configuracionUsuariosConfirmada\)/);
   assert.match(acceso, /app\.style\.display\s*=\s*'none'/);
   assert.match(guardado, /window\.runTransaction/);
   assert.match(guardado, /usuariosRevision/);
