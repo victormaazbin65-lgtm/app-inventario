@@ -667,40 +667,9 @@
             global.abrirModalEditarUser = envuelta;
         }
 
-        const crearOriginal = global.crearUsuario;
-        if(typeof crearOriginal === 'function' && !crearOriginal.__v126) {
-            const envuelta = async function(...args) {
-                const ids = new Set((typeof usuarios !== 'undefined' ? usuarios : []).map(u => String(u.id)));
-                const permiso = Boolean(document.getElementById('nuevo-perm-finanzas')?.checked);
-                const r = await crearOriginal.apply(this, args);
-                const nuevo = typeof usuarios !== 'undefined' ? usuarios.find(u => !ids.has(String(u.id))) : null;
-                if(nuevo && nuevo.rol === 'empleado') {
-                    nuevo.permisos = { ...(nuevo.permisos || {}), verFinanzas: permiso };
-                    try { await global.guardarUsuarios(); } catch(error) { alert('El usuario se creó, pero no se pudo guardar el permiso financiero: ' + error.message); }
-                }
-                return r;
-            };
-            envuelta.__v126 = true;
-            global.crearUsuario = envuelta;
-        }
-
-        const editarOriginal = global.guardarEdicionUser;
-        if(typeof editarOriginal === 'function' && !editarOriginal.__v126) {
-            const envuelta = async function(...args) {
-                const id = document.getElementById('edit-user-id')?.value || '';
-                const permiso = Boolean(document.getElementById('edit-perm-finanzas')?.checked);
-                const r = await editarOriginal.apply(this, args);
-                const user = typeof usuarios !== 'undefined' ? usuarios.find(u => String(u.id) === String(id)) : null;
-                if(user && user.rol === 'empleado') {
-                    user.permisos = { ...(user.permisos || {}), verFinanzas: permiso };
-                    try { await global.guardarUsuarios(); } catch(error) { alert('La edición principal se guardó, pero no se pudo actualizar el permiso financiero: ' + error.message); }
-                }
-                aplicarVisibilidadFinanciera();
-                return r;
-            };
-            envuelta.__v126 = true;
-            global.guardarEdicionUser = envuelta;
-        }
+        // crearUsuario y guardarEdicionUser incluyen verFinanzas en su propuesta
+        // atómica. Una segunda escritura aquí invalidaría la sesión y podría
+        // dejar permisos locales distintos de los confirmados por Firebase.
 
         const permisosOriginal = global.aplicarPermisos;
         if(typeof permisosOriginal === 'function' && !permisosOriginal.__v126) {

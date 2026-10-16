@@ -99,7 +99,7 @@ html[data-modelo-visual][data-tema-visual] .v127-loan-state.error{border-color:v
         return new Promise(resolve => {
             const script = document.createElement('script');
             script.id = id;
-            script.src = './assets/1.4.0/' + src.replace(/^\.\//, '');
+            script.src = './assets/1.4.1/' + src.replace(/^\.\//, '');
             script.async = true;
             script.onload = () => resolve(true);
             script.onerror = () => {

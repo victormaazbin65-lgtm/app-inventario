@@ -1,9 +1,9 @@
 {
-  "build": "1.4.0",
-  "basePublica": "1.4.0",
-  "canal": "profesionalizacion",
-  "fecha": "2026-10-06",
-  "descripcion": "Correcciones de integridad de inventario, finanzas, sesiones, respaldo y distribución de versiones.",
-  "revision": "integridad-20261006",
-  "fechaRevision": "2026-10-06"
+  "build": "1.4.1",
+  "basePublica": "1.4.1",
+  "canal": "pruebas-sin-publicar",
+  "fecha": "2026-10-15",
+  "descripcion": "Candidato de auditoría: sesiones PIN, permisos, confirmación de operaciones y resguardo de borradores. No publicado.",
+  "revision": "pin-permisos-20261015",
+  "fechaRevision": "2026-10-15"
 }

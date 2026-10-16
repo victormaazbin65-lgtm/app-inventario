@@ -363,7 +363,9 @@
             else if(tipo === 'cotizacion') { carritoCotizacion = b.items; restaurarCampos(b.campos); global.renderCarritoCotizacion?.(); global.cambiarPestaña?.('cotizacion'); }
             else if(tipo === 'ingreso') { carritoIngresos = b.items; restaurarCampos(b.campos); global.renderCarritoIngresos?.(); global.cambiarPestaña?.('ingreso'); }
             global.subliAbrirPanel?.(tipo === 'ventas' ? 'lista-carrito-ventas' : tipo === 'cotizacion' ? 'lista-carrito-cotizacion' : 'lista-ingresos-pendientes');
-            borrarBorrador(tipo);
+            // Mantener una copia recuperable incluso si se cierra la página al continuar.
+            document.getElementById(`v130-draft-${tipo}`)?.remove();
+            capturarBorradores();
         } catch(error) { console.warn('No se pudo restaurar borrador.', error); }
     }
 
@@ -548,6 +550,7 @@
     global.abrirBuscadorAccionesV130=abrirBuscadorAcciones;
     global.restaurarBorradorV130=restaurarBorrador;
     global.borrarBorradorV130=borrarBorrador;
+    global.guardarBorradoresV130=capturarBorradores;
 
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(iniciar,180)); else setTimeout(iniciar,180);
 })(window);
