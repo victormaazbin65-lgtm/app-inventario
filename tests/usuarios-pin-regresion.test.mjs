@@ -158,6 +158,17 @@ test('si la autorización cambia mientras se calcula el hash no abre la aplicaci
  await ctx.verificarLogin();assert.equal(ctx.currentUserData,null);
 });
 
+test('el permiso financiero se crea y edita en el mismo commit de usuarios',async()=>{
+ const {ctx,servidor,elementos}=entorno({empleados:true});
+ elementos.get('edit-user-id').value='empleado';elementos.get('edit-user-nombre').value='Ayudante';elementos.get('edit-user-rol').value='empleado';elementos.get('edit-user-pin').value='';
+ ctx.document.getElementById('edit-perm-finanzas').checked=true;
+ await ctx.guardarEdicionUser();
+ assert.equal(servidor.usuariosRevision,8);assert.equal(servidor.usuarios[1].permisos.verFinanzas,true);
+ ctx.document.getElementById('nuevo-user-nombre').value='Nuevo';ctx.document.getElementById('nuevo-user-pin').value='9999';ctx.document.getElementById('nuevo-user-rol').value='empleado';ctx.document.getElementById('nuevo-perm-finanzas').checked=true;
+ await ctx.crearUsuario();
+ assert.equal(servidor.usuariosRevision,9);assert.equal(servidor.usuarios[2].permisos.verFinanzas,true);
+});
+
 test('si falla guardar el nuevo PIN, conserva la sesión y los usuarios originales',async()=>{
   const {ctx,servidor,elementos,alertas}=entorno({fallar:true});
   await ctx.guardarEdicionUser();

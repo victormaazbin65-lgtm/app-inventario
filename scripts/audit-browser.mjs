@@ -208,10 +208,10 @@ for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
   await page.evaluate(async()=>{
    document.getElementById('nuevo-user-nombre').value='SEGUNDO DUEÑO';document.getElementById('nuevo-user-pin').value='9999';document.getElementById('nuevo-user-rol').value='dueno';await crearUsuario();abrirModalEditarUser('owner');
   });
-  await page.locator('#edit-user-rol').selectOption('empleado');await page.locator('#edit-perm-ingreso').uncheck();
+  await page.locator('#edit-user-rol').selectOption('empleado');await page.locator('#edit-perm-ingreso').uncheck();await page.locator('#edit-perm-finanzas').check();
   await page.locator('#modal-editar-user button[onclick="guardarEdicionUser()"]').click();
   assert.equal(await page.evaluate(()=>currentUserData===null),true);await login(page);
-  assert.equal(await page.evaluate(()=>currentUserData.rol),'empleado');assert.equal(await page.locator('#tab-ingreso').isVisible(),false);
+  assert.equal(await page.evaluate(()=>currentUserData.rol),'empleado');assert.equal(await page.locator('#tab-ingreso').isVisible(),false);assert.equal(await page.evaluate(()=>__fixture.base.get('sistema/config').usuarios[0].permisos.verFinanzas),true);assert.equal(dialogs.some(d=>/edición principal se guardó/.test(d)),false);
   await lineas(page);await page.evaluate(()=>procesarIngresoMultiple());assert.equal(await cuenta(page,'ingresos'),0);assert.match(dialogs.at(-1),/permiso para ingreso/);
  });
  await escenario(viewport,'un cambio de PIN no entrega el carrito pendiente a otro usuario',async(page,dialogs)=>{

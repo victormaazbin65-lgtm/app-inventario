@@ -2472,6 +2472,7 @@
                 permisos.inventario = document.getElementById('nuevo-perm-inventario').checked;
                 permisos.ingreso = document.getElementById('nuevo-perm-ingreso').checked;
                 permisos.alertas = document.getElementById('nuevo-perm-alertas').checked;
+                permisos.verFinanzas = Boolean(document.getElementById('nuevo-perm-finanzas')?.checked);
             }
 
             const usuariosPropuestos = [...usuarios, { id: generarIDSeguro(), nombre, pin: hashedPin, rol, permisos }];
@@ -2536,11 +2537,13 @@
             usuarioPropuesto.rol = rol;
             if(rol === 'empleado') {
                 usuarioPropuesto.permisos = {
+                    ...(user.permisos || {}),
                     ventas: document.getElementById('edit-perm-ventas').checked,
                     cotizacion: document.getElementById('edit-perm-cotizacion').checked,
                     inventario: document.getElementById('edit-perm-inventario').checked,
                     ingreso: document.getElementById('edit-perm-ingreso').checked,
-                    alertas: document.getElementById('edit-perm-alertas').checked
+                    alertas: document.getElementById('edit-perm-alertas').checked,
+                    verFinanzas: document.getElementById('edit-perm-finanzas') ? Boolean(document.getElementById('edit-perm-finanzas').checked) : Boolean(user.permisos?.verFinanzas)
                 };
             }
             const usuariosPropuestos = usuarios.map(u => String(u.id) === String(id) ? usuarioPropuesto : u);
