@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.1' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.2' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -145,6 +145,7 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
   };
   const contexto = vm.createContext({
     Math, Number, Error, Array, Boolean, JSON, Map,
+    puedeConsultarFinanzasInteligentes:()=>true,
     document: { getElementById: id => elementos[id] }
   });
   vm.runInContext(coreSource, contexto);
@@ -637,9 +638,9 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.1"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.1/);
-  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.1\/buscador\.js'\)/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.2"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.2/);
+  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.2\/buscador\.js'\)/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');

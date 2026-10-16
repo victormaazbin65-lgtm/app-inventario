@@ -11,16 +11,19 @@ function entorno() {
  const c = vm.createContext({console,crypto:webcrypto,TextEncoder,Date,Math,JSON,Map,Set,setTimeout,navigator:{onLine:true},db:{},currentUserData:{id:'owner',pin:'hash',rol:'dueno',nombre:'Victor'},firebaseAuthUser:{uid:'uid'},sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}});
  c.window=c;
  c.doc = (_,col,id)=>({path:col+'/'+id}); c.collection=(_,col)=>({path:col});
- c.getDoc = async ref=>({exists:()=>base.has(ref.path),data:()=>clone(base.get(ref.path)),metadata:{fromCache:false,hasPendingWrites:false}});
+ const snapshot = ref=>({exists:()=>base.has(ref.path),data:()=>clone(base.get(ref.path)),metadata:{fromCache:false,hasPendingWrites:false}});
+ // Una respuesta de commit perdida también deja inaccesible su confirmación
+ // externa. El siguiente intento transaccional vuelve a tener conexión.
+ c.getDoc = async ref=>{if(state.confirmacionOffline && ref.path.startsWith('operaciones_sistema/'))throw Error('Sin red para confirmar');return snapshot(ref);};
  c.runTransaction = async (_,fn)=>{
   state.llamadas++;
   if(state.fallaAntes) {state.fallaAntes=false;const e=Error('Servidor temporalmente inaccesible');e.code='unavailable';throw e;}
   let queue=[],escribiendo=false;
-  const tx = {get:async ref=>{assert.equal(escribiendo,false);return c.getDoc(ref);},set:(ref,data,opts)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts});},update:(ref,data)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts:{merge:true}});},delete:ref=>{escribiendo=true;queue.push({tipo:'delete',ref});}};
+  const tx = {get:async ref=>{assert.equal(escribiendo,false);return snapshot(ref);},set:(ref,data,opts)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts});},update:(ref,data)=>{escribiendo=true;queue.push({tipo:'set',ref,data:clone(data),opts:{merge:true}});},delete:ref=>{escribiendo=true;queue.push({tipo:'delete',ref});}};
   if(state.reintentar) {await fn(tx);queue=[];escribiendo=false;state.reintentar=false;}
   const resultado = await fn(tx);
   for(const e of queue) {if(e.tipo==='delete')base.delete(e.ref.path);else base.set(e.ref.path,e.opts?.merge?{...base.get(e.ref.path),...e.data}:e.data);}
-  if(state.fallaDespues) {state.fallaDespues=false;throw Error('Respuesta perdida después del commit');}
+  if(state.fallaDespues) {state.fallaDespues=false;state.confirmacionOffline=true;throw Error('Respuesta perdida después del commit');}
   return resultado;
  };
  vm.runInContext(source('negocio-core.js'),c);

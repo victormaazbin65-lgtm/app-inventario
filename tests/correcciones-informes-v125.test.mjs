@@ -106,7 +106,7 @@ test('los paneles y consultas inteligentes respetan el permiso financiero sin oc
     Date, document:{ getElementById:id => elementos[id] }, window:{ subliResumenDiaConfirmado:null },
     preferenciasSistema:{ inteligenciaActiva:true }, inventario:[], ventas:[], ventasAnalisis30:[],
     fondos:{}, configuracionNegocio:{ margenObjetivo:30 }, analisisVentas30Completo:true,
-    analisisVentas30Cargando:false, fusionarPorId:()=>[], numeroFinito:valor => Number(valor) || 0,
+    analisisVentas30Cargando:false, fusionarPorId:()=>[], obtenerVentasAnalisis:()=>[], numeroFinito:valor => Number(valor) || 0,
     escaparHTML:valor => String(valor), normalizarTexto:valor => valor.toLowerCase(),
     inicioDiaLocal:ts => { const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); },
     botonAyudaInteligente:() => '', modoModuloInteligente:() => 'ayudar',

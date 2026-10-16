@@ -12,7 +12,7 @@ function tramo(fuente, inicio, fin) {
 }
 function entornoResumen() {
   // Los identificadores proceden del HTML real: no se inventa tab-caja.
-  const elementos = new Map([...html.slice(0, html.indexOf('<script src="./assets/1.4.1/negocio-core.js"')).matchAll(/\bid="([^"]+)"/g)].map(([, id]) => [id, {
+  const elementos = new Map([...html.slice(0, html.indexOf('<script src="./assets/1.4.2/negocio-core.js"')).matchAll(/\bid="([^"]+)"/g)].map(([, id]) => [id, {
     style: { display: id === 'main-app' || id === 'sec-inicio' ? 'block' : 'none' },
     classList: { contains: () => id === 'tab-inicio' }, textContent: '', innerText: '', value: '', open: false
   }]));
@@ -135,6 +135,7 @@ test('ingreso completo de dos productos conserva cantidades, costo con transport
   const c = vm.createContext({ console, navigator: { onLine: true }, inventario: [], historialIngresos: [], ingresoEnEdicion: null, isProcessingTransaction: false,
     guardarDatos() {}, actualizarUI() {}, renderCarritoIngresos() {}, renderHistorialIngresos() {}, localStorage: { setItem() {} } });
   c.window = c; c.global = c;
+  vm.runInContext(tramo(leer('gestion-negocio.js'), 'function fechaHoraNegocio(', 'function monedaNegocio('), c);
   vm.runInContext(leer('negocio-core.js'), c);
   vm.runInContext(leer('profesional-core-v130.js'), c);
   c.core = c.SubliProfesionalCore;

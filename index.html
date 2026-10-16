@@ -11,8 +11,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="./assets/1.4.1/visual-preferences.js"></script>
+    <script src="./assets/1.4.2/visual-preferences.js"></script>
 <style>
+        body.v126-ocultar-finanzas .cost-text,
+        body.v126-ocultar-finanzas .profit-text,
+        body.v126-ocultar-finanzas .financial-breakdown,
+        body.v126-ocultar-finanzas .financial-warning,
+        body.v126-ocultar-finanzas .smart-price-help { display:none!important; }
         :root {
             /* TEMA OSCURO APLICADO */
             --bg-color: #111827;        
@@ -1649,11 +1654,12 @@
             </div>
         </div>
     </div>
-<script src="./assets/1.4.1/negocio-core.js"></script>
-    <script src="./assets/1.4.1/integridad-firebase.js"></script>
-    <script src="./assets/1.4.1/gestion-negocio.js"></script>
-    <script src="./assets/1.4.1/finanzas-negocio.js"></script>
-    <script src="./assets/1.4.1/respaldo-negocio.js"></script>
+<script src="./assets/1.4.2/negocio-core.js"></script>
+    <script src="./assets/1.4.2/integridad-firebase.js"></script>
+    <script src="./assets/1.4.2/operaciones-pendientes.js"></script>
+    <script src="./assets/1.4.2/gestion-negocio.js"></script>
+    <script src="./assets/1.4.2/finanzas-negocio.js"></script>
+    <script src="./assets/1.4.2/respaldo-negocio.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1729,22 +1735,27 @@
             if(promesasDependencias[id]) return promesasDependencias[id];
             promesasDependencias[id] = new Promise((resolve, reject) => {
                 const existente = document.getElementById(id);
-                if(existente) {
-                    if(typeof disponible === 'function' && disponible()) return resolve(true);
-                    existente.addEventListener('load', () => resolve(true), { once:true });
-                    existente.addEventListener('error', () => reject(new Error('No se pudo cargar ' + url)), { once:true });
-                    return;
-                }
+                // Sin promesa vigente ni biblioteca disponible, ese nodo no representa
+                // una descarga recuperable (su evento puede haber ocurrido ya).
+                existente?.remove();
                 const script = document.createElement('script');
                 script.id = id;
                 script.src = url;
                 script.async = true;
                 script.crossOrigin = 'anonymous';
-                script.onload = () => resolve(true);
-                script.onerror = () => {
+                const fallar = () => {
+                    clearTimeout(plazo);
+                    script.remove();
                     delete promesasDependencias[id];
                     reject(new Error('No se pudo cargar ' + url));
                 };
+                const plazo = setTimeout(fallar, 20000);
+                script.onload = () => {
+                    if(typeof disponible === 'function' && !disponible()) return fallar();
+                    clearTimeout(plazo);
+                    resolve(true);
+                };
+                script.onerror = fallar;
                 document.head.appendChild(script);
             });
             return promesasDependencias[id];
@@ -1768,7 +1779,7 @@
         function cargarBuscadorBajoDemanda() {
             if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
             if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
-            promesaBuscadorBajoDemanda = import('./assets/1.4.1/buscador.js')
+            promesaBuscadorBajoDemanda = import('./assets/1.4.2/buscador.js')
                 .then(() => true)
                 .catch(error => {
                     promesaBuscadorBajoDemanda = null;
@@ -2065,6 +2076,7 @@
         let ventasAnalisis30 = [];
         let analisisVentas30Completo = false;
         let analisisVentas30Cargando = false;
+        let firmaConfigAnalisis30 = null;
         let resumenDiaCargando = false;
         let versionVentasObservadas = 0;
         window.subliResumenDiaConfirmado = null;
@@ -2377,6 +2389,7 @@
         }
 
         function abrirSeccionConfiguracion(apartado, opcionCliente = '') {
+            if(!currentUserData || currentUserData.rol !== 'dueno') return false;
             if(!apartado) return;
             prepararSeccionesConfiguracion();
             const seccion = document.getElementById(`ajuste-${apartado}`);
@@ -2417,6 +2430,8 @@
         }
 
         function aplicarPermisos(user) {
+            document.body?.classList?.toggle('v126-ocultar-finanzas', user.rol !== 'dueno' && user.permisos?.verFinanzas !== true);
+            window.refrescarGuardadosPendientesSubli?.();
             const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'buscador', 'ajustes'];
             todasPestañas.forEach(id => {
                 let btn = document.getElementById('tab-' + id);
@@ -2706,6 +2721,10 @@
         }
 
         function generarHTMLDesgloseFinanciero(desglose, etiquetaIngreso, colorIngreso) {
+            if(!puedeConsultarFinanzasInteligentes()) {
+                const moneda = escaparHTML(configuracionNegocio?.moneda || 'Q');
+                return `<div class="financial-public-total" style="text-align:right;font-weight:bold;color:${colorIngreso}">${escaparHTML(etiquetaIngreso)}: ${moneda} ${desglose.ingresoTotal.toFixed(2)}</div>`;
+            }
             const gananciaNegativa = desglose.gananciaNeta < 0;
             const margenPorcentaje = desglose.ingresoTotal > 0 ? (desglose.margen * 100).toFixed(1) : '0.0';
             const margenObjetivoPorcentaje = typeof configuracionNegocio === 'object' ? numeroFinito(configuracionNegocio.margenObjetivo, 30) : 30;
@@ -2760,21 +2779,18 @@
         }
 
         function inicioDiaLocal(timestamp) {
-            const fecha = new Date(timestamp);
-            fecha.setHours(0, 0, 0, 0);
-            return fecha.getTime();
+            return Math.floor((Number(timestamp) - 21600000) / 86400000) * 86400000 + 21600000;
         }
 
         function analizarSistemaInteligente(inventarioEntrada = [], ventasEntrada = [], fondosEntrada = null, ahora = Date.now(), resumenDiaServidor = null) {
             const productos = (Array.isArray(inventarioEntrada) ? inventarioEntrada : []).filter(p => p && !p.isService);
             const ventasValidas = (Array.isArray(ventasEntrada) ? ventasEntrada : []).filter(v => v && !v.anulada);
             const inicioHoy = inicioDiaLocal(ahora);
-            const diaSiguiente = new Date(inicioHoy);
-            diaSiguiente.setDate(diaSiguiente.getDate() + 1);
-            const finHoy = diaSiguiente.getTime();
-            const fechaAhora = new Date(ahora);
-            const inicioMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth(), 1).getTime();
-            const finMes = new Date(fechaAhora.getFullYear(), fechaAhora.getMonth() + 1, 1).getTime();
+            const finHoy = inicioHoy + 86400000;
+            const fechaNegocio = SubliNegocioCore.fechaDiaNegocio(ahora);
+            const anio = Number(fechaNegocio.slice(0,4)), mes = Number(fechaNegocio.slice(5,7));
+            const inicioMes = Date.UTC(anio, mes - 1, 1, 6);
+            const finMes = Date.UTC(anio, mes, 1, 6);
             const inicioTendencia = ahora - (30 * 24 * 60 * 60 * 1000);
 
             const agotados = productos.filter(p => numeroFinito(p.stock) <= 0);
@@ -2891,7 +2907,7 @@
                 return;
             }
 
-            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos, Date.now(), window.subliResumenDiaConfirmado);
+            const analisis = analizarSistemaInteligente(inventario, obtenerVentasAnalisis(), fondos, Date.now(), window.subliResumenDiaConfirmado);
             const verFinanzas = puedeConsultarFinanzasInteligentes();
             const margenObjetivoTexto = numeroFinito(configuracionNegocio?.margenObjetivo, 30);
             let html = '';
@@ -2956,7 +2972,7 @@
                 salida.textContent = 'Tu usuario no tiene permiso para consultar cifras financieras.';
                 return;
             }
-            const analisis = analizarSistemaInteligente(inventario, fusionarPorId(ventas, ventasAnalisis30), fondos, Date.now(), window.subliResumenDiaConfirmado);
+            const analisis = analizarSistemaInteligente(inventario, obtenerVentasAnalisis(), fondos, Date.now(), window.subliResumenDiaConfirmado);
             const permiteAccesos = modoModuloInteligente('busqueda') === 'ayudar';
             let respuesta = '';
             if(/surtir|stock bajo|agotad/.test(consulta)) {
@@ -3017,12 +3033,19 @@
         let vistaInventarioAZ = false;
         let categoriasExpandidas = {};
 
-        function getMesAnioFromDate(fechaString, timestamp) {
+        function getMesAnioFromDate(fechaString, timestamp, registro = null) {
+            if(/^\d{4}-(0[1-9]|1[0-2])$/.test(String(registro?.mesContable || ''))) return registro.mesContable;
+            // Las ventas anteriores ya afectaron un resumen. Su fecha guardada
+            // identifica ese mes original aunque el equipo actual use otro huso.
+            if(registro?.resumenMensualContabilizado === true) {
+                const historico = getMesAnioFromDate(fechaString, null);
+                if(historico) return historico;
+            }
             const timestampNumero = Number(timestamp);
             if (timestamp !== null && timestamp !== undefined && timestamp !== '' && Number.isFinite(timestampNumero) && timestampNumero >= 0) {
                 const fechaTimestamp = new Date(timestampNumero);
                 if (!Number.isNaN(fechaTimestamp.getTime())) {
-                    return fechaTimestamp.getFullYear() + '-' + String(fechaTimestamp.getMonth() + 1).padStart(2, '0');
+                    return SubliNegocioCore.fechaDiaNegocio(timestampNumero).slice(0,7);
                 }
             }
             const partes = String(fechaString || '').trim().split(' ')[0].split('/');
@@ -3054,7 +3077,7 @@
             const actualVal = select.value;
             const mesesUnicos = new Set();
             datosArreglo.forEach(item => {
-                let ma = getMesAnioFromDate(item.fecha, item.timestamp);
+                let ma = getMesAnioFromDate(item.fecha, item.timestamp, item);
                 if(ma) mesesUnicos.add(ma);
             });
             let opcionesHTML = '<option value="todos">Todos los meses</option>';
@@ -3418,6 +3441,11 @@
             return Array.from(mapa.values());
         }
 
+        function obtenerVentasAnalisis() {
+            // Los snapshots y resultados confirmados prevalecen sobre la descarga anterior.
+            return fusionarPorId(ventasAnalisis30, ventas);
+        }
+
         async function cargarHistorialCompleto(tipo) {
             if (!window.db || !window.getDocs || !navigator.onLine) {
                 alert("Necesitas conexión para descargar el historial completo.");
@@ -3458,8 +3486,7 @@
             }
             resumenDiaCargando = true;
             const diaInicio = inicioDiaLocal(Date.now());
-            const diaSiguiente = new Date(diaInicio);
-            diaSiguiente.setDate(diaSiguiente.getDate() + 1);
+            const diaSiguiente = new Date(diaInicio + 86400000);
             const versionInicio = versionVentasObservadas;
             let ultimoDocumento = null;
             let ingresosCent = 0, gastosCent = 0, utilidadCent = 0, operaciones = 0;
@@ -3514,14 +3541,19 @@
             // En Android no se inicia esta lectura durante el arranque. El usuario puede
             // solicitar el análisis completo; los lotes evitan una respuesta gigante.
             if(/Android/i.test(navigator.userAgent || '') && !forzar) return;
-            if(analisisVentas30Cargando || analisisVentas30Completo) return;
+            if(analisisVentas30Cargando || (analisisVentas30Completo && !forzar)) return;
             if(!window.db || !window.getDocs || !window.startAfter || !navigator.onLine) {
                 if(forzar) alert('Necesitas conexión para cargar el análisis completo.');
                 return;
             }
             analisisVentas30Cargando = true;
+            analisisVentas30Completo = false;
+            firmaConfigAnalisis30 = null;
             actualizarUI();
             try {
+                const inicial = await window.getDoc(window.doc(window.db,'sistema','config'));
+                if(!inicial.metadata || inicial.metadata.fromCache || inicial.metadata.hasPendingWrites) throw new Error('El servidor no confirmó la configuración del análisis.');
+                const firmaInicial = JSON.stringify(inicial.data());
                 const desde = Date.now() - (30 * 24 * 60 * 60 * 1000);
                 const recientes = [];
                 let ultimoDocumento = null;
@@ -3534,14 +3566,17 @@
                     if(ultimoDocumento) condiciones.push(window.startAfter(ultimoDocumento));
                     const consulta = window.query(window.collection(window.db, "ventas"), ...condiciones);
                     const snap = await window.getDocs(consulta);
-                    if(snap.metadata.fromCache) throw new Error('El servidor no confirmó los datos.');
+                    if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) throw new Error('El servidor no confirmó los datos.');
                     snap.forEach(docVenta => recientes.push(docVenta.data()));
                     if(snap.size < 100) break;
                     ultimoDocumento = snap.docs[snap.docs.length - 1];
                     // Deja respirar a Chrome entre páginas sin perder registros.
                     await new Promise(resolve => setTimeout(resolve, 0));
                 }
+                const final = await window.getDoc(window.doc(window.db,'sistema','config'));
+                if(!final.metadata || final.metadata.fromCache || final.metadata.hasPendingWrites || JSON.stringify(final.data()) !== firmaInicial) throw new Error('Los datos cambiaron durante el análisis. Vuelve a consultar.');
                 ventasAnalisis30 = recientes;
+                firmaConfigAnalisis30 = firmaInicial;
                 analisisVentas30Completo = true;
             } catch(error) {
                 console.warn('No se pudo completar el análisis de 30 días; se usarán los datos ya cargados.', error);
@@ -3692,6 +3727,11 @@
                             datosCargadosDeLaNube = true;
                             if(!docSnap.metadata.fromCache) configuracionUsuariosConfirmada = true;
                             const data = docSnap.data();
+                            if(!docSnap.metadata.fromCache && firmaConfigAnalisis30 && firmaConfigAnalisis30 !== JSON.stringify(data)) {
+                                ventasAnalisis30 = [];
+                                analisisVentas30Completo = false;
+                                firmaConfigAnalisis30 = null;
+                            }
                             fondos = data.fondos || { costoProducto: 0, costoLuzTinta: 0, gananciaLibre: 0, fondoImpuestos: 0 };
                             sincronizarEstadoNegocio(data);
                             estadoCodigosInventario = normalizarEstadoCodigosInventario(data.codigosInventario || estadoCodigosInventario);
@@ -3854,7 +3894,18 @@
             } 
         }
 
+        function puedeAbrirSeccionSubli(pestana, usuario = currentUserData) {
+            if(!usuario) return false;
+            if(!['inicio','ingreso','inventario','ventas','cotizacion','caja','alertas','buscador','ajustes'].includes(pestana)) return false;
+            if(usuario.rol === 'dueno') return true;
+            return ['ingreso','inventario','ventas','cotizacion','alertas'].includes(pestana) && usuario.permisos?.[pestana] === true;
+        }
+
         function cambiarPestaña(pestaña) {
+            if(!puedeAbrirSeccionSubli(pestaña)) {
+                alert('Tu usuario no tiene permiso para abrir esta sección.');
+                return false;
+            }
             const logoCont = document.getElementById('main-logo-container');
             if (logoCont) {
                 logoCont.style.display = (pestaña === 'inicio') ? 'block' : 'none';
@@ -3892,6 +3943,7 @@
                     });
             }
             if(pestaña === 'ajustes') { prepararSeccionesConfiguracion(); renderUsuarios(); sincronizarControlesPreferencias(); }
+            return true;
         }
 
         function cargarLogo(event) {
@@ -4292,7 +4344,7 @@
                     const registroHistorial = {
                         id: registroId,
                         timestamp: ingresoAnterior?.timestamp || timestampActual,
-                        fecha: ingresoAnterior?.fecha || (new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'})),
+                        fecha: ingresoAnterior?.fecha || (fechaHoraNegocio(timestampActual)),
                         editadoEn: ingresoAnterior ? timestampActual : null,
                         aplicadoEn: timestampActual,
                         versionCalculo: 3,
@@ -4397,7 +4449,7 @@
             
             let data = [...historialIngresos].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
-                data = data.filter(r => getMesAnioFromDate(r.fecha, r.timestamp) === mesFiltro);
+                data = data.filter(r => getMesAnioFromDate(r.fecha, r.timestamp, r) === mesFiltro);
             }
 
             const limite = document.getElementById('limite-historial-ingresos') ? document.getElementById('limite-historial-ingresos').value : '50';
@@ -5107,7 +5159,7 @@
                     const subtotalCosto = item.qty * item.costoBase;
                     const esPrincipal = item.rol === 'principal' || item.rol === 'combo';
                     const icon = item.rol === 'principal' ? '🏷️' : (item.rol === 'combo' ? '🎁' : '✂️');
-                    const detalleText = item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
+                    const detalleText = !puedeConsultarFinanzasInteligentes() && item.rol !== 'principal' ? (item.rol === 'combo' ? 'Incluido en combo' : 'Material de producción') : item.rol === 'principal' ? `Cobrado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
                     html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${numeroFinito(item.qty)} ${escaparHTML(item.unidadAbreviatura || 'unid')} × ${escaparHTML(item.nombre)}</p><p class="item-details">${escaparHTML(detalleText)}</p></div><button onclick="borrarDelCarritoVenta(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
                 });
                 contenedor.innerHTML = html;
@@ -5266,7 +5318,7 @@
                     if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
                     const configuracionVenta = SubliNegocioCore.normalizarConfiguracionNegocio(configSnap.data().negocio || configuracionNegocio);
                     const fechaContable = ventaAnterior ? ventaAnterior.timestamp : timestampActual;
-                    const mesAnio = getMesAnioFromDate(ventaAnterior?.fecha || '', fechaContable);
+                    const mesAnio = getMesAnioFromDate(ventaAnterior?.fecha || '', fechaContable, ventaAnterior);
                     if(!mesAnio) throw new Error('No se pudo identificar el mes contable; la venta no se modificó.');
                     const resumenRef = window.doc(window.db, "resumen_mensual", mesAnio);
                     const resumenSnap = await t.get(resumenRef);
@@ -5402,8 +5454,10 @@
                     const pagoInicial = pagoDinero > 0 ? { id: pagoInicialId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), monto: pagoDinero, metodo: metodoPago, ubicacion: ubicacionPago, tipo: ventaAnterior ? 'pago_legacy' : 'pago_inicial' } : null;
                     const nuevaVenta = {
                         id: nuevaVentaId,
+                        fechaNegocio:ventaAnterior?.fechaNegocio || SubliNegocioCore.fechaDiaNegocio(fechaContable),
+                        mesContable:mesAnio,
                         timestamp: ventaAnterior ? (ventaAnterior.timestamp ?? null) : timestampActual,
-                        fecha: ventaAnterior?.fecha || (new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'})),
+                        fecha: ventaAnterior?.fecha || (fechaHoraNegocio(timestampActual)),
                         editadoEn: ventaAnterior ? timestampActual : null,
                         resumenItems: itemsResumen.join(' + '),
                         ingresoTotal,
@@ -5611,7 +5665,7 @@
                 const configRef = window.doc(window.db, "sistema", "config");
                 const configSnap = await t.get(configRef);
                 if(!configSnap.exists() || !configSnap.data().fondos) throw new Error("No se encontró la configuración maestra de fondos.");
-                const mesAnio = getMesAnioFromDate(venta.fecha || '', venta.timestamp);
+                const mesAnio = getMesAnioFromDate(venta.fecha || '', venta.timestamp, venta);
                 let resumenRef = null;
                 let resumenSnap = null;
                 if(venta.resumenMensualContabilizado === true) {
@@ -5951,7 +6005,7 @@
                     const stockActual = prod ? numeroFinito(prod.stock) : 0;
                     const cantidadCotizadaTotal = numeroFinito(cantidadesCotizadas.get(String(item.idProd)));
                     const alertaStock = (!item.isService && stockActual < cantidadCotizadaTotal) ? `<span style="color: var(--primary-red); font-weight: bold; margin-left: 5px;">⚠️ (Faltan ${cantidadCotizadaTotal - stockActual} en el total cotizado)</span>` : '';
-                    const detalleText = item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
+                    const detalleText = !puedeConsultarFinanzasInteligentes() && item.rol !== 'principal' ? (item.rol === 'combo' ? 'Incluido en combo' : 'Material de producción') : item.rol === 'principal' ? `Precio Estimado: Q${item.precioCobrado.toFixed(2)} c/u` : (item.rol === 'combo' ? `Incluido en Combo (Costo: Q${subtotalCosto.toFixed(2)})` : `Material/Costo (Q${subtotalCosto.toFixed(2)})`);
 
                     html += `<div class="item-row"><div class="item-info"><p class="item-title" style="color: ${esPrincipal ? 'var(--text-dark)' : 'var(--text-light)'}">${icon} ${numeroFinito(item.qty)} ${escaparHTML(item.unidadAbreviatura || 'unid')} × ${escaparHTML(item.nombre)} ${alertaStock}</p><p class="item-details">${escaparHTML(detalleText)}</p></div><button onclick="borrarDelCarritoCotizacion(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
                 });
@@ -6024,6 +6078,7 @@
                 if(aCentavos(anticipoCotizado) > aCentavos(ingresoTotal)) { alert("⚠️ El anticipo acordado no puede ser mayor que el total cotizado."); return; }
 
                 resumen += `\n💰 TOTAL A COBRAR AL CLIENTE: Q ${ingresoTotal.toFixed(2)}\n`;
+                if(puedeConsultarFinanzasInteligentes()) {
                 resumen += `--------------------------------------\n`;
                 resumen += `📦 Costos de Materiales/Servicios: Q ${costosProductos.toFixed(2)}\n`;
                 resumen += `💡 ${configuracionNegocio.nombreFondoProduccion}: Q ${costoTinta.toFixed(2)}\n`;
@@ -6032,11 +6087,13 @@
                 if(pideFactura) resumen += `🏛️ Impuesto SAT (${desglose.porcentajeSAT}%): Q ${impuestoSAT.toFixed(2)}\n`;
                 resumen += `📉 GASTOS TOTALES: Q ${totalGastos.toFixed(2)}\n`;
                 resumen += `💵 GANANCIA LIBRE ESTIMADA: Q ${gananciaNeta.toFixed(2)}\n\n`;
+                }
                 if(anticipoCotizado > 0) resumen += `🤝 ANTICIPO ACORDADO: Q ${anticipoCotizado.toFixed(2)} EN ${metodoAnticipoCotizado.toUpperCase()}\n(No se ha sumado a caja ni registrado como recibido.)\n\n`;
                 resumen += `* Esta operación se guardó en tu Historial de Cotizaciones.`;
 
-                let nuevaCotiz = { id: cotizacionBorradorOrigenId || generarIDSeguro(), revision: 1, timestamp: Date.now(), fecha: new Date().toLocaleDateString('es-GT') + ' ' + new Date().toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}), detalleItems: copiarDatos(carritoCotizacion), costoTinta: costoTinta, costoEnvio: costoEnvio, costoManoObra: costoManoObra, impuestoSAT: impuestoSAT, porcentajeSAT: desglose.porcentajeSAT, tasaSAT: desglose.tasaSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, totalGastos: totalGastos, gananciaNeta: gananciaNeta, anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false, clienteId: document.getElementById('cotiza-cliente-id').value || null, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false, versionCalculo: 4 };
-                const opcionesCotizacion = {tipoOperacion:'cotizacion', permisoRequerido:'cotizacion', claveOperacion:JSON.stringify({...nuevaCotiz, id:cotizacionBorradorOrigenId || null, timestamp:null, fecha:null, revisionEsperada:cotizacionBorradorVersion})};
+                const timestampCotizacion = Date.now();
+                let nuevaCotiz = { id: cotizacionBorradorOrigenId || generarIDSeguro(), revision: 1, timestamp: timestampCotizacion, fecha: fechaHoraNegocio(timestampCotizacion), fechaNegocio: SubliNegocioCore.fechaDiaNegocio(timestampCotizacion), detalleItems: copiarDatos(carritoCotizacion), costoTinta: costoTinta, costoEnvio: costoEnvio, costoManoObra: costoManoObra, impuestoSAT: impuestoSAT, porcentajeSAT: desglose.porcentajeSAT, tasaSAT: desglose.tasaSAT, ingresoTotal: ingresoTotal, costosProductos: costosProductos, totalGastos: totalGastos, gananciaNeta: gananciaNeta, anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false, clienteId: document.getElementById('cotiza-cliente-id').value || null, clienteNombre: clienteNombre, clienteNit: clienteNit, factura: pideFactura, eliminada: false, versionCalculo: 4 };
+                const opcionesCotizacion = {tipoOperacion:'cotizacion', permisoRequerido:'cotizacion', claveOperacion:JSON.stringify({...nuevaCotiz, id:cotizacionBorradorOrigenId || null, timestamp:null, fecha:null, fechaNegocio:null, revisionEsperada:cotizacionBorradorVersion})};
                 window.guardarBorradoresV130?.();
                 if(cotizacionBorradorOrigenId) {
                     const revisionEsperada = cotizacionBorradorVersion;
@@ -6046,7 +6103,7 @@
                         if(!snap.exists() || snap.data().eliminada || snap.data().convertidaEnVentaId) throw new Error('La cotización ya fue vendida o eliminada; no se puede reemplazar.');
                         const anterior = snap.data();
                         if(versionCotizacion(anterior) !== revisionEsperada) throw new Error('La cotización cambió en otro dispositivo. Vuelve a cargarla.');
-                        const actualizada = { ...anterior, ...nuevaCotiz, timestamp: anterior.timestamp, fecha: anterior.fecha, revision: numeroFinito(anterior.revision) + 1, editadoEn: Date.now() };
+                        const actualizada = { ...anterior, ...nuevaCotiz, timestamp: anterior.timestamp, fecha: anterior.fecha, fechaNegocio: anterior.fechaNegocio || SubliNegocioCore.fechaDiaNegocio(anterior.timestamp), revision: numeroFinito(anterior.revision) + 1, editadoEn: Date.now() };
                         t.set(ref, actualizada);
                         return actualizada;
                     }, opcionesCotizacion);
@@ -6163,7 +6220,7 @@
 
             let data = historialCotizaciones.filter(cot => !cot.ocultaPorUsuario && (!cot.eliminada || cot.convertidaEnVentaId)).sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
-                data = data.filter(c => getMesAnioFromDate(c.fecha, c.timestamp) === mesFiltro);
+                data = data.filter(c => getMesAnioFromDate(c.fecha, c.timestamp, c) === mesFiltro);
             }
 
             const limite = document.getElementById('limite-historial-cotizaciones') ? document.getElementById('limite-historial-cotizaciones').value : '50';
@@ -6546,7 +6603,7 @@
             const nuevoRetiro = {
                 id: generarIDSeguro(),
                 timestamp: timestampActual,
-                fecha: new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}),
+                fecha: fechaHoraNegocio(timestampActual),
                 tipo: tipo.toUpperCase(),
                 ...detalles,
                 usuarioNombre: currentUserData.nombre || 'Dueño',
@@ -6579,14 +6636,14 @@
                     t.set(window.doc(window.db, "retiros", String(nuevoRetiro.id)), nuevoRetiro);
                     const movimiento = { id: movimientoId, timestamp: timestampActual, fecha: nuevoRetiro.fecha, tipo: 'retiro', monto: nuevoRetiro.monto, ubicacion, referenciaId: nuevoRetiro.id, ...detalles, usuarioNombre: currentUserData.nombre || 'Dueño' };
                     t.set(window.doc(window.db, 'movimientos_caja', movimientoId), movimiento);
-                    return { fondos: fondosServidor, saldos: saldosServidor, movimiento };
-                });
+                    return { fondos: fondosServidor, saldos: saldosServidor, movimiento, retiro:nuevoRetiro };
+                }, {tipoOperacion:'retiro_rapido',claveOperacion:JSON.stringify({tipo,val,fondoKey,detalles,ubicacion}),soloDueno:true,camposConfirmacion:window.capturarCamposOperacionSubli?.('retiro_rapido',[{costoProducto:'ret-prod',costoLuzTinta:'ret-luz',gananciaLibre:'ret-ganancia',fondoImpuestos:'ret-impuesto'}[fondoKey]]) || {}});
 
                 retiroConfirmado = true;
                 fondos = resultado.fondos;
                 saldosDinero = resultado.saldos;
                 movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
-                historialRetiros = fusionarPorId(historialRetiros, [nuevoRetiro]);
+                historialRetiros = fusionarPorId(historialRetiros, [resultado.retiro]);
                 guardarDatos();
                 actualizarUI();
                 alert(`✅ Se han retirado Q ${nuevoRetiro.monto.toFixed(2)} exitosamente.`);
@@ -6594,7 +6651,7 @@
             } catch(error) {
                 console.error("No se pudo registrar el retiro:", error);
                 window.subliRegistrarError?.(error, 'procesarRetiro');
-                alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : '❌ No se aplicó ningún cambio. ' + error.message);
+                alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Comprueba el guardado pendiente antes de repetir el retiro. ' : '❌ No se aplicó ningún cambio. ') + error.message);
                 return retiroConfirmado;
             } finally {
                 isProcessingTransaction = false;
@@ -6839,7 +6896,7 @@
                     const nuevoRetiro = {
                         id: retiroId,
                         timestamp: timestampActual,
-                        fecha: new Date(timestampActual).toLocaleDateString('es-GT') + ' ' + new Date(timestampActual).toLocaleTimeString('es-GT', {hour: '2-digit', minute:'2-digit'}),
+                        fecha: fechaHoraNegocio(timestampActual),
                         tipo: tipos[solicitud.modo].toUpperCase(),
                         modoRetiro: solicitud.modo,
                         ...detalles,
@@ -6861,7 +6918,7 @@
                     const movimiento = { id: movimientoId, timestamp: timestampActual, fecha: nuevoRetiro.fecha, tipo: 'retiro', monto: nuevoRetiro.monto, ubicacion: ubicacionRetiro, referenciaId: retiroId, ...detalles, usuarioNombre: currentUserData.nombre || 'Dueño' };
                     t.set(window.doc(window.db, 'movimientos_caja', movimientoId), movimiento);
                     return { fondos: fondosServidor, saldos: saldosServidor, retiro: nuevoRetiro, movimiento };
-                });
+                }, {tipoOperacion:'retiro_inteligente',claveOperacion:JSON.stringify({solicitud,ubicacionRetiro,detalles}),soloDueno:true,camposConfirmacion:window.capturarCamposOperacionSubli?.('retiro_inteligente') || {}});
 
                 retiroConfirmado = true;
                 fondos = resultado.fondos;
@@ -6875,7 +6932,7 @@
             } catch(error) {
                 console.error("No se pudo registrar el retiro inteligente:", error);
                 window.subliRegistrarError?.(error, 'procesarRetiroInteligente');
-                alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para ver el resultado; no lo repitas. ' + error.message : '❌ No se aplicó ningún cambio. ' + error.message);
+                alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para ver el resultado; no lo repitas. ' + error.message : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Comprueba el guardado pendiente antes de repetir el retiro. ' : '❌ No se aplicó ningún cambio. ') + error.message);
             } finally {
                 isProcessingTransaction = false;
                 botonConfirmar.disabled = modoModuloInteligente('retiros') !== 'ayudar';
@@ -7160,7 +7217,7 @@
             let agrupadoVentasLocales = {};
             ventas.forEach(v => {
                 if (v.anulada) return;
-                let llave = getMesAnioFromDate(v.fecha, v.timestamp);
+                let llave = getMesAnioFromDate(v.fecha, v.timestamp, v);
                 if(!llave) return;
                 if(!agrupadoVentasLocales[llave]) agrupadoVentasLocales[llave] = {};
                 (v.detalleItems || []).forEach(item => {
@@ -7177,7 +7234,7 @@
                 let agrupado = {};
                 ventas.forEach(v => {
                     if (v.anulada) return;
-                    let llave = getMesAnioFromDate(v.fecha, v.timestamp);
+                    let llave = getMesAnioFromDate(v.fecha, v.timestamp, v);
                     if(!llave) return;
                     if(!agrupado[llave]) agrupado[llave] = { id: llave, mesTexto: formatearMesAnio(llave), totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0 };
                     agrupado[llave].totalVendido += v.ingresoTotal; agrupado[llave].ganancia += v.ganancia; agrupado[llave].costosMateriales += v.costosProductos || 0; agrupado[llave].gastosOperativos += (v.costoTinta || 0) + (v.costoManoObra || 0) + (v.costoEnvio || 0); agrupado[llave].impuestos += v.impuestoSAT || 0;
@@ -7317,7 +7374,7 @@
             
             let dataVentas = [...ventas].filter(v => !v.anulada).sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
-                dataVentas = dataVentas.filter(v => getMesAnioFromDate(v.fecha, v.timestamp) === mesFiltro);
+                dataVentas = dataVentas.filter(v => getMesAnioFromDate(v.fecha, v.timestamp, v) === mesFiltro);
             }
 
             const limitVentas = document.getElementById('limite-historial-ventas') ? document.getElementById('limite-historial-ventas').value : '50';
@@ -7332,11 +7389,14 @@
                     const ventaIdCodificado = codificarParametroHTML(v.id);
                     const botonEditar = Number(v.versionCalculo) === 2 ? `<button onclick="editarVenta(decodeURIComponent('${ventaIdCodificado}'))" class="btn-sm btn-edit">EDITAR</button>` : `<button onclick="cambiarPestaña('caja'); setTimeout(actualizarOpcionesDevolucion, 0)" class="btn-sm btn-edit">DEVOLUCIÓN</button>`;
                     const trazaStock = Array.isArray(v.movimientosInventario) ? `<details style="margin-top:10px"><summary>📦 Descuento de inventario al registrar</summary>${v.movimientosInventario.length ? v.movimientosInventario.map(m => `<p class="item-details">${escaparHTML(m.nombre || m.productoId)}: ${numeroFinito(m.stockAntes)} − ${numeroFinito(m.cantidad)} = ${numeroFinito(m.stockDespues)} ${escaparHTML(m.unidad || '')}</p>`).join('') : '<p class="item-details">Esta venta contiene servicios; no descontó productos físicos.</p>'}<p class="compact-note">Existencias en el momento de registrar esta versión de la venta.</p></details>` : '<p class="compact-note">Venta anterior: no tiene detalle de stock antes/después.</p>';
+                    const tieneDevoluciones = Array.isArray(v.devoluciones) && v.devoluciones.length > 0;
+                    const resumenVigente = tieneDevoluciones ? ((v.detalleItems || []).map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : i.rol === 'combo' ? ' (Combo)' : ''}`).join(' + ') || 'DEVOLUCIÓN TOTAL') : v.resumenItems;
+                    const trazaDevoluciones = tieneDevoluciones ? `<details style="margin-top:10px"><summary>Devoluciones registradas · el total mostrado es neto</summary><p class="item-details">Venta original: ${escaparHTML(v.resumenItemsOriginal || v.resumenItems || '')}</p>${v.devoluciones.map(d => `<p class="item-details">${escaparHTML(d.fecha || '')} · ${numeroFinito(d.cantidad)}x ${escaparHTML(d.productoNombre || '')} · devuelto: ${simboloMoneda}${numeroFinito(d.ingresoDevuelto).toFixed(2)}</p>`).join('')}</details>` : '';
                     const saldoVenta = Math.max(0, numeroFinito(v.saldoPendiente));
                     const estadoCobro = saldoVenta > 0 ? `<span class="status-badge warning">CRÉDITO · falta ${simboloMoneda}${saldoVenta.toFixed(2)}</span>` : '<span class="status-badge ok">PAGADA</span>';
                     htmlVentas += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                            <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${escaparHTML(String(v.resumenItems || '').toUpperCase())} ${textFactura}</p>
+                            <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${escaparHTML(String(resumenVigente || '').toUpperCase())} ${textFactura}</p>
                             <div style="display:flex; gap:5px;">
                                 ${botonEditar}
                                 <button onclick="borrarVenta(decodeURIComponent('${ventaIdCodificado}'))" class="btn-sm btn-delete">DESHACER</button>
@@ -7344,7 +7404,7 @@
                         </div>
                         <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                             <div>📅 ${escaparHTML(v.fecha)}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${escaparHTML(String(v.clienteNombre).toUpperCase())}<br>` : ''}${estadoCobro}</div><span style="color: var(--text-dark);">💵 <b>TOTAL:</b> ${simboloMoneda}${numeroFinito(v.ingresoTotal).toFixed(2)}<br><small>Pagado/aplicado: ${simboloMoneda}${numeroFinito(v.montoCobradoTotal, v.ingresoTotal).toFixed(2)}</small></span><span class="cost-text">📦 <b>COSTO MAT./SERV:</b> ${simboloMoneda}${numeroFinito(v.costosProductos).toFixed(2)}</span><span class="cost-text">💡 <b>${escaparHTML(configuracionNegocio.nombreFondoProduccion)}:</b> ${simboloMoneda}${numeroFinito(v.costoTinta).toFixed(2)}</span><span class="cost-text">🧑‍🔧 <b>${escaparHTML(configuracionNegocio.nombreManoObra)}:</b> ${simboloMoneda}${numeroFinito(v.costoManoObra).toFixed(2)}</span><span class="cost-text">🚚 <b>ENVÍO:</b> ${simboloMoneda}${numeroFinito(v.costoEnvio).toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>IMPUESTO (${numeroFinito(v.porcentajeSAT, 5)}%):</b> ${simboloMoneda}${numeroFinito(v.impuestoSAT).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">GANANCIA NETA LIBRE: ${simboloMoneda}${numeroFinito(v.ganancia).toFixed(2)}</span>
-                        </div>${trazaStock}</div>`;
+                        </div>${trazaDevoluciones}${trazaStock}</div>`;
                 });
                 contVentas.innerHTML = htmlVentas;
             }
@@ -7363,7 +7423,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.4.1";
+        const APP_VERSION = "1.4.2";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
@@ -7391,7 +7451,7 @@
 
         async function forzarActualizacionApp(versionObjetivo) {
             const pendiente = isProcessingTransaction || carritoVentas.length || carritoIngresos.length || carritoCotizacion.length
-                || ventaEnEdicion || ingresoEnEdicion || cotizacionBorradorOrigenId;
+                || ventaEnEdicion || ingresoEnEdicion || cotizacionBorradorOrigenId || (window.listarGuardadosPendientesSubli?.().length || 0);
             if(pendiente) { alert('Termina o descarta la operación pendiente antes de actualizar. Se conserva tu carrito.'); return false; }
             if(!navigator.onLine) { alert('Necesitas conexión para instalar la actualización.'); return false; }
             if(!confirm('¿Actualizar ahora? Revisa antes cualquier texto de formulario que aún no agregaste al carrito. Los datos e historiales guardados se conservarán.')) return false;

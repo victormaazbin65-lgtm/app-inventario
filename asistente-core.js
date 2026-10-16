@@ -349,11 +349,12 @@
 
         if(preguntaPrestamo && contiene(consulta, ['pendiente','vencido','vence','quien debe','quien me debe'])) {
             const lista = Array.isArray(contexto.prestamos) ? contexto.prestamos.filter(p => numero(p.saldoPendiente) > 0 && p.estado !== 'anulado') : [];
-            const hoy = contexto.ahora ? new Date(contexto.ahora) : new Date();
-            hoy.setHours(0,0,0,0);
+            const ahora = contexto.ahora ?? Date.now();
+            const hoy = Math.floor((Number(ahora) - 21600000) / 86400000) * 86400000 + 21600000;
             const resumen = lista.map(p => {
-                const f = p.vencimiento ? new Date(`${p.vencimiento}T00:00:00`) : null;
-                const dias = f && !Number.isNaN(f.getTime()) ? Math.round((f.getTime() - hoy.getTime()) / 86400000) : null;
+                const f = /^\d{4}-\d{2}-\d{2}$/.test(String(p.vencimiento)) ? Date.parse(`${p.vencimiento}T06:00:00.000Z`) : NaN;
+                const valida = Number.isFinite(f) && new Date(f - 21600000).toISOString().slice(0,10) === p.vencimiento;
+                const dias = valida ? Math.round((f - hoy) / 86400000) : null;
                 return { persona:String(p.persona || 'PERSONA'), saldoPendiente:numero(p.saldoPendiente), vencimiento:p.vencimiento || '', dias };
             }).sort((a,b) => (a.dias ?? 999999) - (b.dias ?? 999999));
             return { tipo:'prestamos_pendientes', titulo:'Préstamos pendientes', prestamos:resumen, pestana:'caja' };

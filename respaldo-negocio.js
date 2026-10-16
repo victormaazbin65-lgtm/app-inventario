@@ -51,6 +51,12 @@
         });
     }
 
+    function evaluarRecuperacionCopia(copia) {
+        const documentos = COLECCIONES_RESPALDO.reduce((total,nombre) => total + (Array.isArray(copia?.colecciones?.[nombre]) ? copia.colecciones[nombre].length : 0), 0);
+        return {documentos, escriturasEstimadas:documentos + 2, limiteEscrituras:400, limiteDocumentos:398,
+            automatica:documentos + 2 <= 400};
+    }
+
     async function construirCopiaSeguridad() {
         if (!global.db || !navigator.onLine) throw new Error('Necesitas conexión para incluir todos los datos de Firebase.');
         const configInicial = await global.getDoc(global.doc(global.db, 'sistema', 'config'));
@@ -100,10 +106,12 @@
         if (estado) estado.textContent = 'Preparando copia completa y comprobando integridad…';
         try {
             const copia = await construirCopiaSeguridad();
+            const recuperacion = evaluarRecuperacionCopia(copia);
             const fecha = new Date().toISOString().replaceAll(':', '-').replace('T', '_').slice(0, 19);
             descargarArchivo(`SubliCosturas_Respaldo_${fecha}.json`, JSON.stringify(copia, null, 2), 'application/json;charset=utf-8');
-            if (estado) estado.textContent = `Copia creada: ${Object.values(copia.conteos).reduce((a, b) => a + b, 0)} documentos. Integridad: ${copia.integridad?.algoritmo || 'sin firma'}.`;
-            if (!silenciosa) alert('✅ Copia completa descargada y validada. Guárdala en un lugar seguro.');
+            const avisoRecuperacion = recuperacion.automatica ? 'Dentro del límite de restauración automática, sujeta a las comprobaciones de seguridad.' : 'Esta copia completa requiere recuperación administrativa en una base separada; supera el límite de 398 documentos de colecciones. No la dividas ni la restaures por partes.';
+            if (estado) estado.textContent = `Copia creada: ${recuperacion.documentos} documentos. Integridad: ${copia.integridad?.algoritmo || 'sin firma'}. ${avisoRecuperacion}`;
+            if (!silenciosa) alert('✅ Copia completa descargada y validada. Guárdala en un lugar seguro.\n\n' + avisoRecuperacion);
             return copia;
         } catch (error) {
             if (estado) estado.textContent = 'No se pudo crear la copia: ' + error.message;
@@ -399,7 +407,7 @@
         }
     }
 
-    global.SubliRespaldoCoreV4 = Object.freeze({ COLECCIONES_RESPALDO, validarCopiaSeguridad, validarIntegridadCopia, contenidoFirmable, planificarRestauracionSegura, escribirOperacionesEnLotes });
+    global.SubliRespaldoCoreV4 = Object.freeze({ COLECCIONES_RESPALDO, evaluarRecuperacionCopia, validarCopiaSeguridad, validarIntegridadCopia, contenidoFirmable, planificarRestauracionSegura, escribirOperacionesEnLotes });
     global.crearCopiaSeguridadJSON = crearCopiaSeguridadJSON;
     global.prepararRestauracion = prepararRestauracion;
 })(window);

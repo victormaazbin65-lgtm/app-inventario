@@ -359,12 +359,13 @@
         if(sinCodigo) prioridades.push({ nivel:1, texto:`${sinCodigo} producto(s) físico(s) todavía sin código de inventario.`, pestana:'inventario' });
 
         if(c.puedeVerFinanzas) {
-            const hoy = new Date(); hoy.setHours(0,0,0,0);
+            const hoy = Math.floor((Date.now() - 21600000) / 86400000) * 86400000 + 21600000;
             const activos = c.prestamos.filter(p => numero(p.saldoPendiente) > 0 && p.estado !== 'anulado');
             const vencidos = activos.filter(p => {
                 if(!p.vencimiento) return false;
-                const f = new Date(`${p.vencimiento}T00:00:00`);
-                return !Number.isNaN(f.getTime()) && f.getTime() < hoy.getTime();
+                if(!/^\d{4}-\d{2}-\d{2}$/.test(p.vencimiento)) return false;
+                const f = new Date(`${p.vencimiento}T06:00:00.000Z`);
+                return !Number.isNaN(f.getTime()) && f.toISOString().slice(0,10) === p.vencimiento && f.getTime() < hoy;
             });
             if(vencidos.length) prioridades.push({ nivel:4, texto:`${vencidos.length} préstamo(s) vencido(s) por ${dinero(vencidos.reduce((t,p) => t + numero(p.saldoPendiente), 0))}.`, pestana:'caja' });
             const creditos = c.ventas.filter(v => !v.anulada && numero(v.saldoPendiente) > 0);

@@ -15,9 +15,7 @@
     }
 
     function inicioDiaLocal(timestamp) {
-        const fecha = new Date(timestamp);
-        fecha.setHours(0, 0, 0, 0);
-        return fecha.getTime();
+        return Math.floor((Number(timestamp) - 21600000) / MS_DIA) * MS_DIA + 21600000;
     }
 
     function finDiaLocal(timestamp) {
@@ -25,11 +23,7 @@
     }
 
     function claveDiaLocal(timestamp) {
-        const fecha = new Date(timestamp);
-        const y = fecha.getFullYear();
-        const m = String(fecha.getMonth() + 1).padStart(2, '0');
-        const d = String(fecha.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
+        return new Date(Number(timestamp) - 21600000).toISOString().slice(0,10);
     }
 
     function parseFechaLocal(fecha) {
@@ -37,9 +31,8 @@
         const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
         if(!match) return NaN;
         const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
-        const valor = new Date(y, m - 1, d);
-        if(valor.getFullYear() !== y || valor.getMonth() !== m - 1 || valor.getDate() !== d) return NaN;
-        valor.setHours(0, 0, 0, 0);
+        const valor = new Date(Date.UTC(y, m - 1, d, 6));
+        if(valor.getUTCFullYear() !== y || valor.getUTCMonth() !== m - 1 || valor.getUTCDate() !== d) return NaN;
         return valor.getTime();
     }
 

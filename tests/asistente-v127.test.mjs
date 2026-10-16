@@ -78,7 +78,7 @@ test('las consultas de datos existentes se delegan al analizador anterior', () =
 
 test('el asistente puede resumir préstamos pendientes sin escribir datos', () => {
   const r = asistente.responderConsulta('quien me debe prestamos pendientes', {
-    ahora: new Date(2026, 8, 7, 12).getTime(),
+    ahora: Date.parse('2026-09-07T12:00:00-06:00'),
     prestamos: [
       { persona:'ANA', saldoPendiente:100, vencimiento:'2026-09-06', estado:'pendiente' },
       { persona:'LUIS', saldoPendiente:50, vencimiento:'2026-09-09', estado:'pendiente' },
@@ -110,5 +110,5 @@ test('la PWA conserva los módulos del asistente bajo demanda sin alterar la ver
   assert.doesNotMatch(sw, /'\.\/asistente-core\.js'/);
   assert.doesNotMatch(sw, /'\.\/asistente-ajustes-v127\.js'/);
   assert.doesNotMatch(sw, /'\.\/mejoras-v127\.js'/);
-  assert.match(sw, /sublicosturas-v1\.4\.1/);
+  assert.match(sw, /sublicosturas-v1\.4\.2/);
 });

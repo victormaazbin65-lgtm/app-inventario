@@ -201,7 +201,7 @@ test('la interfaz integra clientes en configuración y caja en el panel financie
   assert.match(html, /class="quick-finance-actions"[\s\S]*?cambiarPestaña\('caja'\)/);
   assert.match(html, /accederAjustesProtegidos\('clientes', 'creditos'\)/);
   assert.doesNotMatch(html, /id="tab-(?:clientes|caja)"/);
-  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./assets/1.4.1/${archivo}"`));
+  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./assets/1.4.2/${archivo}"`));
   assert.ok(posiciones.every(posicion => posicion > 0));
   assert.deepEqual([...posiciones].sort((a, b) => a - b), posiciones);
   assert.match(html, /cargarCotizacionEnFormularioVenta/);
@@ -268,8 +268,8 @@ test('reglas, PWA y versión 1.2.5 quedan coordinadas', () => {
   assert.doesNotMatch(reglas, /!proteccionActivada\(\)/);
   assert.doesNotMatch(reglas, /activacionPropiaValida/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.1' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.4.1');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.1/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.2' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.4.2');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.2/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
 });

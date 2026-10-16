@@ -20,6 +20,20 @@
         return core.normalizarMontoMoneda(valor);
     }
 
+    function opcionesOperacion(tipo, solicitud) {
+        const opciones = global.crearOpcionesOperacionSubli
+            ? global.crearOpcionesOperacionSubli(tipo, solicitud)
+            : {tipoOperacion:tipo, claveOperacion:JSON.stringify(solicitud), soloDueno:true};
+        opciones.camposConfirmacion = global.capturarCamposOperacionSubli?.(tipo) || {};
+        return opciones;
+    }
+
+    function falloOperacion(error, rechazo) {
+        return error?.commitIncierto
+            ? 'No se pudo confirmar la respuesta. Conserva los datos y comprueba el guardado pendiente antes de repetir o cambiar la operación. ' + error.message
+            : rechazo + error.message;
+    }
+
     function movimientoCaja(tipo, monto, ubicacion, detalles = {}) {
         const timestamp = Date.now();
         return {
@@ -127,7 +141,7 @@
                 t.set(global.doc(global.db, 'anticipos', String(anticipoServidor.id)), anticipoServidor);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimientoServidor.id)), movimientoServidor);
                 return { saldos, anticipo: anticipoServidor, movimiento: movimientoServidor, clienteActualizado };
-            });
+            }, opcionesOperacion('anticipo_recibido', {clienteId:String(cliente.id),monto,metodo,motivo}));
             operacionConfirmada = true;
             saldosDinero = resultado.saldos;
             anticipos = fusionarPorId(anticipos, [resultado.anticipo]);
@@ -138,7 +152,7 @@
             renderFinanzasNegocio(); actualizarUI();
             alert('✅ Anticipo registrado sin contarlo todavía como venta ni ganancia.');
         } catch (error) {
-            alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se registró el anticipo. ' + error.message);
+            alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se registró el anticipo. '));
         } finally { isProcessingTransaction = false; }
     }
 
@@ -189,16 +203,16 @@
                 t.set(configRef, { ...data, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 if (clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { actualizado, saldos, clienteActualizado };
-            });
+                return { actualizado, saldos, clienteActualizado, movimiento };
+            }, opcionesOperacion('anticipo_devuelto', {id,monto,metodo:metodoNormal}));
             operacionConfirmada = true;
             saldosDinero = resultado.saldos;
             anticipos = fusionarPorId(anticipos, [resultado.actualizado]);
-            movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             if (resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
             renderFinanzasNegocio(); actualizarUI();
             alert('✅ Devolución de anticipo registrada.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se realizó la devolución. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se realizó la devolución. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -215,7 +229,7 @@
         let operacionConfirmada = false;
         try {
             const movimiento = movimientoCaja('traslado', monto, origen, { destino, motivo });
-            const saldos = await global.runTransaction(global.db, async t => {
+            const resultado = await global.runTransaction(global.db, async t => {
                 const ref = global.doc(global.db, 'sistema', 'config');
                 const snap = await t.get(ref);
                 const data = snap.exists() ? snap.data() : {};
@@ -223,13 +237,13 @@
                 nuevos = cambiarSaldo(nuevos, destino, monto, 1);
                 t.set(ref, { ...data, saldosDinero: nuevos, ultimaActualizacion: Date.now() });
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return nuevos;
-            });
+                return {saldos:nuevos, movimiento};
+            }, opcionesOperacion('traslado_dinero', {origen,destino,monto,motivo}));
             operacionConfirmada = true;
-            saldosDinero = saldos; movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            saldosDinero = resultado.saldos; movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             document.getElementById('traslado-monto').value = ''; document.getElementById('traslado-motivo').value = '';
             renderFinanzasNegocio(); actualizarUI(); alert('✅ Traslado registrado.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se realizó el traslado. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se realizó el traslado. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -272,16 +286,16 @@
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 t.set(global.doc(global.db, 'retiros', String(retiro.id)), { ...retiro, desglose });
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { fondosNuevos, saldos, retiro: { ...retiro, desglose } };
-            });
+                return { fondosNuevos, saldos, retiro: { ...retiro, desglose }, movimiento };
+            }, opcionesOperacion('retiro_caja', {origen,modo,monto,motivo,referencia}));
             retiroConfirmado = true;
             fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos;
-            historialRetiros = fusionarPorId(historialRetiros, [resultado.retiro]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            historialRetiros = fusionarPorId(historialRetiros, [resultado.retiro]); movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             document.getElementById('caja-retiro-monto').value = ''; document.getElementById('caja-retiro-motivo').value = '';
             const referenciaCampo = document.getElementById('caja-retiro-referencia');
             if(referenciaCampo) referenciaCampo.value = '';
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Retiro registrado en fondos y ubicación.');
-        } catch (error) { global.subliRegistrarError?.(error, 'registrarRetiroCaja'); alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para ver el resultado; no lo repitas. ' + error.message : 'No se realizó el retiro. ' + error.message); }
+        } catch (error) { global.subliRegistrarError?.(error, 'registrarRetiroCaja'); alert(retiroConfirmado ? 'El retiro sí quedó registrado. Recarga para ver el resultado; no lo repitas. ' + error.message : falloOperacion(error,'No se realizó el retiro. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -315,13 +329,13 @@
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 t.set(global.doc(global.db, 'prestamos', String(prestamo.id)), registro);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { fondosNuevos, saldos, registro };
-            });
+                return { fondosNuevos, saldos, registro, movimiento };
+            }, opcionesOperacion('prestamo_entregado', {persona,motivo,monto,origen,vencimiento}));
             operacionConfirmada = true;
-            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; prestamos = fusionarPorId(prestamos, [resultado.registro]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; prestamos = fusionarPorId(prestamos, [resultado.registro]); movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             ['prestamo-persona', 'prestamo-monto', 'prestamo-motivo', 'prestamo-vencimiento'].forEach(id => { document.getElementById(id).value = ''; });
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Préstamo registrado.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se registró el préstamo. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se registró el préstamo. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -360,12 +374,12 @@
                 t.set(configRef, { ...data, fondos: fondosNuevos, saldosDinero: saldos, ultimaActualizacion: timestamp });
                 t.set(prestamoRef, actualizado);
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { fondosNuevos, saldos, actualizado };
-            });
+                return { fondosNuevos, saldos, actualizado, movimiento };
+            }, opcionesOperacion('prestamo_devuelto', {id,monto,metodo:String(metodo).toLowerCase()}));
             operacionConfirmada = true;
-            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; prestamos = fusionarPorId(prestamos, [resultado.actualizado]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; prestamos = fusionarPorId(prestamos, [resultado.actualizado]); movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Devolución del préstamo aplicada a los mismos fondos originales.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se aplicó el abono. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se aplicó el abono. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -429,16 +443,16 @@
                 if (clienteRef && clienteActualizado) t.set(clienteRef, clienteActualizado);
                 t.set(global.doc(global.db, 'pagos_clientes', String(pagoId)), { ...pago, ventaId: id, clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F' });
                 t.set(global.doc(global.db, 'movimientos_caja', String(movimiento.id)), movimiento);
-                return { fondosNuevos, saldos, actualizada, clienteActualizado };
-            });
+                return { fondosNuevos, saldos, actualizada, clienteActualizado, movimiento };
+            }, opcionesOperacion('abono_credito', {id,monto,metodo:metodoNormal}));
             operacionConfirmada = true;
-            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; ventas = fusionarPorId(ventas, [resultado.actualizada]); movimientosCaja = fusionarPorId(movimientosCaja, [movimiento]);
+            fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; ventas = fusionarPorId(ventas, [resultado.actualizada]); movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimiento]);
             ventasCreditoPendiente = resultado.actualizada.saldoPendiente > 0
                 ? fusionarPorId(ventasCreditoPendiente, [resultado.actualizada])
                 : ventasCreditoPendiente.filter(v => String(v.id) !== String(resultado.actualizada.id));
             if (resultado.clienteActualizado) clientes = fusionarPorId(clientes, [resultado.clienteActualizado]);
             guardarDatos(); renderFinanzasNegocio(); actualizarUI(); alert('✅ Abono registrado. Los fondos aumentaron solo por el dinero recibido.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se registró el abono. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se registró el abono. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -473,12 +487,12 @@
                 t.set(ref, nuevo);
                 t.set(global.doc(global.db, 'perdidas_inventario', String(perdida.id)), perdida);
                 return { actualizado: nuevo, perdida };
-            });
+            }, opcionesOperacion('perdida_inventario', {productoId:String(producto.id),cantidad,motivo}));
             operacionConfirmada = true;
             inventario = fusionarPorId(inventario, [resultado.actualizado]); perdidasInventario = fusionarPorId(perdidasInventario, [resultado.perdida]);
             document.getElementById('perdida-cantidad').value = ''; document.getElementById('perdida-motivo').value = '';
             renderFinanzasNegocio(); actualizarUI(); alert('✅ Pérdida registrada sin crear una venta ni sumar dinero.');
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se registró la pérdida. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se registró la pérdida. ')); }
         finally { isProcessingTransaction = false; }
     }
 
@@ -492,18 +506,40 @@
         if (!select) return;
         if (!venta || Number(venta.versionCalculo) < 3) {
             select.innerHTML = '<option value="">Sin artículos compatibles</option>';
+            delete select.dataset.ventaId;
+            delete select.dataset.lineas;
             actualizarPreviewDevolucion(); return;
         }
-        select.innerHTML = (venta.detalleItems || []).map((item, indice) => `<option value="${indice}">${escaparHTML(item.nombre)} · ${numeroFinito(item.qty)} ${escaparHTML(item.unidadAbreviatura || 'unid')}</option>`).join('');
-        const item = venta.detalleItems?.[0];
+        const mismaVenta = select.dataset.ventaId === String(venta.id);
+        let anteriores = [];
+        try { anteriores = JSON.parse(select.dataset.lineas || '[]'); } catch(_) {}
+        const elegida = /^\d+$/.test(String(select.value)) ? anteriores[Number(select.value)] : undefined;
+        const lineas = (venta.detalleItems || []).map((item, indice) => item.lineId || JSON.stringify(core.crearReferenciaLineaVenta(item, indice)));
+        const firma = JSON.stringify((venta.detalleItems || []).map((item, indice) => [lineas[indice],item.nombre,item.qty]));
+        if(select.dataset.firmaOpciones !== firma || !mismaVenta) {
+            select.innerHTML = '<option value="">Selecciona un artículo</option>' + (venta.detalleItems || []).map((item, indice) => `<option value="${indice}">${escaparHTML(item.nombre)} · ${numeroFinito(item.qty)} ${escaparHTML(item.unidadAbreviatura || 'unid')}</option>`).join('');
+        }
+        const indice = mismaVenta ? lineas.indexOf(elegida) : (lineas.length ? 0 : -1);
+        select.value = indice >= 0 ? String(indice) : '';
+        select.dataset.ventaId = String(venta.id);
+        select.dataset.lineas = JSON.stringify(lineas);
+        select.dataset.firmaOpciones = firma;
+        const item = indice >= 0 ? venta.detalleItems[indice] : null;
         const campo = document.getElementById('devolucion-cantidad');
-        if (campo && item) { campo.value = item.qty; campo.max = item.qty; campo.step = item.isService ? 0.001 : (item.unidadPaso || 1); }
+        if (campo && item) {
+            if(!mismaVenta) campo.value = item.qty;
+            campo.max = item.qty;
+            campo.step = item.isService ? 0.001 : (item.unidadPaso || 1);
+        }
+        if(campo && mismaVenta && !item) campo.value = '';
         actualizarPreviewDevolucion();
     }
 
     function datosPreviewDevolucion() {
         const venta = ventaSeleccionadaDevolucion();
-        const indice = Number(document.getElementById('devolucion-item')?.value);
+        const seleccion = String(document.getElementById('devolucion-item')?.value ?? '');
+        if(!/^\d+$/.test(seleccion)) throw new Error('Selecciona una venta y un artículo.');
+        const indice = Number(seleccion);
         const item = venta?.detalleItems?.[indice];
         if (!venta || !item) throw new Error('Selecciona una venta y un artículo.');
         let cantidad = Number(document.getElementById('devolucion-cantidad')?.value);
@@ -535,6 +571,9 @@
     function actualizarPreviewDevolucion() {
         const cont = document.getElementById('devolucion-preview');
         if (!cont) return;
+        const item = ventaSeleccionadaDevolucion()?.detalleItems?.[Number(document.getElementById('devolucion-item')?.value)];
+        const cantidad = document.getElementById('devolucion-cantidad');
+        if(item && cantidad) { cantidad.max=item.qty; cantidad.step=item.isService ? 0.001 : (item.unidadPaso || 1); }
         try {
             const p = datosPreviewDevolucion();
             cont.innerHTML = `Total que se reversa: <strong>${dineroNegocio(p.ingresoDevuelto)}</strong> · reduce crédito: <strong>${dineroNegocio(p.creditoReducido)}</strong> · reembolso que sale: <strong>${dineroNegocio(p.reembolso)}</strong>.`;
@@ -663,7 +702,8 @@
                     };
                 }
                 const devolucion = { id: devolucionId, ventaId: String(venta.id), lineId: item.lineId || null, clienteId: venta.clienteId || null, clienteNombre: venta.clienteNombre || 'C/F', productoId: item.idProd || null, productoNombre: item.nombre, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas), unidadId: item.unidadId || 'pieza', ingresoDevuelto, creditoReducido, reembolsoDinero, anticipoRestaurado, perdidaEconomicaGenerada:core.desdeCentavos(aumentoPerdida), metodo, ubicacion, reingresadoInventario: reingresar, costoReversado, impuestoReversado, produccionNoRecuperada, envioNoRecuperado, manoObraNoRecuperada, motivo, timestamp, fecha: fechaHoraNegocio(timestamp) };
-                const actualizada = { ...venta, ingresoTotal: nuevoDesglose.ingresoTotal, costosProductos: nuevoDesglose.costosProductos, costoTinta: nuevoDesglose.costoTinta, costoEnvio: nuevoDesglose.costoEnvio, costoManoObra: nuevoDesglose.costoManoObra, impuestoSAT: nuevoDesglose.impuestoSAT, ganancia: nuevoDesglose.gananciaNeta, detalleItems: detalleNuevo, montoPagadoDinero: core.redondearMoneda(Math.max(0, Number(venta.montoPagadoDinero || 0) - reembolsoDinero)), montoCobradoTotal: cobradoNuevo, saldoPendiente, anticipoAplicado: core.redondearMoneda(anticipoAplicado - anticipoRestaurado), asignacionFondosCobrado: asignacionNueva, estadoCobro: saldoPendiente > 0 ? 'credito' : 'pagado', devoluciones: [...(venta.devoluciones || []), devolucion], revision: Math.trunc(Number(venta.revision || 0)) + 1, editadoEn: timestamp };
+                const resumenItems = detalleNuevo.map(detalle => `${detalle.qty}x ${detalle.nombre}${detalle.rol === 'material' ? ' (M)' : detalle.rol === 'combo' ? ' (Combo)' : ''}`).join(' + ') || 'DEVOLUCIÓN TOTAL';
+                const actualizada = { ...venta, resumenItemsOriginal:venta.resumenItemsOriginal || venta.resumenItems || '', resumenItems, ingresoTotal: nuevoDesglose.ingresoTotal, costosProductos: nuevoDesglose.costosProductos, costoTinta: nuevoDesglose.costoTinta, costoEnvio: nuevoDesglose.costoEnvio, costoManoObra: nuevoDesglose.costoManoObra, impuestoSAT: nuevoDesglose.impuestoSAT, ganancia: nuevoDesglose.gananciaNeta, detalleItems: detalleNuevo, montoPagadoDinero: core.redondearMoneda(Math.max(0, Number(venta.montoPagadoDinero || 0) - reembolsoDinero)), montoCobradoTotal: cobradoNuevo, saldoPendiente, anticipoAplicado: core.redondearMoneda(anticipoAplicado - anticipoRestaurado), asignacionFondosCobrado: asignacionNueva, estadoCobro: saldoPendiente > 0 ? 'credito' : 'pagado', devoluciones: [...(venta.devoluciones || []), devolucion], revision: Math.trunc(Number(venta.revision || 0)) + 1, editadoEn: timestamp };
                 let productoNuevo = null;
                 if (!item.isService && productoSnap?.exists()) {
                     const producto = productoSnap.data();
@@ -680,7 +720,7 @@
                 } else if (reingresar) {
                     throw new Error('El producto ya no existe para reingresarlo.');
                 }
-                const mes = getMesAnioFromDate(venta.fecha || '', venta.timestamp);
+                const mes = getMesAnioFromDate(venta.fecha || '', venta.timestamp, venta);
                 let resumenRef = null; let resumenSnap = null;
                 if (venta.resumenMensualContabilizado === true) {
                     if (!mes) throw new Error('No se pudo identificar el resumen mensual de la venta.');
@@ -702,7 +742,7 @@
                     t.set(resumenRef, aplicarVentaAResumen(resumenSnap.data(), ajuste, -1));
                 }
                 return { fondosNuevos, saldos, actualizada, productoNuevo, devolucion, anticipoNuevo, clienteActualizado, movimientoReembolso };
-            });
+            }, opcionesOperacion('devolucion_venta', {ventaId:String(preview.venta.id),linea:preview.item.lineId || preview.referenciaLinea,cantidad:preview.cantidad,reingresar,metodo,motivo}));
             operacionConfirmada = true;
             fondos = resultado.fondosNuevos; saldosDinero = resultado.saldos; ventas = fusionarPorId(ventas, [resultado.actualizada]);
             ventasCreditoPendiente = resultado.actualizada.saldoPendiente > 0
@@ -714,7 +754,7 @@
             if (resultado.movimientoReembolso) movimientosCaja = fusionarPorId(movimientosCaja, [resultado.movimientoReembolso]);
             document.getElementById('devolucion-motivo').value = ''; renderFinanzasNegocio(); actualizarUI();
             alert(`✅ Devolución registrada. Reembolso en dinero: ${dineroNegocio(resultado.devolucion.reembolsoDinero)}${resultado.devolucion.anticipoRestaurado ? `; anticipo restaurado: ${dineroNegocio(resultado.devolucion.anticipoRestaurado)}` : ''}.`);
-        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : 'No se registró la devolución. ' + error.message); }
+        } catch (error) { alert(operacionConfirmada ? 'La operación sí quedó registrada. Recarga para revisar el historial; no la repitas. ' + error.message : falloOperacion(error,'No se registró la devolución. ')); }
         finally { isProcessingTransaction = false; }
     }
 
