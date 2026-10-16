@@ -20,12 +20,12 @@ test('Android no consulta 30 días al arrancar y sí carga todas las páginas a 
     'async function cargarVentasAnalisisUltimos30Dias(forzar = false)',
     'async function cambiarLimiteHistorial(tipo)');
   const crear = new Function('window', 'navigator', 'actualizarUI', 'alert', 'console', 'setTimeout',
-    `let ventasAnalisis30=[]; let analisisVentas30Completo=false; let analisisVentas30Cargando=false; ${codigo}
+    `let ventasAnalisis30=[]; let analisisVentas30Completo=false; let analisisVentas30Cargando=false; let firmaConfigAnalisis30=null; ${codigo}
      return { cargar:cargarVentasAnalisisUltimos30Dias, estado:()=>({ ventasAnalisis30, analisisVentas30Completo, analisisVentas30Cargando }) };`);
   const documentos = Array.from({ length:250 }, (_, id) => ({ id, data:() => ({ id, timestamp:Date.now() }) }));
   let consultas = 0;
   const ventana = {
-    db:{}, collection:() => ({}),
+    db:{}, doc:()=>({}), getDoc:async()=>({metadata:{fromCache:false,hasPendingWrites:false},data:()=>({revisionGlobal:1})}), collection:() => ({}),
     where:() => ({ tipo:'where' }), orderBy:() => ({ tipo:'orderBy' }),
     limit:n => ({ tipo:'limit', n }), startAfter:doc => ({ tipo:'startAfter', doc }),
     query:(_coleccion, ...condiciones) => ({ condiciones }),
@@ -50,12 +50,12 @@ test('un resultado incompleto de caché no se presenta como análisis completo y
     'async function cargarVentasAnalisisUltimos30Dias(forzar = false)',
     'async function cambiarLimiteHistorial(tipo)');
   const crear = new Function('window', 'navigator', 'actualizarUI', 'alert', 'console', 'setTimeout',
-    `let ventasAnalisis30=[]; let analisisVentas30Completo=false; let analisisVentas30Cargando=false; ${codigo}
+    `let ventasAnalisis30=[]; let analisisVentas30Completo=false; let analisisVentas30Cargando=false; let firmaConfigAnalisis30=null; ${codigo}
      return { cargar:cargarVentasAnalisisUltimos30Dias, estado:()=>({ ventasAnalisis30, analisisVentas30Completo, analisisVentas30Cargando }) };`);
   let soloCache = true;
   const documento = { data:() => ({ id:1 }) };
   const ventana = {
-    db:{}, collection:() => ({}), where:() => ({}), orderBy:() => ({}),
+    db:{}, doc:()=>({}), getDoc:async()=>({metadata:{fromCache:false,hasPendingWrites:false},data:()=>({revisionGlobal:1})}), collection:() => ({}), where:() => ({}), orderBy:() => ({}),
     limit:() => ({}), startAfter:() => ({}), query:() => ({}),
     getDocs:async () => ({ docs:[documento], size:1, metadata:{ fromCache:soloCache }, forEach:cb => cb(documento) })
   };

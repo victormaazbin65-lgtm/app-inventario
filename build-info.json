@@ -1,9 +1,9 @@
 {
-  "build": "1.4.1",
-  "basePublica": "1.4.1",
+  "build": "1.4.2",
+  "basePublica": "1.4.2",
   "canal": "pruebas-sin-publicar",
   "fecha": "2026-10-15",
-  "descripcion": "Candidato de auditoría: sesiones PIN, permisos, confirmación de operaciones y resguardo de borradores. No publicado.",
-  "revision": "pin-permisos-20261015",
+  "descripcion": "Candidato de auditoría integral: confirmaciones, permisos de pantalla, devoluciones, fechas compatibles y recuperación. Sin publicar.",
+  "revision": "auditoria-integral-20261015",
   "fechaRevision": "2026-10-15"
 }

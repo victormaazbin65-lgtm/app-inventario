@@ -28,7 +28,7 @@ function entorno() {
  });
  c.window=c; c.db={}; c.addEventListener=()=>{};
  vm.runInContext(leer('negocio-core.js'),c); c.core=c.SubliNegocioCore;
- for(const nombre of ['copiarDatos','numeroFinito','redondear','aCentavos','desdeCentavos','aMilesimas','desdeMilesimas','normalizarCantidadServicio','validarCantidadProducto','calcularDesgloseFinanciero','calcularCostoPromedioPonderado','contarArticulosVenta','aplicarVentaAResumen','fusionarPorId','versionCotizacion','normalizarDetalleRetiro','procesarVentaMultiple','procesarCotizacion','procesarRetiro']) vm.runInContext(funcion(nombre),c);
+ for(const nombre of ['puedeConsultarFinanzasInteligentes','copiarDatos','numeroFinito','redondear','aCentavos','desdeCentavos','aMilesimas','desdeMilesimas','normalizarCantidadServicio','validarCantidadProducto','calcularDesgloseFinanciero','calcularCostoPromedioPonderado','contarArticulosVenta','aplicarVentaAResumen','fusionarPorId','versionCotizacion','normalizarDetalleRetiro','procesarVentaMultiple','procesarCotizacion','procesarRetiro']) vm.runInContext(funcion(nombre),c);
  c.configuracionNegocio=c.SubliNegocioCore.normalizarConfiguracionNegocio({});
  c.unidadProducto=p=>c.SubliNegocioCore.obtenerUnidad(p.unidadId,c.configuracionNegocio);
  c.fondos=c.SubliNegocioCore.normalizarFondos({costoProducto:100,gananciaLibre:100});

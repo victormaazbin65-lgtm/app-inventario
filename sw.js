@@ -1,5 +1,5 @@
-const RELEASE = '1.4.1';
-const CACHE_NAME = 'sublicosturas-v1.4.1-pin-permisos-20261015';
+const RELEASE = '1.4.2';
+const CACHE_NAME = 'sublicosturas-v1.4.2-auditoria-integral-20261015';
 const ASSET_BASE = `./assets/${RELEASE}/`;
 const APP_SHELL = [
   './index.html',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './build-info.json',
   `${ASSET_BASE}negocio-core.js`,
   `${ASSET_BASE}integridad-firebase.js`,
+  `${ASSET_BASE}operaciones-pendientes.js`,
   `${ASSET_BASE}gestion-negocio.js`,
   `${ASSET_BASE}finanzas-negocio.js`,
   `${ASSET_BASE}respaldo-negocio.js`,

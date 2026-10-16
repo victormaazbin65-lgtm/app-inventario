@@ -19,22 +19,25 @@
         if (promesas[id]) return promesas[id];
         promesas[id] = new Promise((resolve, reject) => {
             const existente = document.getElementById(id);
-            if (existente) {
-                if (typeof condicion === 'function' && condicion()) return resolve(true);
-                existente.addEventListener('load', () => resolve(true), { once:true });
-                existente.addEventListener('error', () => reject(new Error('No se pudo cargar ' + url)), { once:true });
-                return;
-            }
+            existente?.remove();
             const script = document.createElement('script');
             script.id = id;
             script.src = url;
             script.async = true;
             script.crossOrigin = 'anonymous';
-            script.onload = () => resolve(true);
-            script.onerror = () => {
+            const fallar = () => {
+                clearTimeout(plazo);
+                script.remove();
                 delete promesas[id];
                 reject(new Error('No se pudo cargar ' + url));
             };
+            const plazo = setTimeout(fallar, 20000);
+            script.onload = () => {
+                if(typeof condicion === 'function' && !condicion()) return fallar();
+                clearTimeout(plazo);
+                resolve(true);
+            };
+            script.onerror = fallar;
             document.head.appendChild(script);
         });
         return promesas[id];

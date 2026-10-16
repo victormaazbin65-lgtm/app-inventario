@@ -21,6 +21,22 @@ El procedimiento administrativo es preparar una base de recuperación separada m
 
 Para una copia JSON de esta app, las herramientas de exportación nativa de Firestore no importan directamente el JSON: es necesario un importador administrativo validado o una conversión explícita. No se ofrece un importador improvisado sobre la base en funcionamiento. Si necesitas este escenario, hay que implementar y probar esa migración con una copia separada antes de utilizarla.
 
+### Revisión local de cualquier tamaño (1.4.2, AUD-08)
+
+La descarga informa el número de documentos y si supera el máximo de recuperación automática. La copia sigue incluyendo todas las colecciones; no se recorta ni se divide.
+
+Para preparar una recuperación se puede ejecutar con Node.js 24:
+
+```bash
+node scripts/revisar-respaldo.mjs /ruta/copia.json > revision-respaldo.json
+```
+
+El comando reutiliza los validadores de estructura e integridad de la app, revisa colecciones faltantes y conteos, y calcula la capacidad de recuperación. No dispone de una conexión Firebase ni de comandos de escritura, no cambia la copia original y su informe no incluye usuarios, PIN, productos ni movimientos. El hash comprueba integridad del archivo, no su origen ni la corrección contable.
+
+Incluso si el informe clasifica una copia como candidata, hay que comprobar el destino completo: los movimientos posteriores, los documentos ajenos y los saldos actuales siguen bloqueando una restauración incompatible. Para más de 398 documentos de colecciones, el informe sirve como preparación de una recuperación aislada; no añade un importador grande de producción.
+
 ## Volver al código anterior
 
 El punto de partida del código es `1b67cae2dab5099f60c787d086c98f43dc97c225`. Un revert de la entrega devuelve el código, pero **no** revierte datos ni movimientos registrados. Conservar las carpetas de recursos de versiones anteriores permite que las pestañas abiertas terminen con sus propios módulos. La actualización solicita una acción explícita y se bloquea cuando hay carritos o ediciones pendientes.
+
+La candidata 1.4.2 parte de la versión publicada 1.4.1, commit `33ce9899ae3c27d31d07829f30ddb3c7b205a3cb`. Conserva sus recursos y añade el bloqueo de actualización si hay guardados pendientes de confirmar. Volver al código 1.4.1 conserva las operaciones ya registradas; no se debe restaurar una copia antigua para revertir solamente el código.

@@ -1,0 +1,28 @@
+{
+  "version": "1.4.2",
+  "files": {
+    "asistente-ajustes-v127.js": "7c38842eff5aab033269aa3bdfdd1f3ff0ca7303d68ac1a8c2422f7f3efebe40",
+    "asistente-ajustes-v128.js": "d0e1e09eb034a88b9df9fd7998a54ebd6243cc1379a2c806adfe9a803eebe1d5",
+    "asistente-ajustes-v130.js": "7c77555a6754ece6a99b552e1d10a02434f0b452fbd7e66bebf1a326147d7631",
+    "asistente-core.js": "740606cf96471ed756b0621b75c5221b54b2ce2986469a9510db5722ea1e501b",
+    "buscador.js": "f5b104a1b5d0412310f9db1bcb548c4bd9fb7d92cbffd11d962f3b3fa6cf227a",
+    "finanzas-negocio.js": "9e0acb2c65deb51ed98541b438c02abde565ae82d38b432bed8864ba1aeb1c11",
+    "gestion-negocio.js": "bc772d1c24daa9fd5c4efac5c0180296c88aed792a8ca8d194a40f2dc3ab491c",
+    "integridad-firebase.js": "2acb64b15d2e761ba35785613ed4ee0da77dd3d9539b8845b73f39dbf5dba7a7",
+    "mejoras-core.js": "e358796622dec8589aaec98b62df62a3fa612ee3f55f8a55723dcbe3c827831c",
+    "mejoras-v126.js": "9815dc029215026b7261075b86be016c487a04f9571be438b8f7b147c6f1da4c",
+    "mejoras-v127.js": "dabfcd42be5d381bcca0b42e30dcb464f28ce8af229daeedbd19307752177a75",
+    "mejoras-v128.js": "2ed4c76431e13ae68c6c64517089679e6c171574f94cb3513da9c1314d5e2c7b",
+    "negocio-core.js": "591b8274a1f40d69551fc8794bcecdbea3cc2fce485cdd819f08fba0036585bc",
+    "operaciones-pendientes.js": "54c3e70228b2e2a9669e53957b72da5268b556ebc781ffa0918520e9f589b9e1",
+    "pantallas-v131.js": "55e37fe5ce5511d3a9289ecc2547bef193894784df2ad9eb6b6cd7140a293cb0",
+    "profesional-compat-v130.js": "68882b965c13242d571c21f24b2f55aee8548136759d9a358fdbab13c7ab1ebf",
+    "profesional-core-ajustes-v130.js": "9fefd9ecf5cae0451968dd981182b185f05a8f0d06f6d47286ca43e1481d9449",
+    "profesional-core-v130.js": "424f10ee6dba86d2cf834642b1d7c85002e96908914e4aa95eb98b6c0f3e273f",
+    "profesional-operaciones-v130.js": "2a84c70c5c3d638eb0decd31e6cb16505ef0ad8cf489882624fd17571a056883",
+    "profesional-ui-v130.js": "c18b422199ef4020241dc15f9ac3a0630861d59cfbd375be97cc85d5c470caef",
+    "respaldo-negocio.js": "61cec4d1a3250b5a65a2faa53eaf2a933b7b9126ce772018d0e1e3b5c231fcc6",
+    "vendor-cache-v130.js": "53a645bc9099369d7ccb363a4b6056f2c9809e112cba914ba648424da106ac3f",
+    "visual-preferences.js": "ef88bcca9f2e988cbda3e94a5448da20d163d4edac1b57ff4bfb1d4692785668"
+  }
+}

@@ -30,9 +30,7 @@
     }
 
     function inicioDia(ts = Date.now()) {
-        const d = new Date(ts);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime();
+        return Math.floor((Number(ts) - 21600000) / MS_DIA) * MS_DIA + 21600000;
     }
 
     function parseFecha(fecha) {
@@ -40,9 +38,8 @@
         if(Number.isFinite(Number(fecha)) && Number(fecha) > 100000000000) return Number(fecha);
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fecha).trim());
         if(!m) return NaN;
-        const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-        if(d.getFullYear() !== Number(m[1]) || d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[3])) return NaN;
-        d.setHours(0, 0, 0, 0);
+        const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 6));
+        if(d.getUTCFullYear() !== Number(m[1]) || d.getUTCMonth() !== Number(m[2]) - 1 || d.getUTCDate() !== Number(m[3])) return NaN;
         return d.getTime();
     }
 

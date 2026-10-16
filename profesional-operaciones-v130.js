@@ -26,6 +26,7 @@
 
     function esDueno() { try { return currentUserData?.rol === 'dueno'; } catch(_) { return false; } }
     function usuario() { try { return currentUserData || null; } catch(_) { return null; } }
+    function versionApp() { try { return typeof APP_VERSION === 'string' ? APP_VERSION : '1.4.2'; } catch(_) { return '1.4.2'; } }
 
     async function valorServerTimestamp() {
         try {
@@ -70,7 +71,7 @@
                 tipo:String(tipo||'evento').slice(0,80), timestamp,
                 servidorEn:servidorEn || null,
                 usuarioId:u?.id || null, usuarioNombre:u?.nombre || 'Usuario', usuarioRol:u?.rol || 'desconocido',
-                detalles:JSON.parse(JSON.stringify(detalles||{})), build:'1.3.0'
+                detalles:JSON.parse(JSON.stringify(detalles||{})), build:versionApp()
             };
             await global.setDoc(global.doc(global.db,'auditoria_sistema',idSeguro('aud')),registro);
             return true;
@@ -160,7 +161,7 @@
         const errores=leerErrores(); if(!errores.length) return alert('No hay errores locales para guardar.');
         try{
             const servidorEn=await valorServerTimestamp();
-            await global.setDoc(global.doc(global.db,'errores_sistema',idSeguro('diag')),{timestamp:Date.now(),servidorEn:servidorEn||null,usuario:usuario()?.nombre||'Dueño',build:'1.3.0',errores});
+            await global.setDoc(global.doc(global.db,'errores_sistema',idSeguro('diag')),{timestamp:Date.now(),servidorEn:servidorEn||null,usuario:usuario()?.nombre||'Dueño',build:versionApp(),errores});
             alert('✅ Diagnóstico guardado. No modifica datos del negocio.');
             registrarAuditoria('diagnostico_guardado',{errores:errores.length});
         }catch(error){alert('No se pudo guardar el diagnóstico. '+error.message);}
@@ -248,11 +249,11 @@
                 const cfg = await t.get(global.doc(global.db,'sistema','config'));
                 if(JSON.stringify(cfg.data()) !== JSON.stringify(datos.config)) throw new Error('La caja cambió después del conteo. Vuelve a comparar antes de registrar.');
                 if(negocio.fechaDiaNegocio() !== fechaNegocio) throw new Error('Cambió el día del negocio. Repite el cierre.');
-                t.set(global.doc(global.db,'cierres_diarios',id), {id,timestamp:Date.now(),fechaNegocio,zonaHoraria:'America/Guatemala',usuarioId:usuario()?.id||null,usuarioNombre:usuario()?.nombre||'Dueño',...r,resumenDia:resumen,flujoCaja,consultaConfirmadaEn:datos.confirmadoEn,revisionOrigen:Number(datos.config.revisionGlobal||0),build:'1.4.0'});
-            });
+                t.set(global.doc(global.db,'cierres_diarios',id), {id,timestamp:Date.now(),fechaNegocio,zonaHoraria:'America/Guatemala',usuarioId:usuario()?.id||null,usuarioNombre:usuario()?.nombre||'Dueño',...r,resumenDia:resumen,flujoCaja,consultaConfirmadaEn:datos.confirmadoEn,revisionOrigen:Number(datos.config.revisionGlobal||0),build:versionApp()});
+            }, {tipoOperacion:'cierre_diario',claveOperacion:JSON.stringify({fechaNegocio,efectivo:e,banco:b}),soloDueno:true});
             confirmado = true;
             alert(r.cuadra ? '✅ Cierre registrado y cuadrado.' : '✅ Cierre registrado con diferencia para revisión.');
-        } catch(error) { alert(confirmado ? 'El cierre sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : 'No se registró el cierre. ' + error.message); }
+        } catch(error) { alert(confirmado ? 'El cierre sí quedó registrado. Recarga para actualizar la pantalla; no lo repitas. ' + error.message : (error.commitIncierto ? 'No se pudo confirmar la respuesta del cierre. Revisa el historial antes de repetirlo. ' : 'No se registró el cierre. ') + error.message); }
         finally { isProcessingTransaction = false; }
     }
 

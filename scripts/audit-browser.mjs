@@ -33,7 +33,7 @@ export const orderBy=(key,direction='asc')=>({kind:'order',key,direction});
 export const limit=n=>({kind:'limit',n});
 export const startAfter=ref=>({kind:'cursor',ref});
 export const query=(ref,...parts)=>({...ref,parts});
-export const getDoc=async ref=>snapshot(ref);
+export const getDoc=async ref=>{if(f.failConfirmation&&!f.allowConfirmation&&ref.path.startsWith('operaciones_sistema/'))throw Error('Sin red para confirmar');return snapshot(ref);};
 export const getDocs=async ref=>{
  let docs=[...f.base].filter(([k])=>k.split('/')[0]===ref.path).map(([k])=>snapshot({path:k,id:k.split('/')[1]}));
  for(const p of ref.parts||[]) {
@@ -42,11 +42,11 @@ export const getDocs=async ref=>{
   if(p.kind==='cursor') {const i=docs.findIndex(d=>d.id===p.ref.id);docs=docs.slice(i+1);}
   if(p.kind==='limit') docs=docs.slice(0,p.n);
  }
- return {docs,metadata:{fromCache:false,hasPendingWrites:false},forEach:fn=>docs.forEach(fn)};
+ return {docs,size:docs.length,metadata:{fromCache:false,hasPendingWrites:false},forEach:fn=>docs.forEach(fn)};
 };
 const emitir=()=>setTimeout(()=>{for(const l of f.listeners)Promise.resolve(l.ref.type==='doc'?snapshot(l.ref):getDocs(l.ref)).then(l.fn);},0);
 export const onSnapshot=(ref,options,fn)=>{if(typeof options==='function')fn=options;f.listeners.push({ref,fn});setTimeout(()=>Promise.resolve(ref.type==='doc'?snapshot(ref):getDocs(ref)).then(fn),0);return ()=>{};};
-export const runTransaction=async(_,action)=>{let writing=false;const queue=[];const t={get:async ref=>{if(writing)throw Error('Lectura después de escribir');return snapshot(ref);},set:(ref,data,opts)=>{writing=true;queue.push({ref,data:clone(data),opts});},update:(ref,data)=>{writing=true;queue.push({ref,data:clone(data),opts:{merge:true}});},delete:ref=>{writing=true;queue.push({ref,deleted:true});}};const result=await action(t);if(f.failBefore && queue.some(q=>q.ref.path===f.failBefore || q.ref.path.startsWith(f.failBefore+'/'))){f.failBefore=null;const e=Error('Rechazo simulado antes del commit');e.code='permission-denied';throw e;}for(const q of queue){if(q.deleted)f.base.delete(q.ref.path);else f.base.set(q.ref.path,q.opts?.merge?{...f.base.get(q.ref.path),...q.data}:q.data);}if(queue.length)emitir();if(f.failAfter && queue.some(q=>q.ref.path.startsWith(f.failAfter+'/'))){f.failAfter=null;throw Error('Respuesta perdida después del commit simulado');}return result;};
+export const runTransaction=async(_,action)=>{f.failConfirmation=false;let writing=false;const queue=[];const t={get:async ref=>{if(writing)throw Error('Lectura después de escribir');return snapshot(ref);},set:(ref,data,opts)=>{writing=true;queue.push({ref,data:clone(data),opts});},update:(ref,data)=>{writing=true;queue.push({ref,data:clone(data),opts:{merge:true}});},delete:ref=>{writing=true;queue.push({ref,deleted:true});}};const result=await action(t);if(f.failBefore && queue.some(q=>q.ref.path===f.failBefore || q.ref.path.startsWith(f.failBefore+'/'))){f.failBefore=null;const e=Error('Rechazo simulado antes del commit');e.code='permission-denied';throw e;}for(const q of queue){if(q.deleted)f.base.delete(q.ref.path);else f.base.set(q.ref.path,q.opts?.merge?{...f.base.get(q.ref.path),...q.data}:q.data);}if(queue.length)emitir();if(f.failAfter && queue.some(q=>q.ref.path.startsWith(f.failAfter+'/'))){f.failAfter=null;f.failConfirmation=true;throw Error('Respuesta perdida después del commit simulado');}return result;};
 export const setDoc=(ref,data,opts)=>runTransaction(null,t=>t.set(ref,data,opts));
 export const updateDoc=(ref,data)=>runTransaction(null,t=>t.update(ref,data));
 export const deleteDoc=ref=>runTransaction(null,t=>t.delete(ref));
@@ -91,8 +91,8 @@ async function revisarIngreso(page) {
  assert.equal(new Set(r.ids).size,9);
  for(const id of r.ids)assert.equal(await page.evaluate(id=>__fixture.base.get('inventario/'+id).stock,id),1);
 }
-async function escenario(viewport,nombre,accion,{acceso=true}={}) {
- const context=await browser.newContext({viewport,serviceWorkers:'block',timezoneId:'America/Guatemala'});
+async function escenario(viewport,nombre,accion,{acceso=true,zona='America/Guatemala'}={}) {
+ const context=await browser.newContext({viewport,serviceWorkers:'block',timezoneId:zona});
  const page=await context.newPage();const errors=[],dialogs=[],blocked=[];
  page.setDefaultTimeout(15000);
  page.on('pageerror',e=>errors.push(e.message));page.on('dialog',async d=>{dialogs.push(d.message());await d.accept();});
@@ -121,6 +121,65 @@ async function escenario(viewport,nombre,accion,{acceso=true}={}) {
 }
 try {
 for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
+ await escenario(viewport,'auditoría integral: empleado cotiza sin datos internos y Ayuda respeta sus secciones',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   const employee={id:'employee',nombre:'PRUEBA EMPLEADO',pin:await hashPIN('2468'),rol:'empleado',permisos:{cotizacion:true,verFinanzas:false}};
+   __fixture.base.get('sistema/config').usuarios.push(employee);currentUserData=JSON.parse(JSON.stringify(employee));aplicarPermisos(currentUserData);
+   carritoCotizacion=[{tempId:1,idProd:'p1',nombre:'TAZA',qty:2,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];await procesarCotizacion();
+  });
+  assert.equal(await cuenta(page,'cotizaciones'),1);assert.match(dialogs.at(-1),/30.00/);assert.doesNotMatch(dialogs.at(-1),/GANANCIA LIBRE|GASTOS TOTALES|Costos de Materiales/);
+  await page.locator('#v128-ayuda-global').click();assert.equal(await page.locator('#sec-inicio').isVisible(),false);
+  assert.equal(await page.evaluate(()=>cambiarPestaña('caja')),false);assert.equal(await page.locator('#sec-caja').isVisible(),false);
+ });
+ await escenario(viewport,'auditoría integral: análisis usa la venta vigente y descarta su anulación',async page=>{
+  const result=await page.evaluate(()=>{
+   const old={id:'sale',timestamp:Date.now(),ingresoTotal:30,ganancia:20,costosProductos:10,detalleItems:[]};ventasAnalisis30=[old];ventas=[{...old,ingresoTotal:15,ganancia:10,costosProductos:5,revision:2}];
+   const before=analizarSistemaInteligente([],obtenerVentasAnalisis(),{},Date.now());ventas[0].anulada=true;
+   return {total:before.resumenHoy.ingreso,utilidad:before.resumenMes.ganancia,despues:analizarSistemaInteligente([],obtenerVentasAnalisis(),{},Date.now()).resumenHoy.operaciones};
+  });assert.deepEqual(result,{total:15,utilidad:10,despues:0});
+ });
+ await escenario(viewport,'auditoría integral: traslado recupera una respuesta confirmada sin duplicar movimientos',async(page,dialogs)=>{
+  await page.evaluate(async()=>{document.getElementById('traslado-direccion').value='efectivo-banco';document.getElementById('traslado-monto').value='20';document.getElementById('traslado-motivo').value='PRUEBA';__fixture.allowConfirmation=true;__fixture.failAfter='movimientos_caja';await registrarTrasladoDinero();});
+  assert.match(dialogs.at(-1),/Traslado registrado/);assert.equal(await page.evaluate(()=>__fixture.base.get('sistema/config').saldosDinero.banco),20);
+  assert.equal(await cuenta(page,'movimientos_caja'),1);assert.equal(await page.locator('#traslado-monto').inputValue(),'');
+ });
+ await escenario(viewport,'auditoría integral: consultar un guardado pendiente solo lee y limpia campos ya confirmados',async(page,dialogs)=>{
+  await page.evaluate(async()=>{document.getElementById('traslado-direccion').value='efectivo-banco';document.getElementById('traslado-monto').value='20';document.getElementById('traslado-motivo').value='PRUEBA';__fixture.failAfter='movimientos_caja';await registrarTrasladoDinero();});
+  assert.match(dialogs.at(-1),/confirmar/);const antes=await cuenta(page,'operaciones_sistema');
+  await page.evaluate(()=>{__fixture.failConfirmation=false;});await page.locator('#subli-guardados-pendientes button').click();
+  await page.waitForFunction(()=>listarGuardadosPendientesSubli().length===0 && document.getElementById('traslado-monto').value==='');
+  assert.equal(await page.locator('#traslado-monto').inputValue(),'');assert.equal(await page.evaluate(()=>listarGuardadosPendientesSubli().length),0);
+  assert.equal(await cuenta(page,'operaciones_sistema'),antes);assert.equal(await page.evaluate(()=>__fixture.base.get('sistema/config').saldosDinero.banco),20);
+ });
+ await escenario(viewport,'auditoría integral: consultar de nuevo el análisis completo trae los cambios del servidor',async page=>{
+  const r=await page.evaluate(async()=>{
+   const id='analysis-fixture';__fixture.base.set('ventas/'+id,{id,timestamp:Date.now(),ingresoTotal:30,ganancia:20});
+   await cargarVentasAnalisisUltimos30Dias(true);const primero=ventasAnalisis30.find(v=>v.id===id)?.ingresoTotal;
+   __fixture.base.get('ventas/'+id).ingresoTotal=15;
+   await cargarVentasAnalisisUltimos30Dias(true);
+   return {primero,segundo:ventasAnalisis30.find(v=>v.id===id)?.ingresoTotal,completo:analisisVentas30Completo};
+  });assert.deepEqual(r,{primero:30,segundo:15,completo:true});
+ });
+ await escenario(viewport,'auditoría integral: devolución conserva selección e historial original y neto',async(page,dialogs)=>{
+  await page.evaluate(async()=>{
+   carritoVentas=[2,1].map((qty,i)=>({tempId:i+1,idProd:'p1',nombre:'TAZA',qty,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}));
+   document.getElementById('venta-tipo-cobro').value='contado';document.getElementById('venta-metodo-pago').value='efectivo';await procesarVentaMultiple();cambiarPestaña('caja');
+   document.getElementById('devolucion-venta').value=ventas[0].id;actualizarOpcionesDevolucion();document.getElementById('devolucion-item').value='1';document.getElementById('devolucion-cantidad').value='1';renderFinanzasNegocio();
+  });
+  assert.equal(await page.locator('#devolucion-item').inputValue(),'1');assert.equal(await page.locator('#devolucion-cantidad').inputValue(),'1');
+  await page.locator('#devolucion-reingresar').check();await page.locator('#devolucion-motivo').fill('PRUEBA DEVOLUCION');await page.evaluate(()=>registrarDevolucionVenta());
+  assert.equal(await cuenta(page,'devoluciones'),1,dialogs.join('\n'));const sale=await page.evaluate(()=>[...__fixture.base].find(([k])=>k.startsWith('ventas/'))[1]);
+  assert.equal(sale.ingresoTotal,30);assert.equal(sale.resumenItems,'2x TAZA');assert.match(sale.resumenItemsOriginal,/2x TAZA.*1x TAZA/);
+ });
+ await escenario(viewport,'auditoría integral: una dependencia fallida se descarga de nuevo al reintentar',async page=>{
+  let intentos=0;await page.route('https://fixture.invalid/auditoria.js',async route=>{intentos++;if(intentos===1)return route.abort();return route.fulfill({contentType:'text/javascript',body:'window.__auditLibReady=true;'});});
+  const primera=await page.evaluate(()=>cargarScriptExternoUnaVez('audit-lib','https://fixture.invalid/auditoria.js',()=>Boolean(window.__auditLibReady)).then(()=>true,()=>false));assert.equal(primera,false);
+  await page.evaluate(()=>cargarScriptExternoUnaVez('audit-lib','https://fixture.invalid/auditoria.js',()=>Boolean(window.__auditLibReady)));assert.equal(intentos,2);
+ });
+ await escenario(viewport,'auditoría integral: una venta en equipo UTC conserva fecha y mes de Guatemala',async(page,dialogs)=>{
+  await page.evaluate(async()=>{Date.now=()=>Date.parse('2026-11-01T04:00:00Z');carritoVentas=[{tempId:1,idProd:'p1',nombre:'TAZA',qty:1,precioCobrado:15,costoBase:5,rol:'principal',unidadId:'pieza'}];document.getElementById('venta-tipo-cobro').value='contado';document.getElementById('venta-metodo-pago').value='efectivo';await procesarVentaMultiple();});
+  const sale=await page.evaluate(()=>[...__fixture.base].find(([k])=>k.startsWith('ventas/'))?.[1]);assert.ok(sale,dialogs.join('\n'));assert.equal(sale.mesContable,'2026-10');assert.equal(sale.fechaNegocio,'2026-10-31');assert.equal(await page.evaluate(()=>__fixture.base.has('resumen_mensual/2026-10')),true);
+ },{zona:'UTC'});
  await escenario(viewport,'Dueño con casillas desactualizadas guarda ingreso, inventario, venta, cotización, finanzas y PIN',async(page,dialogs)=>{
   await page.evaluate(async()=>{
    __fixture.base.get('sistema/config').usuarios[0].permisos={ingreso:false,ventas:false,cotizacion:false,inventario:false,alertas:false,verFinanzas:false};

@@ -17,6 +17,10 @@
         return JSON.stringify(valor);
     }
 
+    function crearOpcionesOperacion(tipo, solicitud) {
+        return { tipoOperacion:tipo, claveOperacion:serializarEstable(solicitud), soloDueno:true };
+    }
+
     async function leerRangoConfirmado(colecciones, inicio, fin) {
         if(!Number.isFinite(inicio) || !Number.isFinite(fin) || inicio > fin) throw new Error('Rango de fechas inválido.');
         if(!global.db || !global.navigator?.onLine) throw new Error('Necesitas conexión para confirmar el período completo.');
@@ -53,7 +57,11 @@
         const enVuelo = new Map();
         const claveRef = ref => ref.path || String(ref);
         const idNuevo = () => global.crypto?.randomUUID?.() || `op_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const obtenerId = (clave, solicitud) => {
+        const avisarPendientes = () => {
+            if(typeof global.dispatchEvent === 'function' && typeof global.Event === 'function')
+                setTimeout(() => global.dispatchEvent(new global.Event('subli:guardados-pendientes')),0);
+        };
+        const obtenerId = (clave, solicitud, opciones) => {
             let pendiente = pendientes.get(clave);
             try { pendiente ||= JSON.parse(global.sessionStorage?.getItem(clave) || 'null'); } catch {}
             const preexistente = Boolean(pendiente);
@@ -62,14 +70,63 @@
                 error.commitIncierto = true;
                 throw error;
             }
-            pendiente ||= {id:idNuevo(), solicitud};
+            pendiente ||= {id:idNuevo(), solicitud, tipo:opciones.tipoOperacion || 'operacion', creadoEn:Date.now(), campos:opciones.camposConfirmacion || {}};
             pendientes.set(clave, pendiente);
             try { global.sessionStorage?.setItem(clave, JSON.stringify(pendiente)); } catch {}
+            avisarPendientes();
             return {id:pendiente.id, preexistente};
         };
         const olvidarId = clave => {
             pendientes.delete(clave);
             try { global.sessionStorage?.removeItem(clave); } catch {}
+            avisarPendientes();
+        };
+        const leerResultadoConfirmado = async (id, solicitud, usuario, autorUID) => {
+            const snap = await global.getDoc(global.doc(global.db,'operaciones_sistema',id));
+            if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites || !snap.exists()) return null;
+            const registro = snap.data();
+            if(registro.solicitud !== solicitud || String(registro.usuarioId ?? '') !== String(usuario?.id ?? '')
+                || (registro.autorUID ?? null) !== autorUID) return null;
+            return { resultado:registro.tieneResultado ? registro.resultado : undefined };
+        };
+        const listarPendientes = () => {
+            const usuario = usuarioOperativo();
+            if(!usuario) return [];
+            const prefijo = `subli_op_pendiente_${global.firebaseAuthUser?.uid || 'local'}_${usuario.id}_`;
+            const encontrados = new Map(pendientes);
+            try {
+                for(let i=0;i<(global.sessionStorage?.length || 0);i++) {
+                    const clave = global.sessionStorage.key(i);
+                    if(clave?.startsWith(prefijo) && !encontrados.has(clave)) encontrados.set(clave,JSON.parse(global.sessionStorage.getItem(clave)));
+                }
+            } catch(_) { /* La memoria conserva los marcadores de esta página. */ }
+            return [...encontrados].filter(([clave,p]) => clave.startsWith(prefijo) && p?.id && p?.solicitud)
+                .map(([clave,p]) => ({...p,clave}));
+        };
+        const consultarPendientes = async () => {
+            if(!global.db || !global.navigator?.onLine) throw new Error('Conecta el dispositivo para comprobar los guardados pendientes.');
+            const usuario = usuarioOperativo(), autorUID = global.firebaseAuthUser?.uid || null;
+            const resultados = [];
+            for(const pendiente of listarPendientes()) {
+                const snap = await global.getDoc(global.doc(global.db,'operaciones_sistema',pendiente.id));
+                if(!snap.metadata || snap.metadata.fromCache || snap.metadata.hasPendingWrites) throw new Error('El servidor no confirmó la consulta; se conservan los pendientes.');
+                const registro = snap.exists() ? snap.data() : null;
+                const confirmada = Boolean(registro && registro.solicitud === pendiente.solicitud
+                    && String(registro.usuarioId ?? '') === String(usuario?.id ?? '') && (registro.autorUID ?? null) === autorUID);
+                resultados.push({...pendiente,confirmada,timestamp:confirmada ? registro.timestamp : pendiente.creadoEn});
+            }
+            if(String(usuarioOperativo()?.id ?? '') !== String(usuario?.id ?? '') || (global.firebaseAuthUser?.uid || null) !== autorUID)
+                throw new Error('La sesión cambió durante la consulta. Ingresa nuevamente con tu PIN.');
+            return resultados;
+        };
+        global.listarGuardadosPendientesSubli = listarPendientes;
+        global.consultarGuardadosPendientesSubli = consultarPendientes;
+        global.reconocerGuardadoConfirmadoSubli = async id => {
+            const pendiente = (await consultarPendientes()).find(p => p.id === id);
+            if(enVuelo.size) throw new Error('Espera a que termine la operación en curso antes de liberar el formulario.');
+            if(!pendiente?.confirmada) throw new Error('No se confirmó esta operación; el marcador se conserva.');
+            olvidarId(pendiente.clave);
+            return pendiente;
         };
         const camposAuditoria = data => {
             if(!data || typeof data !== 'object') return null;
@@ -94,7 +151,7 @@
                 const grupo = await claveOperacion(textoGrupo);
                 const solicitud = await claveOperacion(textoSolicitud);
                 const clave = `subli_op_pendiente_${autorUID || 'local'}_${usuario?.id ?? 'inicio'}_${grupo}`;
-                const pendiente = opciones.opId ? {id:opciones.opId, preexistente:true} : obtenerId(clave, solicitud);
+                const pendiente = opciones.opId ? {id:opciones.opId, preexistente:true} : obtenerId(clave, solicitud, opciones);
                 const opId = pendiente.id;
                 let escrituraIntentada = false;
                 const promesa = nativo(db, async original => {
@@ -108,6 +165,7 @@
                         if(!opciones.claveOperacion && !opciones.opId) throw new Error('Hay una operación anterior sin confirmación que necesita revisión del historial antes de repetirse.');
                         if(registro.solicitud && registro.solicitud !== solicitud) throw new Error('La operación anterior corresponde a otra solicitud. Revisa el historial antes de continuar.');
                         if(String(registro.usuarioId ?? '') !== String(usuario?.id ?? '')) throw new Error('La operación pertenece a otro usuario.');
+                        if((registro.autorUID ?? null) !== autorUID) throw new Error('La operación pertenece a otra cuenta Firebase.');
                         return registro.tieneResultado ? registro.resultado : undefined;
                     }
                     if(data.mantenimiento?.activo) throw new Error('El sistema está en recuperación. Las operaciones están pausadas para proteger tus datos.');
@@ -171,11 +229,11 @@
                     }
                     const timestamp = Date.now();
                     original.set(configRef, { revisionGlobal:revision + 1, ultimaOperacionEn:timestamp }, { merge:true });
-                    original.set(registroRef, { id:opId, timestamp, usuarioId:usuario?.id ?? null, autorUID, solicitud, tieneResultado:valor !== undefined, resultado:resultadoGuardado });
+                    original.set(registroRef, { id:opId, timestamp, usuarioId:usuario?.id ?? null, autorUID, solicitud, tipoOperacion:opciones.tipoOperacion || 'operacion', tieneResultado:valor !== undefined, resultado:resultadoGuardado });
                     original.set(global.doc(db,'auditoria_sistema',opId), {
-                        id:opId, timestamp, tipo:'operacion_atomica', usuarioId:usuario?.id || null,
+                        id:opId, timestamp, tipo:opciones.tipoOperacion || 'operacion_atomica', usuarioId:usuario?.id || null,
                         usuarioNombre:usuario?.nombre || 'Acceso del propietario', autorUID,
-                        operaciones, version:'1.4.1'
+                        operaciones, version:'1.4.2'
                     });
                     return valor;
                 }, { maxAttempts:opciones.maxAttempts || 5 });
@@ -184,22 +242,32 @@
                     olvidarId(clave);
                     return resultado;
                 } catch(error) {
+                    const rechazoDefinitivo = ['permission-denied','unauthenticated','invalid-argument','failed-precondition','aborted'].includes(error?.code);
+                    // Recuperar una respuesta perdida exige un registro coincidente y confirmado,
+                    // nunca inferir éxito de la caché ni volver a ejecutar sus escrituras.
+                    if(escrituraIntentada && !rechazoDefinitivo && (opciones.claveOperacion || opciones.opId)) {
+                        try {
+                            const confirmado = await leerResultadoConfirmado(opId, solicitud, usuario, autorUID);
+                            if(confirmado) { olvidarId(clave); return confirmado.resultado; }
+                        } catch(_) { /* Sin red: conservar el marcador y comunicar incertidumbre. */ }
+                    }
                     // Una validación que falló antes de enviar escrituras no deja un commit incierto.
-                    if(!pendiente.preexistente && (!escrituraIntentada || ['permission-denied','unauthenticated','invalid-argument','failed-precondition','aborted'].includes(error?.code))) olvidarId(clave);
+                    if(!pendiente.preexistente && (!escrituraIntentada || rechazoDefinitivo)) olvidarId(clave);
                     else error.commitIncierto = true;
                     throw error;
                 }
             })();
             enVuelo.set(claveVuelo, {solicitud:textoSolicitud, promesa:operacion});
             try { return await operacion; }
-            finally { enVuelo.delete(claveVuelo); }
+            finally { enVuelo.delete(claveVuelo); avisarPendientes(); }
         };
         // Las escrituras administrativas también participan de revisión, permisos y bitácora.
-        global.setDoc = (ref,datos,opciones) => global.runTransaction(global.db, async t => { await t.get(ref); t.set(ref,datos,opciones); }, { claveOperacion:`set:${claveRef(ref)}:${JSON.stringify(datos)}:${JSON.stringify(opciones)}` });
-        global.updateDoc = (ref,datos) => global.runTransaction(global.db, async t => { await t.get(ref); t.update(ref,datos); }, { claveOperacion:`update:${claveRef(ref)}:${JSON.stringify(datos)}` });
-        global.deleteDoc = ref => global.runTransaction(global.db, async t => { await t.get(ref); t.delete(ref); }, { claveOperacion:`delete:${claveRef(ref)}` });
-        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.1' });
+        global.setDoc = (ref,datos,opciones) => global.runTransaction(global.db, async t => { await t.get(ref); t.set(ref,datos,opciones); }, { claveOperacion:`set:${claveRef(ref)}:${JSON.stringify(datos)}:${JSON.stringify(opciones)}`, soloDueno:true });
+        global.updateDoc = (ref,datos) => global.runTransaction(global.db, async t => { await t.get(ref); t.update(ref,datos); }, { claveOperacion:`update:${claveRef(ref)}:${JSON.stringify(datos)}`, soloDueno:true });
+        global.deleteDoc = ref => global.runTransaction(global.db, async t => { await t.get(ref); t.delete(ref); }, { claveOperacion:`delete:${claveRef(ref)}`, soloDueno:true });
+        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.2' });
     }
     global.instalarIntegridadFirebase = instalarIntegridadFirebase;
+    global.crearOpcionesOperacionSubli = crearOpcionesOperacion;
     global.leerRangoConfirmadoSubli = leerRangoConfirmado;
 })(typeof window !== 'undefined' ? window : globalThis);

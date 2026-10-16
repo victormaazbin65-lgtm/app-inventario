@@ -27,7 +27,7 @@
 
     function fechaHoraNegocio(timestamp = Date.now()) {
         const fecha = new Date(timestamp);
-        return fecha.toLocaleDateString('es-GT') + ' ' + fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+        return fecha.toLocaleDateString('es-GT', {timeZone:'America/Guatemala'}) + ' ' + fecha.toLocaleTimeString('es-GT', { timeZone:'America/Guatemala', hour: '2-digit', minute: '2-digit' });
     }
 
     function monedaNegocio() {

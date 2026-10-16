@@ -164,6 +164,11 @@
 
     function abrirAyuda() {
         try {
+            if(!global.puedeAbrirSeccionSubli?.('inicio')) {
+                if(typeof global.abrirBuscadorAccionesV130 === 'function') global.abrirBuscadorAccionesV130();
+                else alert('Ayuda: utiliza las secciones habilitadas en tu menú. Agrega los artículos a la lista y comprueba los datos antes de confirmar. Si necesitas otra función, solicita acceso al Dueño.');
+                return;
+            }
             if(typeof global.cambiarPestaña === 'function') global.cambiarPestaña('inicio');
             const panel = document.getElementById('panel-inteligente');
             const details = panel?.closest('details');
