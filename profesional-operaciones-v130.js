@@ -26,7 +26,7 @@
 
     function esDueno() { try { return currentUserData?.rol === 'dueno'; } catch(_) { return false; } }
     function usuario() { try { return currentUserData || null; } catch(_) { return null; } }
-    function versionApp() { try { return typeof APP_VERSION === 'string' ? APP_VERSION : '1.4.2'; } catch(_) { return '1.4.2'; } }
+    function versionApp() { try { return typeof APP_VERSION === 'string' ? APP_VERSION : '1.4.3'; } catch(_) { return '1.4.3'; } }
 
     async function valorServerTimestamp() {
         try {

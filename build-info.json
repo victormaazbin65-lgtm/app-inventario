@@ -1,9 +1,9 @@
 {
-  "build": "1.4.2",
-  "basePublica": "1.4.2",
+  "build": "1.4.3",
+  "basePublica": "1.4.3",
   "canal": "produccion",
-  "fecha": "2026-10-15",
-  "descripcion": "Auditoría integral: confirmaciones, permisos de pantalla, devoluciones, fechas compatibles y recuperación. Publicación autorizada por el Dueño.",
-  "revision": "auditoria-integral-20261015",
-  "fechaRevision": "2026-10-15"
+  "fecha": "2026-11-20",
+  "descripcion": "Historial de ventas por producto y correcciones de devoluciones y resúmenes.",
+  "revision": "historial-ventas-20261120",
+  "fechaRevision": "2026-11-20"
 }

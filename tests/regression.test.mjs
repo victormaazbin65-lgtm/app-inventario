@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.2' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.3' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -371,7 +371,7 @@ test('el retiro inteligente distribuye centavos con prioridad y protege SAT', ()
 test('las operaciones críticas no conservan el fallback que escribía parcialmente', () => {
   assert.doesNotMatch(scriptClasico, /Fallback local activado|promesasOffline|usando Fallback/i);
   assert.match(scriptClasico, /ventaAnterior\.versionCalculo !== 2/);
-  assert.match(scriptClasico, /Number\(registro\.versionCalculo\) < 2/);
+  assert.match(scriptClasico, /!\(Number\(registro\.versionCalculo\) >= 2\)/);
   assert.match(scriptClasico, /resumenMensualContabilizado:\s*true/);
   assert.doesNotMatch(scriptClasico, /deleteDoc\(window\.doc\(window\.db,\s*["'](?:ventas|ingresos|cotizaciones|retiros)["']/);
 });
@@ -638,9 +638,9 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.2"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.2/);
-  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.2\/buscador\.js'\)/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.3"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.3/);
+  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.3\/buscador\.js'\)/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');

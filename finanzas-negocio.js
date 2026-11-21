@@ -504,7 +504,7 @@
         const venta = ventaSeleccionadaDevolucion();
         const select = document.getElementById('devolucion-item');
         if (!select) return;
-        if (!venta || Number(venta.versionCalculo) < 3) {
+        if (!venta || !(Number(venta.versionCalculo) >= 3)) {
             select.innerHTML = '<option value="">Sin artículos compatibles</option>';
             delete select.dataset.ventaId;
             delete select.dataset.lineas;
@@ -547,8 +547,7 @@
         if (item.isService) {
             cantidad = normalizarCantidadServicio(cantidad);
         } else {
-            const producto = inventario.find(p => String(p.id) === String(item.idProd));
-            cantidad = validarCantidadProducto(cantidad, producto || { unidadId: item.unidadId || 'pieza' });
+            cantidad = validarCantidadProducto(cantidad, { unidadId: item.unidadId || 'pieza' });
         }
         if (core.aMilesimas(cantidad) > core.aMilesimas(item.qty)) throw new Error('Cantidad devuelta inválida.');
         const calculoLinea = core.calcularDevolucionLinea(item, cantidad);
@@ -557,12 +556,14 @@
         const cobradoAntes = core.redondearMoneda(venta.montoCobradoTotal ?? venta.ingresoTotal);
         const ingresoNuevo = core.desdeCentavos(Math.max(0, core.aCentavos(venta.ingresoTotal) - calculoLinea.ingresoDevueltoCentavos));
         const cobradoNuevo = Math.min(cobradoAntes, ingresoNuevo);
-        const reembolso = core.redondearMoneda(cobradoAntes - cobradoNuevo);
+        const excesoCobrado = core.redondearMoneda(cobradoAntes - cobradoNuevo);
+        const anticipoRestaurado = Math.min(core.redondearMoneda(venta.anticipoAplicado || 0), excesoCobrado);
+        const reembolso = core.redondearMoneda(excesoCobrado - anticipoRestaurado);
         const saldoNuevo = core.desdeCentavos(Math.max(0, core.aCentavos(ingresoNuevo) - core.aCentavos(cobradoNuevo)));
         const creditoReducido = core.desdeCentavos(Math.max(0, core.aCentavos(saldoAntes) - core.aCentavos(saldoNuevo)));
         return {
             venta, item, indice, cantidad: core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas),
-            ingresoDevuelto, ingresoNuevo, cobradoAntes, cobradoNuevo, reembolso, creditoReducido,
+            ingresoDevuelto, ingresoNuevo, cobradoAntes, cobradoNuevo, reembolso, anticipoRestaurado, creditoReducido,
             referenciaLinea: core.crearReferenciaLineaVenta(item, indice),
             revisionVenta: Math.trunc(Number(venta.revision || 0))
         };
@@ -576,7 +577,7 @@
         if(item && cantidad) { cantidad.max=item.qty; cantidad.step=item.isService ? 0.001 : (item.unidadPaso || 1); }
         try {
             const p = datosPreviewDevolucion();
-            cont.innerHTML = `Total que se reversa: <strong>${dineroNegocio(p.ingresoDevuelto)}</strong> · reduce crédito: <strong>${dineroNegocio(p.creditoReducido)}</strong> · reembolso que sale: <strong>${dineroNegocio(p.reembolso)}</strong>.`;
+            cont.innerHTML = `Total que se reversa: <strong>${dineroNegocio(p.ingresoDevuelto)}</strong> · reduce crédito: <strong>${dineroNegocio(p.creditoReducido)}</strong> · anticipo que se restituye: <strong>${dineroNegocio(p.anticipoRestaurado)}</strong> · reembolso que sale: <strong>${dineroNegocio(p.reembolso)}</strong>.`;
         } catch (error) { cont.textContent = error.message; }
     }
 
@@ -584,13 +585,13 @@
         if (!exigirDueno() || !navigator.onLine || isProcessingTransaction) return;
         let preview;
         try { preview = datosPreviewDevolucion(); } catch (error) { return alert(error.message); }
-        if (Number(preview.venta.versionCalculo) < 3) return alert('Esta venta es anterior al control de pagos. Usa “Deshacer” para una reversión completa segura.');
+        if (!(Number(preview.venta.versionCalculo) >= 3)) return alert('Esta venta es anterior al control de pagos. Usa “Deshacer” para una reversión completa segura.');
         const reingresar = Boolean(document.getElementById('devolucion-reingresar').checked && !preview.item.isService);
         const metodo = document.getElementById('devolucion-metodo').value;
         const ubicacion = core.ubicacionMetodoPago(metodo);
         const motivo = document.getElementById('devolucion-motivo').value.trim();
         if (!motivo) return alert('Escribe el motivo de la devolución.');
-        if (!confirm(`Registrar devolución de ${preview.cantidad} × ${preview.item.nombre}?\nSe reversan ${dineroNegocio(preview.ingresoDevuelto)} y salen ${dineroNegocio(preview.reembolso)} como reembolso.`)) return;
+        if (!confirm(`Registrar devolución de ${preview.cantidad} × ${preview.item.nombre}?\nSe reversan ${dineroNegocio(preview.ingresoDevuelto)}, se restituyen ${dineroNegocio(preview.anticipoRestaurado)} al anticipo y salen ${dineroNegocio(preview.reembolso)} como reembolso.`)) return;
         isProcessingTransaction = true;
         let operacionConfirmada = false;
         try {
@@ -607,7 +608,7 @@
                 if (!ventaSnap.exists() || !configSnap.exists()) throw new Error('La venta o configuración ya no existe.');
                 const venta = ventaSnap.data();
                 if (venta.anulada) throw new Error('La venta ya fue anulada desde otro dispositivo.');
-                if (Number(venta.versionCalculo) < 3) throw new Error('La venta no admite devoluciones parciales seguras.');
+                if (!(Number(venta.versionCalculo) >= 3)) throw new Error('La venta no admite devoluciones parciales seguras.');
                 if (Math.trunc(Number(venta.revision || 0)) !== preview.revisionVenta) throw new Error('La venta cambió desde otro dispositivo. Recarga y revisa antes de devolver.');
                 const indiceServidor = core.localizarLineaVenta(venta.detalleItems, preview.referenciaLinea);
                 if (indiceServidor < 0) throw new Error('El artículo cambió de posición o contenido desde otro dispositivo. No se aplicó la devolución.');
@@ -707,10 +708,12 @@
                 let productoNuevo = null;
                 if (!item.isService && productoSnap?.exists()) {
                     const producto = productoSnap.data();
+                    if(reingresar) core.validarUnidadRestitucion(item, producto);
+                    const mismaUnidad = !producto.isService && (producto.unidadId || 'pieza') === (item.unidadId || 'pieza');
                     const cantidadDevuelta = core.desdeMilesimas(calculoLinea.cantidadDevueltaMilesimas);
                     productoNuevo = {
                         ...producto,
-                        ventasTotales: core.desdeMilesimas(Math.max(0, core.aMilesimas(producto.ventasTotales) - calculoLinea.cantidadDevueltaMilesimas)),
+                        ventasTotales: mismaUnidad ? core.desdeMilesimas(Math.max(0, core.aMilesimas(producto.ventasTotales) - calculoLinea.cantidadDevueltaMilesimas)) : core.desdeMilesimas(core.aMilesimas(producto.ventasTotales)),
                         lastModified: timestamp
                     };
                     if (reingresar) {

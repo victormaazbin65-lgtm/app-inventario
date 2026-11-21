@@ -1,9 +1,10 @@
+import {fileURLToPath} from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-const root = path.resolve(new URL('..', import.meta.url).pathname);
+const root = fileURLToPath(new URL('..', import.meta.url));
 const read = p => fs.readFileSync(path.join(root,p),'utf8');
 const html=read('index.html');
 function extract(name,source=html){

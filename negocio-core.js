@@ -235,6 +235,12 @@
         return { cantidadBase, costoBase:costoUnitario, costoTotalCompra, residuoCostoTotal };
     }
 
+    function validarUnidadRestitucion(linea, producto) {
+        if (producto.isService || (linea.unidadId || 'pieza') !== (producto.unidadId || 'pieza')) {
+            throw new Error(`La unidad o el tipo de ${linea.nombre || producto.nombre} cambió desde la venta. Revisa el artículo antes de devolver existencias.`);
+        }
+    }
+
     function crearReferenciaLineaVenta(item, indice) {
         const linea = item && typeof item === 'object' ? item : {};
         return {
@@ -300,12 +306,14 @@
         const devuelta = aMilesimas(cantidadDevuelta);
         const originalGuardada = Math.trunc(numeroFinito(item.cantidadOriginalMilesimas));
         const original = originalGuardada >= disponible && originalGuardada > 0 ? originalGuardada : disponible;
-        const ingresoGuardado = Number(item.ingresoLineaOriginalCentavos);
-        const costoGuardado = Number(item.costoLineaOriginalCentavos);
+        // Algunas líneas antiguas guardan un campo vacío en vez de omitirlo.
+        const enteroGuardado = valor => typeof valor === 'number' || typeof valor === 'string' && valor.trim() !== '' ? Number(valor) : NaN;
+        const ingresoGuardado = enteroGuardado(item.ingresoLineaOriginalCentavos);
+        const costoGuardado = enteroGuardado(item.costoLineaOriginalCentavos);
         const ingresoTotal = Number.isSafeInteger(ingresoGuardado) && ingresoGuardado >= 0
             ? ingresoGuardado
             : aCentavos(desdeMilesimas(original) * numeroFinito(item.precioCobrado));
-        const costoUnitario = numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase));
+        const costoUnitario = numeroFinito(item.costoUnitarioReal ?? item.costoBase);
         const costoTotal = Number.isSafeInteger(costoGuardado) && costoGuardado >= 0
             ? costoGuardado
             : aCentavos(desdeMilesimas(original) * costoUnitario);
@@ -829,6 +837,7 @@
         normalizarCantidad,
         calcularIngresoConvertido,
         calcularIngresoSimple,
+        validarUnidadRestitucion,
         crearReferenciaLineaVenta,
         localizarLineaVenta,
         calcularDevolucionLinea,
