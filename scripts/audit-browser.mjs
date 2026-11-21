@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 let playwright;
 try { playwright = await import('playwright'); }
 catch(error) {
  if(!process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES) throw error;
  playwright = await import(pathToFileURL(path.join(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES,'playwright/index.mjs')));
 }
-const root=path.resolve(new URL('..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const mime={'.js':'text/javascript','.html':'text/html','.json':'application/json','.png':'image/png'};
 const server=http.createServer((req,res)=>{
  const target=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
@@ -64,7 +64,7 @@ export const signInWithEmailAndPassword=createUserWithEmailAndPassword;
 export const sendPasswordResetEmail=async()=>{};
 export const signOut=async()=>{};
 `;
-const browser=await playwright.chromium.launch({headless:true});
+const browser=await playwright.chromium.launch({headless:true, executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined});
 
 let checks=0;
 const ownerPin=pin;
@@ -121,6 +121,67 @@ async function escenario(viewport,nombre,accion,{acceso=true,zona='America/Guate
 }
 try {
 for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
+await escenario(viewport,'historial: buscar por producto o código, abrir la ficha y devolver la venta elegida',async page=>{
+  await page.evaluate(async()=>{
+   carritoVentas=[
+    {idProd:'p1',nombre:'Taza de café',qty:2,precioCobrado:12.55,costoBase:5,rol:'principal',codigoInventario:'1001',unidadId:'pieza',unidadAbreviatura:'pza'},
+    {idProd:'p1',nombre:'Caja decorativa',qty:1,precioCobrado:0,costoBase:5,rol:'combo',unidadId:'pieza',unidadAbreviatura:'pza'},
+    {idProd:'srv_creacion_01',nombre:'Diseño <especial>',qty:1,precioCobrado:2.50,costoBase:0,rol:'principal',isService:true,unidadId:'servicio',unidadAbreviatura:'serv'}
+   ];
+   await procesarVentaMultiple();
+   await cargarHistorialCompleto('ventas');
+  });
+  await page.locator('#tab-ventas').click();
+  await page.locator('#panel-ventas-4 > summary').click();
+  const search=page.getByLabel('Buscar venta');
+  await search.fill('1001 cafe');
+  const ficha=page.locator('.venta-ficha').first();
+  await ficha.locator(':scope > summary').click();
+  assert.match(await ficha.innerText(),/27\.60/);
+  assert.match(await ficha.locator('.venta-linea').first().innerText(),/2 pza × Q 12.55/);
+  assert.match(await ficha.locator('.venta-linea').first().innerText(),/25\.10/);
+  assert.match(await ficha.locator('.venta-linea').nth(1).innerText(),/Incluido en la venta/);
+  assert.match(await ficha.locator('.venta-linea').nth(2).innerText(),/Diseño <especial>/);
+  assert.equal(await ficha.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
+  const id=await ficha.getAttribute('data-venta');
+  await page.evaluate(()=>renderHistorialVentas(true));
+  assert.equal(await ficha.getAttribute('open'),'');
+  await ficha.getByRole('button',{name:'Registrar devolución'}).click();
+  assert.equal(await page.locator('#devolucion-venta').inputValue(),id);
+  assert.equal(await page.locator('#devolucion-venta').isVisible(),true);
+  assert.equal(await page.locator('#devolucion-item').inputValue(),'0');
+ });
+ await escenario(viewport,'historial: ventas antiguas, devolución total, permisos y filtros',async page=>{
+  await page.evaluate(async()=>{
+   const t=Date.now();
+   const filas=[
+    {id:'A',fecha:'15/09/2026',mesContable:'2026-09',timestamp:t-1,resumenItems:'Pachón antiguo',ingresoTotal:12.34,costosProductos:8,ganancia:4.34},
+    {id:'B',fecha:'15/10/2026',mesContable:'2026-10',timestamp:t,clienteNombre:'Ana',detalleItems:[],resumenItems:'DEVOLUCIÓN TOTAL',resumenItemsOriginal:'2x Playera',devoluciones:[{productoNombre:'Playera',cantidad:2,ingresoDevuelto:20}],ingresoTotal:0},
+    {id:'C',anulada:true,resumenItems:'OCULTA',ingresoTotal:80}
+   ];
+   for(const f of filas)__fixture.base.set('ventas/'+f.id,f);
+   await cargarHistorialCompleto('ventas');
+   const empleado={id:'ventas-e',rol:'empleado',nombre:'Prueba',permisos:{ventas:true,verFinanzas:false}};
+   __fixture.base.get('sistema/config').usuarios.push(empleado);
+   currentUserData=empleado;aplicarPermisos(empleado);
+  });
+  await page.locator('#tab-ventas').click();
+  await page.locator('#panel-ventas-4 > summary').click();
+  const lista=page.locator('#lista-ventas');
+  await lista.locator('.venta-ficha').nth(1).waitFor({state:'visible'});
+  assert.equal(await lista.locator('.venta-ficha').count(),2);
+  await page.getByLabel('Buscar venta').fill('pachon');
+  await lista.getByText('Pachón antiguo',{exact:true}).click();
+  assert.match(await lista.innerText(),/solo conserva/);
+  assert.doesNotMatch(await lista.innerHTML(),/Costos y ganancia|Deshacer venta|Registrar devolución/);
+  await page.getByLabel('Buscar venta').fill('playera');
+  await lista.locator('.venta-ficha>summary').click();
+  assert.match(await lista.innerText(),/Se devolvieron todos los artículos/);
+  await page.locator('#filtro-mes-ventas').selectOption('2026-09');
+  assert.match(await lista.innerText(),/Ninguna venta/);
+  await page.getByLabel('Buscar venta').fill('');
+  assert.equal(await lista.locator('.venta-ficha').count(),1);
+ });
  await escenario(viewport,'auditoría integral: empleado cotiza sin datos internos y Ayuda respeta sus secciones',async(page,dialogs)=>{
   await page.evaluate(async()=>{
    const employee={id:'employee',nombre:'PRUEBA EMPLEADO',pin:await hashPIN('2468'),rol:'empleado',permisos:{cotizacion:true,verFinanzas:false}};

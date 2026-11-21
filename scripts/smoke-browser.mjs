@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 let playwright;
 try { playwright = await import('playwright'); }
 catch(error) {
  if(!process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES) throw error;
  playwright = await import(pathToFileURL(path.join(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES,'playwright/index.mjs')));
 }
-const root=path.resolve(new URL('..',import.meta.url).pathname);
+const root=path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const mime={'.js':'text/javascript','.html':'text/html','.json':'application/json','.png':'image/png'};
 const server=http.createServer((req,res)=>{
  const target=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
@@ -63,7 +63,7 @@ export const signInWithEmailAndPassword=createUserWithEmailAndPassword;
 export const sendPasswordResetEmail=async()=>{};
 export const signOut=async()=>{};
 `;
-const browser=await playwright.chromium.launch({headless:true});
+const browser=await playwright.chromium.launch({headless:true, executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined});
 let checks=0;
 try {
  for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {

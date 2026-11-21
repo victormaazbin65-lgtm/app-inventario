@@ -11,7 +11,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="./assets/1.4.2/visual-preferences.js"></script>
+    <script src="./assets/1.4.3/visual-preferences.js"></script>
 <style>
         body.v126-ocultar-finanzas .cost-text,
         body.v126-ocultar-finanzas .profit-text,
@@ -36,6 +36,32 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
 
+        .venta-filtros { display:grid; grid-template-columns:minmax(180px,2fr) 1fr 1.4fr; gap:12px; align-items:end; }
+        .venta-filtros label { min-width:0; margin:0; }
+        .venta-filtros input, .venta-filtros select { margin-top:4px; }
+        #lista-ventas { display:grid; gap:10px; }
+        .venta-ficha { min-width:0; border:1px solid var(--border-color); background:var(--card-bg); border-radius:10px; }
+        .venta-ficha>summary { display:flex; align-items:center; gap:12px; padding:14px; list-style:none; cursor:pointer; }
+        .venta-ficha>summary::-webkit-details-marker { display:none; }
+        .venta-ficha>summary::before { content:'▸'; color:var(--primary-blue); }
+        .venta-ficha[open]>summary::before { content:'▾'; }
+        .venta-encabezado { flex:1; min-width:0; overflow-wrap:anywhere; }
+        .venta-ficha small { display:block; font-size:12px; color:var(--text-light); margin-top:4px; }
+        .venta-importe, .venta-linea>div:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+        .venta-cuerpo { padding:0 14px 14px; border-top:1px solid var(--border-color); overflow-wrap:anywhere; }
+        .venta-ref { font-size:12px; color:var(--text-light); }
+        .venta-cuerpo h4 { margin:14px 0 0; }
+        .venta-productos, .venta-movimientos { padding:0; margin:0; list-style:none; }
+        .venta-linea, .venta-cifras>div { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:8px 0; }
+        .venta-linea + .venta-linea { border-top:1px solid var(--border-color); }
+        .venta-cifras { margin:12px 0; border-top:1px solid var(--border-color); }
+        .venta-cifras dd { margin:0; font-weight:600; }
+        .venta-cuerpo summary { padding:10px 0; cursor:pointer; }
+        .venta-movimientos li { padding:6px 0; }
+        .venta-acciones { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+        .venta-acciones button { min-height:38px; }
+        .venta-ficha :focus-visible, .venta-filtros :focus-visible { outline:2px solid var(--primary-blue); outline-offset:2px; }
+        @media(max-width:640px) { .venta-filtros { grid-template-columns:1fr 1fr; } .venta-filtros label:first-child { grid-column:1/-1; } .venta-ficha>summary { gap:7px; padding:10px; } }
         /* Pestañas */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
@@ -1183,16 +1209,16 @@
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
             </div></div></details>
 
-            <details id="panel-ventas-4" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-4"><summary>Historial de Ventas</summary><div class="fold-card-content"><div class="card">
-                <h3 class="section-title">Historial de Ventas</h3>
-                <button onclick="toggleHistorial('wrapper-historial-ventas')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="wrapper-historial-ventas" style="display: none;">
-                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
-                        <select id="filtro-mes-ventas" onchange="actualizarUI()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
-                        <select id="limite-historial-ventas" onchange="cambiarLimiteHistorial('ventas')" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
-                            <option value="50">Últimos 50 registros</option><option value="all">Todos los del filtro</option>
-                        </select>
+            <details id="panel-ventas-4" ontoggle="if(this.open) renderHistorialVentas(true)" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-4"><summary>Historial de Ventas</summary><div class="fold-card-content"><div class="card">
+                <div id="wrapper-historial-ventas">
+                    <div class="venta-filtros">
+                        <label>Buscar venta<input type="search" id="buscar-historial-ventas" placeholder="Producto, código, cliente o referencia" oninput="renderHistorialVentas()"></label>
+                        <label>Mes<select id="filtro-mes-ventas" onchange="renderHistorialVentas()"></select></label>
+                        <label>Registros<select id="limite-historial-ventas" onchange="cambiarLimiteHistorial('ventas')">
+                            <option value="50">Últimas 50 coincidencias</option><option value="all">Consultar todo el historial</option>
+                        </select></label>
                     </div>
+                    <p id="cobertura-historial-ventas" class="compact-note" role="status"></p>
                     <div id="lista-ventas"></div>
                 </div>
             </div></div></details>
@@ -1654,12 +1680,13 @@
             </div>
         </div>
     </div>
-<script src="./assets/1.4.2/negocio-core.js"></script>
-    <script src="./assets/1.4.2/integridad-firebase.js"></script>
-    <script src="./assets/1.4.2/operaciones-pendientes.js"></script>
-    <script src="./assets/1.4.2/gestion-negocio.js"></script>
-    <script src="./assets/1.4.2/finanzas-negocio.js"></script>
-    <script src="./assets/1.4.2/respaldo-negocio.js"></script>
+<script src="./assets/1.4.3/negocio-core.js"></script>
+    <script src="./assets/1.4.3/historial-ventas.js"></script>
+    <script src="./assets/1.4.3/integridad-firebase.js"></script>
+    <script src="./assets/1.4.3/operaciones-pendientes.js"></script>
+    <script src="./assets/1.4.3/gestion-negocio.js"></script>
+    <script src="./assets/1.4.3/finanzas-negocio.js"></script>
+    <script src="./assets/1.4.3/respaldo-negocio.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1779,7 +1806,7 @@
         function cargarBuscadorBajoDemanda() {
             if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
             if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
-            promesaBuscadorBajoDemanda = import('./assets/1.4.2/buscador.js')
+            promesaBuscadorBajoDemanda = import('./assets/1.4.3/buscador.js')
                 .then(() => true)
                 .catch(error => {
                     promesaBuscadorBajoDemanda = null;
@@ -3014,9 +3041,9 @@
         }
 
         function contarArticulosVenta(detalleItems = []) {
-            return detalleItems.reduce((total, item) => {
-                return total + ((item.rol === 'principal' || item.rol === 'combo') ? numeroFinito(item.qty) : 0);
-            }, 0);
+            return SubliNegocioCore.desdeMilesimas(detalleItems.reduce((total, item) => {
+                return total + ((item.rol === 'principal' || item.rol === 'combo') ? SubliNegocioCore.aMilesimas(item.qty) : 0);
+            }, 0));
         }
 
         function aplicarVentaAResumen(resumenBase, venta, signo = 1) {
@@ -3026,7 +3053,7 @@
             resumen.costosMateriales = redondear(numeroFinito(resumen.costosMateriales) + (signo * numeroFinito(venta.costosProductos)));
             resumen.gastosOperativos = redondear(numeroFinito(resumen.gastosOperativos) + (signo * (numeroFinito(venta.costoTinta) + numeroFinito(venta.costoEnvio) + numeroFinito(venta.costoManoObra))));
             resumen.impuestos = redondear(numeroFinito(resumen.impuestos) + (signo * numeroFinito(venta.impuestoSAT)));
-            resumen.items = numeroFinito(resumen.items) + (signo * contarArticulosVenta(venta.detalleItems));
+            resumen.items = SubliNegocioCore.desdeMilesimas(SubliNegocioCore.aMilesimas(resumen.items) + signo * SubliNegocioCore.aMilesimas(contarArticulosVenta(venta.detalleItems)));
             return resumen;
         }
 
@@ -3595,7 +3622,7 @@
             };
             const select = document.getElementById(ids[tipo]);
             if (select && select.value === 'all' && !historialCompletoCargado[tipo]) {
-                await cargarHistorialCompleto(tipo);
+                if (!await cargarHistorialCompleto(tipo)) select.value = '50';
             }
             actualizarUI();
         }
@@ -4285,7 +4312,7 @@
                         if(!ingresoSnap.exists()) throw new Error("El ingreso que intentas editar ya no existe.");
                         ingresoAnterior = ingresoSnap.data();
                         if(ingresoAnterior.anulada) throw new Error("El ingreso ya fue anulado desde otro dispositivo.");
-                        if(Number(ingresoAnterior.versionCalculo) < 2) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger tus costos reales no puede editarse automáticamente.");
+                        if(!(Number(ingresoAnterior.versionCalculo) >= 2)) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger tus costos reales no puede editarse automáticamente.");
                     }
 
                     const documentosExistentes = new Map();
@@ -4499,7 +4526,7 @@
 
             const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(!reg || reg.anulada) return;
-            if(Number(reg.versionCalculo) < 2) {
+            if(!(Number(reg.versionCalculo) >= 2)) {
                 alert("⚠️ Este ingreso pertenece al historial anterior. No se editará automáticamente porque no existe información suficiente para reconstruir con exactitud el costo promedio.");
                 return;
             }
@@ -4562,7 +4589,7 @@
                 if(!ingresoSnap.exists()) throw new Error("El ingreso ya no existe.");
                 const registro = ingresoSnap.data();
                 if(registro.anulada) throw new Error("El ingreso ya fue anulado desde otro dispositivo.");
-                if(Number(registro.versionCalculo) < 2) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger el inventario real no puede anularse automáticamente.");
+                if(!(Number(registro.versionCalculo) >= 2)) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger el inventario real no puede anularse automáticamente.");
 
                 const idsVistos = new Set();
                 const productosLeidos = [];
@@ -4608,7 +4635,7 @@
 
             const reg = historialIngresos.find(x => String(x.id) === String(id));
             if(!reg || reg.anulada) return;
-            if(Number(reg.versionCalculo) < 2) {
+            if(!(Number(reg.versionCalculo) >= 2)) {
                 alert("⚠️ Este ingreso pertenece al historial anterior. Para proteger tus existencias y costos reales no puede anularse automáticamente.");
                 return;
             }
@@ -5366,6 +5393,7 @@
                             unidadDivisible: Boolean(entrada.anterior.unidadDivisible)
                         };
                         if(entrada.anterior) {
+                            if(entrada.existe) SubliNegocioCore.validarUnidadRestitucion(entrada.anterior, producto);
                             const costoDevuelto = entrada.anterior.qty > 0 ? entrada.anterior.valor / entrada.anterior.qty : 0;
                             producto.costo = calcularCostoPromedioPonderado(producto.stock, producto.costo, entrada.anterior.qty, costoDevuelto);
                             producto.stock = desdeMilesimas(aMilesimas(producto.stock) + aMilesimas(entrada.anterior.qty));
@@ -5398,7 +5426,7 @@
                     const { ingresoTotal, costosProductos, impuestoSAT, gananciaNeta } = desglose;
                     const detalleConIds = detalleCosteado.map((item, indice) => ({
                         ...item,
-                        lineId: item.lineId || `${nuevaVentaId}-L${String(indice + 1).padStart(3, '0')}`
+                        lineId: `${nuevaVentaId}-L${String(indice + 1).padStart(3, '0')}`
                     }));
                     const pesosIngreso = Object.fromEntries(detalleConIds.map(item => [item.lineId, numeroFinito(item.qty) * numeroFinito(item.precioCobrado)]));
                     const pesosCosto = Object.fromEntries(detalleConIds.map(item => [item.lineId, numeroFinito(item.qty) * numeroFinito(item.costoUnitarioReal, numeroFinito(item.costoBase))]));
@@ -5617,7 +5645,7 @@
                 if(!ventaSnap.exists()) throw new Error("La venta ya no existe.");
                 const venta = ventaSnap.data();
                 if(venta.anulada) throw new Error("La venta ya fue anulada desde otro dispositivo.");
-                if(Number(venta.versionCalculo) < 2) throw new Error("Esta venta pertenece al historial anterior. Para proteger inventario, fondos y resumen mensual no puede revertirse automáticamente.");
+                if(!(Number(venta.versionCalculo) >= 2)) throw new Error("Esta venta pertenece al historial anterior. Para proteger inventario, fondos y resumen mensual no puede revertirse automáticamente.");
                 if(revisionEsperada !== null && Math.trunc(numeroFinito(venta.revision)) !== Math.trunc(numeroFinito(revisionEsperada))) {
                     throw new Error('La venta cambió desde otro dispositivo. Actualiza la pantalla, revisa los cobros y vuelve a confirmar.');
                 }
@@ -5680,6 +5708,7 @@
                     let producto;
                     if(entrada.existe) {
                         producto = copiarDatos(entrada.datos);
+                        SubliNegocioCore.validarUnidadRestitucion(entrada.agrupado, producto);
                         const costoDevuelto = entrada.agrupado.qty > 0 ? entrada.agrupado.valor / entrada.agrupado.qty : 0;
                         producto.costo = calcularCostoPromedioPonderado(producto.stock, producto.costo, entrada.agrupado.qty, costoDevuelto);
                         producto.stock = desdeMilesimas(aMilesimas(producto.stock) + aMilesimas(entrada.agrupado.qty));
@@ -5827,7 +5856,7 @@
 
             const ventaLocal = ventas.find(x => String(x.id) === String(id));
             if(!ventaLocal || ventaLocal.anulada) return;
-            if(Number(ventaLocal.versionCalculo) < 2) {
+            if(!(Number(ventaLocal.versionCalculo) >= 2)) {
                 alert("⚠️ Esta venta pertenece al historial anterior. Para no alterar tus datos reales no puede deshacerse automáticamente.");
                 return;
             }
@@ -7200,11 +7229,19 @@
                 solicitarGraficoCuandoVisible();
                 return;
             }
-            let conteo = {};
-            ventas.forEach(v => { if(v.anulada) return; if(v.detalleItems) { v.detalleItems.forEach(item => { if(item.rol === "principal" || item.rol === "combo") conteo[item.nombre] = (conteo[item.nombre] || 0) + item.qty; }); } });
-            let ordenados = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a]).slice(0, 5); let ctx = document.getElementById('graficoVentas').getContext('2d');
+            const conteo = Object.create(null);
+            for (const venta of ventas) {
+                if (venta.anulada || !Array.isArray(venta.detalleItems)) continue;
+                for (const item of venta.detalleItems) {
+                    if (item.rol === 'principal' || item.rol === 'combo') {
+                        conteo[item.nombre] = (conteo[item.nombre] || 0) + SubliNegocioCore.aMilesimas(item.qty);
+                    }
+                }
+            }
+            const ordenados = Object.keys(conteo).sort((a,b) => conteo[b] - conteo[a]).slice(0,5);
+            const ctx = document.getElementById('graficoVentas').getContext('2d');
             if(chartVentas) chartVentas.destroy();
-            chartVentas = new Chart(ctx, { type: 'bar', data: { labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n), datasets: [{ label: 'Cantidad vendida', data: ordenados.map(n => conteo[n]), backgroundColor: '#3b82f6', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+            chartVentas = new Chart(ctx, { type: 'bar', data: { labels: ordenados.map(n => n.length > 15 ? n.substring(0,15)+'...' : n), datasets: [{ label: 'Cantidad vendida', data: ordenados.map(n => SubliNegocioCore.desdeMilesimas(conteo[n])), backgroundColor: '#3b82f6', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
         }
 
         function renderResumenMensual() {
@@ -7219,10 +7256,10 @@
                 if (v.anulada) return;
                 let llave = getMesAnioFromDate(v.fecha, v.timestamp, v);
                 if(!llave) return;
-                if(!agrupadoVentasLocales[llave]) agrupadoVentasLocales[llave] = {};
+                if(!agrupadoVentasLocales[llave]) agrupadoVentasLocales[llave] = Object.create(null);
                 (v.detalleItems || []).forEach(item => {
                     if(item.rol === 'principal' || item.rol === 'combo') {
-                        agrupadoVentasLocales[llave][item.nombre] = (agrupadoVentasLocales[llave][item.nombre] || 0) + item.qty;
+                        agrupadoVentasLocales[llave][item.nombre] = (agrupadoVentasLocales[llave][item.nombre] || 0) + SubliNegocioCore.aMilesimas(item.qty);
                     }
                 });
             });
@@ -7237,8 +7274,7 @@
                     let llave = getMesAnioFromDate(v.fecha, v.timestamp, v);
                     if(!llave) return;
                     if(!agrupado[llave]) agrupado[llave] = { id: llave, mesTexto: formatearMesAnio(llave), totalVendido: 0, ganancia: 0, items: 0, costosMateriales: 0, gastosOperativos: 0, impuestos: 0 };
-                    agrupado[llave].totalVendido += v.ingresoTotal; agrupado[llave].ganancia += v.ganancia; agrupado[llave].costosMateriales += v.costosProductos || 0; agrupado[llave].gastosOperativos += (v.costoTinta || 0) + (v.costoManoObra || 0) + (v.costoEnvio || 0); agrupado[llave].impuestos += v.impuestoSAT || 0;
-                    (v.detalleItems || []).forEach(item => { if(item.rol === 'principal' || item.rol === 'combo') agrupado[llave].items += numeroFinito(item.qty); });
+                    agrupado[llave] = aplicarVentaAResumen(agrupado[llave], v);
                 });
                 dataToUse = Object.values(agrupado).sort((a,b) => b.id.localeCompare(a.id));
             }
@@ -7259,7 +7295,7 @@
                 if(agrupadoVentasLocales[data.id] && Object.keys(agrupadoVentasLocales[data.id]).length > 0) {
                     listaProductos = Object.entries(agrupadoVentasLocales[data.id])
                         .sort((a,b) => b[1] - a[1]) 
-                        .map(([nombre, cant]) => `<b>${numeroFinito(cant)}x</b> ${escaparHTML(nombre)}`)
+                        .map(([nombre, cant]) => `<b>${SubliNegocioCore.desdeMilesimas(cant)}x</b> ${escaparHTML(nombre)}`)
                         .join(', ');
                 }
 
@@ -7273,7 +7309,7 @@
                     </div>
                     
                     <div style="margin-top: 10px; padding: 8px; background: rgba(59, 130, 246, 0.05); border-radius: 6px; font-size: 12px; color: var(--text-light); border: 1px dashed var(--border-color);">
-                        <span style="color: var(--primary-blue); font-weight: bold; display: block; margin-bottom: 4px;">Productos Vendidos este Mes:</span>
+                        <span style="color: var(--primary-blue); font-weight: bold; display: block; margin-bottom: 4px;">${historialCompletoCargado.ventas ? 'Productos vendidos este mes' : 'Productos de las ventas cargadas'}:</span>
                         ${listaProductos}
                     </div>
 
@@ -7365,52 +7401,9 @@
             if (document.getElementById('sec-inicio')?.style.display === 'block' || document.getElementById('sec-caja')?.style.display === 'block') renderHistorialRetiros();
             aplicarConfiguracionNegocio();
 
-            // RENDER HISTORIAL VENTAS solo si la pestaña está visible
             if (document.getElementById('tab-ventas')?.classList.contains('active')) {
-            const contVentas = document.getElementById('lista-ventas');
-            
-            popularSelectMeses(ventas, 'filtro-mes-ventas');
-            const mesFiltro = document.getElementById('filtro-mes-ventas') ? document.getElementById('filtro-mes-ventas').value : 'todos';
-            
-            let dataVentas = [...ventas].filter(v => !v.anulada).sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
-            if (mesFiltro !== 'todos') {
-                dataVentas = dataVentas.filter(v => getMesAnioFromDate(v.fecha, v.timestamp, v) === mesFiltro);
+                if (document.getElementById('panel-ventas-4').open) renderHistorialVentas(true);
             }
-
-            const limitVentas = document.getElementById('limite-historial-ventas') ? document.getElementById('limite-historial-ventas').value : '50';
-            if(limitVentas === '50') dataVentas = dataVentas.slice(0, 50);
-
-            if (dataVentas.length === 0) {
-                contVentas.innerHTML = '<p class="item-details" style="text-align:center;">No hay ventas registradas en este filtro.</p>';
-            } else {
-                let htmlVentas = '';
-                dataVentas.forEach(v => {
-                    const textFactura = v.factura ? `<span style="color:var(--primary-purple); font-size:12px; margin-left:10px;">(CON FACTURA)</span>` : '';
-                    const ventaIdCodificado = codificarParametroHTML(v.id);
-                    const botonEditar = Number(v.versionCalculo) === 2 ? `<button onclick="editarVenta(decodeURIComponent('${ventaIdCodificado}'))" class="btn-sm btn-edit">EDITAR</button>` : `<button onclick="cambiarPestaña('caja'); setTimeout(actualizarOpcionesDevolucion, 0)" class="btn-sm btn-edit">DEVOLUCIÓN</button>`;
-                    const trazaStock = Array.isArray(v.movimientosInventario) ? `<details style="margin-top:10px"><summary>📦 Descuento de inventario al registrar</summary>${v.movimientosInventario.length ? v.movimientosInventario.map(m => `<p class="item-details">${escaparHTML(m.nombre || m.productoId)}: ${numeroFinito(m.stockAntes)} − ${numeroFinito(m.cantidad)} = ${numeroFinito(m.stockDespues)} ${escaparHTML(m.unidad || '')}</p>`).join('') : '<p class="item-details">Esta venta contiene servicios; no descontó productos físicos.</p>'}<p class="compact-note">Existencias en el momento de registrar esta versión de la venta.</p></details>` : '<p class="compact-note">Venta anterior: no tiene detalle de stock antes/después.</p>';
-                    const tieneDevoluciones = Array.isArray(v.devoluciones) && v.devoluciones.length > 0;
-                    const resumenVigente = tieneDevoluciones ? ((v.detalleItems || []).map(i => `${i.qty}x ${i.nombre}${i.rol === 'material' ? ' (M)' : i.rol === 'combo' ? ' (Combo)' : ''}`).join(' + ') || 'DEVOLUCIÓN TOTAL') : v.resumenItems;
-                    const trazaDevoluciones = tieneDevoluciones ? `<details style="margin-top:10px"><summary>Devoluciones registradas · el total mostrado es neto</summary><p class="item-details">Venta original: ${escaparHTML(v.resumenItemsOriginal || v.resumenItems || '')}</p>${v.devoluciones.map(d => `<p class="item-details">${escaparHTML(d.fecha || '')} · ${numeroFinito(d.cantidad)}x ${escaparHTML(d.productoNombre || '')} · devuelto: ${simboloMoneda}${numeroFinito(d.ingresoDevuelto).toFixed(2)}</p>`).join('')}</details>` : '';
-                    const saldoVenta = Math.max(0, numeroFinito(v.saldoPendiente));
-                    const estadoCobro = saldoVenta > 0 ? `<span class="status-badge warning">CRÉDITO · falta ${simboloMoneda}${saldoVenta.toFixed(2)}</span>` : '<span class="status-badge ok">PAGADA</span>';
-                    htmlVentas += `<div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                            <p class="item-title" style="margin: 0; color: var(--primary-blue); font-size: 14px;">🛍️ ${escaparHTML(String(resumenVigente || '').toUpperCase())} ${textFactura}</p>
-                            <div style="display:flex; gap:5px;">
-                                ${botonEditar}
-                                <button onclick="borrarVenta(decodeURIComponent('${ventaIdCodificado}'))" class="btn-sm btn-delete">DESHACER</button>
-                            </div>
-                        </div>
-                        <div class="item-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                            <div>📅 ${escaparHTML(v.fecha)}<br>${v.clienteNombre && v.clienteNombre !== 'C/F' ? `👤 ${escaparHTML(String(v.clienteNombre).toUpperCase())}<br>` : ''}${estadoCobro}</div><span style="color: var(--text-dark);">💵 <b>TOTAL:</b> ${simboloMoneda}${numeroFinito(v.ingresoTotal).toFixed(2)}<br><small>Pagado/aplicado: ${simboloMoneda}${numeroFinito(v.montoCobradoTotal, v.ingresoTotal).toFixed(2)}</small></span><span class="cost-text">📦 <b>COSTO MAT./SERV:</b> ${simboloMoneda}${numeroFinito(v.costosProductos).toFixed(2)}</span><span class="cost-text">💡 <b>${escaparHTML(configuracionNegocio.nombreFondoProduccion)}:</b> ${simboloMoneda}${numeroFinito(v.costoTinta).toFixed(2)}</span><span class="cost-text">🧑‍🔧 <b>${escaparHTML(configuracionNegocio.nombreManoObra)}:</b> ${simboloMoneda}${numeroFinito(v.costoManoObra).toFixed(2)}</span><span class="cost-text">🚚 <b>ENVÍO:</b> ${simboloMoneda}${numeroFinito(v.costoEnvio).toFixed(2)}</span>${v.factura ? `<span class="cost-text" style="color:var(--primary-purple);">🏛️ <b>IMPUESTO (${numeroFinito(v.porcentajeSAT, 5)}%):</b> ${simboloMoneda}${numeroFinito(v.impuestoSAT).toFixed(2)}</span>` : ''}<span class="profit-text" style="grid-column: span 2; text-align: right; font-size: 15px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 5px;">GANANCIA NETA LIBRE: ${simboloMoneda}${numeroFinito(v.ganancia).toFixed(2)}</span>
-                        </div>${trazaDevoluciones}${trazaStock}</div>`;
-                });
-                contVentas.innerHTML = htmlVentas;
-            }
-
-            }
-
             if (document.getElementById('tab-cotizacion')?.classList.contains('active')) renderHistorialCotizaciones();
             if (document.getElementById('tab-ingreso')?.classList.contains('active')) renderHistorialIngresos();
             if (document.getElementById('tab-alertas')?.classList.contains('active')) renderAlertas();
@@ -7423,7 +7416,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.4.2";
+        const APP_VERSION = "1.4.3";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);

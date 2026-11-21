@@ -1,9 +1,10 @@
+import {fileURLToPath} from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
-const root = path.resolve(new URL('..', import.meta.url).pathname);
+const root = fileURLToPath(new URL('..', import.meta.url));
 const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
 if(!/^\d+\.\d+\.\d+$/.test(version)) throw Error('Versión de entrega inválida');
 const publicVersion = JSON.parse(fs.readFileSync(path.join(root,'version.json'))).version;
