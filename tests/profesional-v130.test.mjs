@@ -183,9 +183,9 @@ test('la PWA carga todos los módulos v1.3.0 y conserva el corte público coordi
     assert.match(visual + sw, new RegExp(archivo.replaceAll('.', '\\.')));
     assert.ok(fs.existsSync(path.join(raiz, archivo)));
   }
-  assert.equal(build.build, '1.4.3');
-  assert.equal(build.basePublica, '1.4.3');
-  assert.match(sw, /sublicosturas-v1\.4\.3/);
+  assert.equal(build.build, '1.4.4');
+  assert.equal(build.basePublica, '1.4.4');
+  assert.match(sw, /sublicosturas-v1\.4\.4/);
 });
 
 test('el respaldo v4 firma SHA-256, valida tipos y rechaza esquemas posteriores', () => {

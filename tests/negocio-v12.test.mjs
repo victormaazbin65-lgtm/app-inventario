@@ -108,7 +108,7 @@ test('el anticipo cotizado se informa sin registrarlo en caja antes de la venta'
   assert.match(html, /id="cotiza-metodo-anticipo"/);
   assert.match(html, /anticipoCotizado, metodoAnticipoCotizado, anticipoRegistrado: false/);
   assert.match(html, /No se ha sumado a caja ni registrado como recibido/);
-  assert.match(html, /esPagoParcialAcordado/);
+  assert.match(html, /id="anticipo-existente"/);
   assert.match(html, /pendiente de registrar/);
 });
 
@@ -201,7 +201,7 @@ test('la interfaz integra clientes en configuración y caja en el panel financie
   assert.match(html, /class="quick-finance-actions"[\s\S]*?cambiarPestaña\('caja'\)/);
   assert.match(html, /accederAjustesProtegidos\('clientes', 'creditos'\)/);
   assert.doesNotMatch(html, /id="tab-(?:clientes|caja)"/);
-  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./assets/1.4.3/${archivo}"`));
+  const posiciones = ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].map(archivo => html.indexOf(`src="./assets/1.4.4/${archivo}"`));
   assert.ok(posiciones.every(posicion => posicion > 0));
   assert.deepEqual([...posiciones].sort((a, b) => a - b), posiciones);
   assert.match(html, /cargarCotizacionEnFormularioVenta/);
@@ -268,8 +268,21 @@ test('reglas, PWA y versión 1.2.5 quedan coordinadas', () => {
   assert.doesNotMatch(reglas, /!proteccionActivada\(\)/);
   assert.doesNotMatch(reglas, /activacionPropiaValida/);
   assert.deepEqual(JSON.parse(leer('firebase.json')), { firestore: { rules: 'firestore.rules' } });
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.3' });
-  assert.equal(JSON.parse(leer('package.json')).version, '1.4.3');
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.3/);
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.4' });
+  assert.equal(JSON.parse(leer('package.json')).version, '1.4.4');
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.4/);
   ['negocio-core.js', 'gestion-negocio.js', 'finanzas-negocio.js', 'respaldo-negocio.js'].forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
+});
+
+test('cotización en centavos y devolución de cantidades fraccionarias, incluidas líneas antiguas',()=>{
+  const base={qty:0.5,precioCobrado:10.01,costoBase:0};
+  const lineas=core.lineasImagenCotizacion([base,base],10.01);
+  assert.deepEqual(Array.from(lineas,l=>l.subtotalImagenCentavos),[501,500]);
+  assert.throws(()=>core.lineasImagenCotizacion([base,base],10.02),/anticipo/);
+  const item={qty:1,precioCobrado:7.5,costoBase:7.5,cantidadOriginalMilesimas:1000,ingresoLineaOriginalCentavos:750,costoLineaOriginalCentavos:750};
+  assert.equal(core.calcularDevolucionLinea(item,0.29,true).ingresoDevueltoCentavos,218);
+  assert.equal(core.calcularDevolucionLinea({...item,qty:0.71},0.71,true).ingresoDevueltoCentavos,533);
+  assert.equal(core.calcularDevolucionLinea({...item,qty:0.71,prorrateoVersion:2},0.71,true).ingresoDevueltoCentavos,532);
+  for(const v of [null,undefined,'','  ',false,[],Infinity,-1]) assert.equal(core.esDatoReversion(v),false);
+  for(const v of [0,'0',0.125,'2.35']) assert.equal(core.esDatoReversion(v),true);
 });

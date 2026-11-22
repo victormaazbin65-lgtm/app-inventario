@@ -76,7 +76,7 @@
         if(!sec || document.getElementById('ajuste-pantallas')) return;
         const d = document.createElement('details');
         d.id = 'ajuste-pantallas'; d.className = 'settings-section';
-        d.innerHTML = '<summary>🧩 Pantallas: qué ver y en qué orden</summary><div class="fold-card-content"><p>Marca los apartados que quieres ver. Usa ↑ y ↓ para ordenarlos dentro de su grupo. Al iniciar, los apartados están plegados; toca su título para abrirlos. Estos ajustes se guardan para tu usuario en este dispositivo.</p><p>Ocultar un apartado conserva sus datos. Los permisos de cada usuario siguen vigentes.</p><div id="pantallas-lista"></div><button type="button" id="pantallas-restablecer">Mostrar todo y restaurar orden</button></div>';
+        d.innerHTML = '<summary>🧩 Pantallas: qué ver y en qué orden</summary><div class="fold-card-content"><p>Marca los apartados que quieres ver. Usa ↑ y ↓ para ordenarlos dentro de su grupo. Toca el título de cada apartado para abrirlo o cerrarlo. Estos ajustes se guardan para tu usuario en este dispositivo.</p><p>Ocultar un apartado conserva sus datos. Los permisos de cada usuario siguen vigentes.</p><div id="pantallas-lista"></div><button type="button" id="pantallas-restablecer">Mostrar todo y restaurar orden</button></div>';
         sec.prepend(d);
         d.addEventListener('toggle', () => { if(d.open) { aplicar(); renderOpciones(); } });
         d.addEventListener('change', e => {

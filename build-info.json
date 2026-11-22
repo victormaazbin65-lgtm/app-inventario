@@ -1,9 +1,9 @@
 {
-  "build": "1.4.3",
-  "basePublica": "1.4.3",
+  "build": "1.4.4",
+  "basePublica": "1.4.4",
   "canal": "produccion",
-  "fecha": "2026-11-20",
-  "descripcion": "Historial de ventas por producto y correcciones de devoluciones y resúmenes.",
-  "revision": "historial-ventas-20261120",
-  "fechaRevision": "2026-11-20"
+  "fecha": "2026-11-21",
+  "descripcion": "Ventas por cliente, recepciones por distribuidor, entregas y correcciones de cobros y costos.",
+  "revision": "taller-20261121",
+  "fechaRevision": "2026-11-21"
 }

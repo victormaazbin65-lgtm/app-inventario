@@ -161,7 +161,7 @@ test('una línea retirada de la venta deja la devolución sin selección incluso
 
 test('la actualización se bloquea mientras exista un guardado pendiente de confirmar',async()=>{
  const {c,alerts}=env();c.listarGuardadosPendientesSubli=()=>[{id:'pending'}];cargar(c,'forzarActualizacionApp');
- assert.equal(await c.forzarActualizacionApp('1.4.3'),false);assert.match(alerts.at(-1),/operación pendiente/);
+ assert.equal(await c.forzarActualizacionApp('1.4.4'),false);assert.match(alerts.at(-1),/operación pendiente/);
 });
 
 test('forzar un análisis completo vuelve a consultar y un cambio durante la lectura lo deja incompleto',async()=>{

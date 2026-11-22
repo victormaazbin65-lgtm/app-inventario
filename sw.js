@@ -1,5 +1,5 @@
-const RELEASE = '1.4.3';
-const CACHE_NAME = 'sublicosturas-v1.4.3-historial-ventas';
+const RELEASE = '1.4.4';
+const CACHE_NAME = 'sublicosturas-v1.4.4-historial-ventas';
 const ASSET_BASE = `./assets/${RELEASE}/`;
 const APP_SHELL = [
   './index.html',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './build-info.json',
   `${ASSET_BASE}negocio-core.js`,
   `${ASSET_BASE}historial-ventas.js`,
+  `${ASSET_BASE}taller.js`,
   `${ASSET_BASE}integridad-firebase.js`,
   `${ASSET_BASE}operaciones-pendientes.js`,
   `${ASSET_BASE}gestion-negocio.js`,

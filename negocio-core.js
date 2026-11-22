@@ -284,7 +284,20 @@
             && lineaCoincideConReferencia(detalle[indice], referencia) ? indice : -1;
     }
 
-    function tramoProporcionalCentavos(totalCentavos, cantidadOriginalMilesimas, cantidadDisponibleMilesimas, cantidadDevueltaMilesimas) {
+    function esDatoReversion(valor) {
+        return (typeof valor === 'number' || typeof valor === 'string' && valor.trim() !== '')
+            && Number.isFinite(Number(valor)) && Number(valor) >= 0;
+    }
+
+    function lineasImagenCotizacion(items, anticipo) {
+        const { ingresoTotal } = calcularDesgloseFinanciero(items, 0, 0, false);
+        if (aCentavos(anticipo) > aCentavos(ingresoTotal)) throw new Error('El anticipo acordado supera el total cotizado.');
+        const pesos = Object.fromEntries(items.map((item, i) => [i, item.qty * item.precioCobrado]));
+        const reparto = distribuirCentavos(aCentavos(ingresoTotal), pesos);
+        return items.map((item, i) => ({...item, subtotalImagenCentavos: reparto[i]}));
+    }
+
+    function tramoProporcionalCentavos(totalCentavos, cantidadOriginalMilesimas, cantidadDisponibleMilesimas, cantidadDevueltaMilesimas, antesHistorico) {
         const total = Math.max(0, Math.trunc(numeroFinito(totalCentavos)));
         const original = Math.trunc(numeroFinito(cantidadOriginalMilesimas));
         const disponible = Math.trunc(numeroFinito(cantidadDisponibleMilesimas));
@@ -293,14 +306,14 @@
             throw new Error('La cantidad devuelta no coincide con la línea original.');
         }
         const devueltoAntes = original - disponible;
-        const objetivoAntes = Math.round(total * (devueltoAntes / original));
-        const objetivoDespues = devuelta === disponible
-            ? total
-            : Math.round(total * ((devueltoAntes + devuelta) / original));
+        if (![total, original, disponible, devuelta].every(Number.isSafeInteger)) throw new Error('La línea excede la precisión admitida.');
+        const mitadArriba = cantidad => Number((2n * BigInt(total) * BigInt(cantidad) + BigInt(original)) / (2n * BigInt(original)));
+        const objetivoAntes = antesHistorico ? Math.round(total * (devueltoAntes / original)) : mitadArriba(devueltoAntes);
+        const objetivoDespues = mitadArriba(devueltoAntes + devuelta);
         return Math.max(0, objetivoDespues - objetivoAntes);
     }
 
-    function calcularDevolucionLinea(item, cantidadDevuelta) {
+    function calcularDevolucionLinea(item, cantidadDevuelta, lineaGuardada = false) {
         if (!item || typeof item !== 'object') throw new Error('La línea de venta no es válida.');
         const disponible = aMilesimas(item.qty);
         const devuelta = aMilesimas(cantidadDevuelta);
@@ -317,8 +330,8 @@
         const costoTotal = Number.isSafeInteger(costoGuardado) && costoGuardado >= 0
             ? costoGuardado
             : aCentavos(desdeMilesimas(original) * costoUnitario);
-        const ingresoDevueltoCentavos = tramoProporcionalCentavos(ingresoTotal, original, disponible, devuelta);
-        const costoDevueltoCentavos = tramoProporcionalCentavos(costoTotal, original, disponible, devuelta);
+        const ingresoDevueltoCentavos = tramoProporcionalCentavos(ingresoTotal, original, disponible, devuelta, lineaGuardada && item.prorrateoVersion !== 2);
+        const costoDevueltoCentavos = tramoProporcionalCentavos(costoTotal, original, disponible, devuelta, lineaGuardada && item.prorrateoVersion !== 2);
         return {
             cantidadOriginalMilesimas: original,
             cantidadDevueltaMilesimas: devuelta,
@@ -840,6 +853,8 @@
         validarUnidadRestitucion,
         crearReferenciaLineaVenta,
         localizarLineaVenta,
+        esDatoReversion,
+        lineasImagenCotizacion,
         calcularDevolucionLinea,
         calcularDesgloseFinanciero,
         normalizarFondos,

@@ -288,7 +288,7 @@
         tiposBorradorActivos.add(clave);
         const contextoOperacion = {};
         if(tipo === 'ventas') {
-            try { Object.assign(contextoOperacion, { ventaEnEdicion, ventaEdicionVersion, cotizacionOrigenVentaId, cotizacionOrigenVentaVersion }); } catch(_) {}
+            try { Object.assign(contextoOperacion, { ventaEnEdicion, ventaEdicionVersion, cotizacionOrigenVentaId, cotizacionOrigenVentaVersion, anticipoCotizado:{...document.getElementById("anticipo-conversion")?.dataset} }); } catch(_) {}
         } else if(tipo === 'cotizacion') {
             try { Object.assign(contextoOperacion, { cotizacionBorradorOrigenId, cotizacionBorradorVersion }); } catch(_) {}
         } else if(tipo === 'ingreso') {
@@ -338,6 +338,7 @@
     }
 
     function restaurarBorrador(tipo) {
+        if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return;
         const b = leerBorrador(tipo);
         if(!b) return borrarBorrador(tipo);
         if(b.legadoCompartido && !confirm('Este borrador antiguo fue guardado para todo el dispositivo. Confirma que te pertenece y que no corresponde a una operación ya registrada antes de recuperarlo. ¿Continuar?')) return;
@@ -359,7 +360,7 @@
                 const aviso = document.getElementById('aviso-ingreso-edicion');
                 if(aviso) aviso.style.display = ingresoEnEdicion ? 'block' : 'none';
             }
-            if(tipo === 'ventas') { carritoVentas = b.items; restaurarCampos(b.campos); global.renderCarritoVentas?.(); global.cambiarPestaña?.('ventas'); }
+            if(tipo === 'ventas') { carritoVentas = b.items; restaurarCampos(b.campos); const acuerdo=c.anticipoCotizado; global.mostrarAnticipoCotizado?.(Number(acuerdo?.monto)||0,Number(acuerdo?.total)||0,acuerdo?.eleccion||''); global.renderCarritoVentas?.(); global.cambiarPestaña?.('ventas'); }
             else if(tipo === 'cotizacion') { carritoCotizacion = b.items; restaurarCampos(b.campos); global.renderCarritoCotizacion?.(); global.cambiarPestaña?.('cotizacion'); }
             else if(tipo === 'ingreso') { carritoIngresos = b.items; restaurarCampos(b.campos); global.renderCarritoIngresos?.(); global.cambiarPestaña?.('ingreso'); }
             global.subliAbrirPanel?.(tipo === 'ventas' ? 'lista-carrito-ventas' : tipo === 'cotizacion' ? 'lista-carrito-cotizacion' : 'lista-ingresos-pendientes');

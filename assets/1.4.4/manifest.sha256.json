@@ -1,0 +1,30 @@
+{
+  "version": "1.4.4",
+  "files": {
+    "asistente-ajustes-v127.js": "7c38842eff5aab033269aa3bdfdd1f3ff0ca7303d68ac1a8c2422f7f3efebe40",
+    "asistente-ajustes-v128.js": "d0e1e09eb034a88b9df9fd7998a54ebd6243cc1379a2c806adfe9a803eebe1d5",
+    "asistente-ajustes-v130.js": "7c77555a6754ece6a99b552e1d10a02434f0b452fbd7e66bebf1a326147d7631",
+    "asistente-core.js": "740606cf96471ed756b0621b75c5221b54b2ce2986469a9510db5722ea1e501b",
+    "buscador.js": "f5b104a1b5d0412310f9db1bcb548c4bd9fb7d92cbffd11d962f3b3fa6cf227a",
+    "finanzas-negocio.js": "5c48c1676256dca11b0851d2ac9e2fd4e0190b847af647b6189db0d5229c82f1",
+    "gestion-negocio.js": "bc772d1c24daa9fd5c4efac5c0180296c88aed792a8ca8d194a40f2dc3ab491c",
+    "historial-ventas.js": "fac17b252ec0739e9cf2c4c1848f9c535caae0db64f11c82282123907e34ae50",
+    "integridad-firebase.js": "8c6267decc108fd42d34239784224f7912238d0e13feb8c72c0d2d3c54e20370",
+    "mejoras-core.js": "e358796622dec8589aaec98b62df62a3fa612ee3f55f8a55723dcbe3c827831c",
+    "mejoras-v126.js": "9815dc029215026b7261075b86be016c487a04f9571be438b8f7b147c6f1da4c",
+    "mejoras-v127.js": "dabfcd42be5d381bcca0b42e30dcb464f28ce8af229daeedbd19307752177a75",
+    "mejoras-v128.js": "2ed4c76431e13ae68c6c64517089679e6c171574f94cb3513da9c1314d5e2c7b",
+    "negocio-core.js": "b61380c04835ebad5490252f0b7cdc4e81f473b1e9170fd35e443ec947c35140",
+    "operaciones-pendientes.js": "54c3e70228b2e2a9669e53957b72da5268b556ebc781ffa0918520e9f589b9e1",
+    "pantallas-v131.js": "e9bf4e0bba14603a2f4223f15b4f8c6986ec50e8d6c2a9ccb6e48511198dfacb",
+    "profesional-compat-v130.js": "68882b965c13242d571c21f24b2f55aee8548136759d9a358fdbab13c7ab1ebf",
+    "profesional-core-ajustes-v130.js": "9fefd9ecf5cae0451968dd981182b185f05a8f0d06f6d47286ca43e1481d9449",
+    "profesional-core-v130.js": "357d09294e23ef1bcdadec33addd50c736cd832fe35d43a58af802acdf4e68b2",
+    "profesional-operaciones-v130.js": "5ec930dc049a62bd5f15d02482265aaf623c6817f28b6bf5d5e53d9146ea762a",
+    "profesional-ui-v130.js": "7b315063462159f1c1cccbce767b956beda2c2481d5d0b9d6a1874ef3d0e6415",
+    "respaldo-negocio.js": "61cec4d1a3250b5a65a2faa53eaf2a933b7b9126ce772018d0e1e3b5c231fcc6",
+    "taller.js": "7588aa962895fa7977d1e5bdbeb1223fb71fdac99207fc211f6c2cfa567a535c",
+    "vendor-cache-v130.js": "53a645bc9099369d7ccb363a4b6056f2c9809e112cba914ba648424da106ac3f",
+    "visual-preferences.js": "dae7af1730ed8035d0a3eb2b59315df8e5659cd90fe8ddbbd71162a078ceda33"
+  }
+}

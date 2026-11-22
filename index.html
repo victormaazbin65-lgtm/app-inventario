@@ -11,7 +11,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="./assets/1.4.3/visual-preferences.js"></script>
+    <script src="./assets/1.4.4/visual-preferences.js"></script>
 <style>
         body.v126-ocultar-finanzas .cost-text,
         body.v126-ocultar-finanzas .profit-text,
@@ -36,7 +36,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 850px; padding-bottom: 50px; }
 
-        .venta-filtros { display:grid; grid-template-columns:minmax(180px,2fr) 1fr 1.4fr; gap:12px; align-items:end; }
+        .venta-filtros { display:grid; grid-template-columns:minmax(155px,1.6fr) repeat(2,minmax(90px,1fr)) minmax(130px,1.4fr); gap:12px; align-items:end; }
         .venta-filtros label { min-width:0; margin:0; }
         .venta-filtros input, .venta-filtros select { margin-top:4px; }
         #lista-ventas { display:grid; gap:10px; }
@@ -45,7 +45,7 @@
         .venta-ficha>summary::-webkit-details-marker { display:none; }
         .venta-ficha>summary::before { content:'▸'; color:var(--primary-blue); }
         .venta-ficha[open]>summary::before { content:'▾'; }
-        .venta-encabezado { flex:1; min-width:0; overflow-wrap:anywhere; }
+        .venta-ficha[open] > summary .venta-vista-lineas {display:none} .venta-vista-lineas small {display:block} .venta-encabezado { flex:1; min-width:0; overflow-wrap:anywhere; }
         .venta-ficha small { display:block; font-size:12px; color:var(--text-light); margin-top:4px; }
         .venta-importe, .venta-linea>div:last-child { text-align:right; font-variant-numeric:tabular-nums; }
         .venta-cuerpo { padding:0 14px 14px; border-top:1px solid var(--border-color); overflow-wrap:anywhere; }
@@ -61,7 +61,7 @@
         .venta-acciones { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
         .venta-acciones button { min-height:38px; }
         .venta-ficha :focus-visible, .venta-filtros :focus-visible { outline:2px solid var(--primary-blue); outline-offset:2px; }
-        @media(max-width:640px) { .venta-filtros { grid-template-columns:1fr 1fr; } .venta-filtros label:first-child { grid-column:1/-1; } .venta-ficha>summary { gap:7px; padding:10px; } }
+        @media(max-width:640px) { .venta-filtros { grid-template-columns:1fr 1fr; }  .venta-ficha>summary { gap:7px; padding:10px; } }
         /* Pestañas */
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn { flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: var(--card-bg); color: var(--text-light); box-shadow: var(--shadow); transition: 0.3s; min-width: 120px; }
@@ -634,7 +634,7 @@
             html[data-modelo-visual="profesional"] .card { padding: 17px; }
         }
     </style>
-</head>
+<style>#dialogo-entrega{background:var(--card-bg);color:var(--text-dark);border:1px solid var(--border-color);border-radius:12px;width:min(90vw,470px);max-height:85vh}#dialogo-entrega::backdrop{background:#0008}#form-entrega{display:grid;gap:12px}#form-entrega label,#recepcion-orden label{display:grid;gap:4px}#recepcion-orden summary{cursor:pointer}#orden-recepcion-lineas article,#entregas-lista article{padding:12px 0;border-bottom:1px solid var(--border-color)}.flujo-campos{margin:0;padding:0;border:0;min-width:0}.flujo-separador{border:0;border-top:1px solid var(--border-color);margin:22px 0}.flujo-acciones{display:flex;gap:8px;flex-wrap:wrap}.flujo-campos:disabled{opacity:.72}#anticipo-conversion:not([hidden]){padding:12px;border:1px solid var(--border-color);border-radius:8px;margin-bottom:12px}#estado-guardado-venta:empty,#consulta-huellas:empty{display:none}</style></head>
 <body>
 
     <button id="btn-instalar-pwa">📲 Instalar App</button>
@@ -700,6 +700,7 @@
         </div>
 
         <div id="sec-inicio" style="display: block;">
+            <button class="btn-sm btn-edit" onclick="abrirEntregasHoy()">Ver entregas de hoy</button>
             <div id="panel-inteligente" class="card smart-panel" style="display: none;">
                 <div class="smart-panel-header">
                     <div>
@@ -956,7 +957,8 @@
         </div>
 
         <div id="sec-ingreso" style="display: none;">
-            <details id="panel-ingreso-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ingreso-1"><summary>1. Añadir a la lista de ingresos</summary><div class="fold-card-content"><div class="card">
+            <details open id="panel-ingreso-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ingreso-1"><summary>Registrar ingreso de mercadería</summary><div class="fold-card-content"><div class="card">
+                <details id="recepcion-orden" ontoggle="if(this.open) cargarOrdenesPendientes()"><summary>Recibir mercadería de una orden de compra</summary><div class="form-group"><label>Orden pendiente<select id="orden-pendiente" onchange="mostrarOrdenPendiente()"></select></label></div><div id="orden-recepcion-lineas"></div><button type="button" class="btn-sm btn-edit" onclick="prepararIngresoOrden()">Añadir recepción a la lista previa</button><button type="button" class="btn-sm" onclick="cargarOrdenesPendientes()">Actualizar órdenes</button></details><hr class="flujo-separador">
                 <h3 class="section-title">1. Añadir a la lista de ingresos</h3>
                 
                 <div class="form-group" id="grupo-modo-ingreso">
@@ -1057,9 +1059,7 @@
                 <div class="form-group"><label>No. de Factura</label><input type="text" id="inv-factura" placeholder="Ej: Serie A - 12345"></div>
 
                 <button class="btn-main" onclick="agregarAlCarritoIngreso()">👇 Añadir a la Lista Previa</button>
-            </div></div></details>
-
-            <details id="panel-ingreso-2" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ingreso-2"><summary>📝 Lista Previa de Ingresos</summary><div class="fold-card-content"><div class="card cart-container">
+            <hr class="flujo-separador" id="panel-ingreso-2">
                 <h3 class="cart-title">📝 Lista Previa de Ingresos</h3>
                 <div id="aviso-ingreso-edicion" style="display:none; margin-bottom: 12px; padding: 10px; border: 1px solid var(--primary-orange); border-radius: 8px; color: var(--primary-orange); font-size: 12px; font-weight: bold;">
                     Estás editando un ingreso existente. El inventario no cambiará hasta que confirmes.
@@ -1081,15 +1081,14 @@
 
             <details id="panel-ingreso-3" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ingreso-3"><summary>Historial de Ingresos</summary><div class="fold-card-content"><div class="card">
                 <h3 class="section-title">Historial de Ingresos</h3>
-                <button onclick="toggleHistorial('wrapper-historial-ingresos')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="wrapper-historial-ingresos" style="display: none;">
+                <div id="wrapper-historial-ingresos">
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
                         <select id="filtro-mes-ingresos" onchange="renderHistorialIngresos()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
                         <select id="limite-historial-ingresos" onchange="cambiarLimiteHistorial('ingresos')" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
                             <option value="50">Últimos 50 registros</option><option value="all">Todos los del filtro</option>
                         </select>
                     </div>
-                    <div id="lista-historial-ingresos"></div>
+                    <button type="button" id="boton-consulta-huellas" class="btn-sm" onclick="consultarHuellasIngresos()">Revisar datos de reversión</button><p id="consulta-huellas" role="status"></p><div id="lista-historial-ingresos"></div>
                 </div>
             </div></div></details>
         </div>
@@ -1118,15 +1117,13 @@
         </div>
 
         <div id="sec-ventas" style="display: none;">
-            <details id="panel-ventas-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-1"><summary>1. Datos del Cliente</summary><div class="fold-card-content"><div class="card">
+            <details open id="panel-ventas-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-1"><summary>Registrar venta</summary><div class="fold-card-content"><div class="card"><fieldset id="formulario-venta" class="flujo-campos" aria-label="Preparar venta">
                 <h3 class="section-title">1. Datos del Cliente</h3>
                 <div class="grid-2">
                     <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="venta-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('venta')"><input type="hidden" id="venta-cliente-id"></div>
                     <div class="form-group"><label>NIT</label><input type="text" id="venta-nit" placeholder="C/F"></div>
                 </div>
-            </div></div></details>
-
-            <details id="panel-ventas-2" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-2"><summary>2. Agregar al Carrito</summary><div class="fold-card-content"><div class="card">
+            <hr class="flujo-separador" id="panel-ventas-2">
                 <h3 class="section-title">2. Agregar al Carrito</h3>
                 <div class="form-group" style="position: relative; z-index: 10;">
                     <label style="color: var(--primary-blue);">🔍 Busca y selecciona el artículo</label>
@@ -1148,9 +1145,7 @@
                     <div class="form-group" id="grupo-venta-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="venta-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
                 <button class="btn-main" onclick="agregarAlCarritoVenta()">🛒 Añadir al Carrito</button>
-            </div></div></details>
-
-            <details id="panel-ventas-3" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-3"><summary>🛍️ Carrito de la Venta Actual</summary><div class="fold-card-content"><div class="card cart-container">
+            <hr class="flujo-separador" id="panel-ventas-3">
                 <div id="aviso-venta-edicion" style="display:none; margin-bottom:12px; padding:10px; border:1px solid var(--primary-orange); border-radius:8px; color:var(--primary-orange); font-size:12px; font-weight:bold;">
                     ✏️ Edición pendiente: la venta original sigue intacta hasta que confirmes el reemplazo.
                     <button class="btn-sm" onclick="cancelarEdicionVenta()" style="margin-left:8px; background:#4b5563; color:white;">Cancelar edición</button>
@@ -1179,6 +1174,10 @@
                 </div>
 
                 <h4 class="sub-title">4. Forma de cobro</h4>
+                <section id="anticipo-conversion" hidden><strong id="anticipo-conversion-titulo"></strong><p>Elige cómo se cubre el anticipo acordado. Puedes ajustar los importes antes de finalizar.</p><div class="flujo-acciones">
+                <button type="button" class="btn-sm btn-edit" id="anticipo-existente" onclick="elegirAnticipoCotizado('existente')">Usar anticipo disponible</button>
+                <button type="button" class="btn-sm btn-edit" onclick="elegirAnticipoCotizado('hoy')">Registrar pago recibido hoy</button>
+                <button type="button" class="btn-sm" onclick="elegirAnticipoCotizado('pendiente')">Dejar pendiente</button></div></section>
                 <div class="grid-2">
                     <div class="form-group">
                         <label>Tipo de venta</label>
@@ -1207,12 +1206,15 @@
                 </div>
                 <div class="cart-total" id="venta-total-preview" style="margin-top: 15px;" aria-live="polite">Total a Cobrar: Q 0.00</div>
                 <button class="btn-main btn-green" onclick="procesarVentaMultiple()">💰 Finalizar Venta y Descontar</button>
-            </div></div></details>
+            </fieldset><p id="estado-guardado-venta" role="status"></p></div></div></details>
 
+            <details id="panel-entregas" class="fold-card subli-panel" ontoggle="if(this.open) cargarEntregasDia()"><summary>Entregas de hoy</summary><div class="fold-card-content"><label>Fecha de entrega<input type="date" id="entregas-fecha" onchange="cargarEntregasDia()"></label><button class="btn-sm btn-edit" onclick="cargarEntregasDia()">Actualizar</button><div id="entregas-lista" aria-live="polite"></div></div></details>
+            <dialog id="dialogo-entrega" aria-labelledby="titulo-entrega"><form id="form-entrega"><h3 id="titulo-entrega">Programar entrega</h3><p id="cliente-entrega"></p><div class="grid-2"><label>Fecha prometida<input id="entrega-fecha" type="date" required></label><label>Hora prometida (opcional)<input type="time" id="entrega-hora"></label></div><label>Diseño<select id="entrega-diseno"><option value="pendiente">Pendiente de aprobación</option><option value="aprobado">Aprobado</option><option value="no-aplica">No aplica</option></select></label><label>Estado<select id="entrega-estado"><option value="preparacion">En preparación</option><option value="listo">Listo</option><option value="entregado">Entregado</option></select></label><div class="flujo-acciones"><button class="btn-sm btn-edit" type="submit">Guardar entrega</button><button class="btn-sm" type="button" onclick="this.closest('dialog').close()">Cerrar</button></div></form></dialog>
             <details id="panel-ventas-4" ontoggle="if(this.open) renderHistorialVentas(true)" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="ventas-4"><summary>Historial de Ventas</summary><div class="fold-card-content"><div class="card">
                 <div id="wrapper-historial-ventas">
                     <div class="venta-filtros">
                         <label>Buscar venta<input type="search" id="buscar-historial-ventas" placeholder="Producto, código, cliente o referencia" oninput="renderHistorialVentas()"></label>
+                        <label>Estado<select id="filtro-estado-ventas" onchange="renderHistorialVentas()"><option value="vigentes">Vigentes</option><option value="saldo">Con saldo</option><option value="devueltas">Con devoluciones</option><option value="anuladas">Anuladas</option></select></label>
                         <label>Mes<select id="filtro-mes-ventas" onchange="renderHistorialVentas()"></select></label>
                         <label>Registros<select id="limite-historial-ventas" onchange="cambiarLimiteHistorial('ventas')">
                             <option value="50">Últimas 50 coincidencias</option><option value="all">Consultar todo el historial</option>
@@ -1225,15 +1227,13 @@
         </div>
 
         <div id="sec-cotizacion" style="display: none;">
-            <details id="panel-cotizacion-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="cotizacion-1"><summary>1. Datos del Cliente (Opcional)</summary><div class="fold-card-content"><div class="card">
+            <details open id="panel-cotizacion-1" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="cotizacion-1"><summary>Preparar cotización</summary><div class="fold-card-content"><div class="card">
                 <h3 class="section-title">1. Datos del Cliente (Opcional)</h3>
                 <div class="grid-2">
                     <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="cotiza-nombre" list="lista-clientes" placeholder="Ej. Juan Pérez" oninput="sincronizarClienteEnFormulario('cotiza')"><input type="hidden" id="cotiza-cliente-id"></div>
                     <div class="form-group"><label>NIT</label><input type="text" id="cotiza-nit" placeholder="Si está vacío dirá C/F"></div>
                 </div>
-            </div></div></details>
-
-            <details id="panel-cotizacion-2" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="cotizacion-2"><summary>2. Agregar al Carrito</summary><div class="fold-card-content"><div class="card">
+            <hr class="flujo-separador" id="panel-cotizacion-2">
                 <h3 class="section-title">2. Agregar al Carrito</h3>
                 <p style="font-size: 12px; color: var(--text-light); margin-top: -5px;">* Esta sección es para cálculos. No descuenta tu inventario a menos que confirmes la venta.</p>
                 
@@ -1257,9 +1257,7 @@
                     <div class="form-group" id="grupo-cotiza-precio" style="display: none;"><label>Precio de Venta al Cliente (c/u)</label><input type="number" id="cotiza-precio" step="0.01" min="0" placeholder="0.00"></div>
                 </div>
                 <button class="btn-main" style="background-color: var(--primary-purple);" onclick="agregarAlCarritoCotizacion()">➕ Añadir a Cotización</button>
-            </div></div></details>
-
-            <details id="panel-cotizacion-3" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="cotizacion-3"><summary>📄 Detalles de la Cotización</summary><div class="fold-card-content"><div class="card cart-container">
+            <hr class="flujo-separador" id="panel-cotizacion-3">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">
                     <h3 class="cart-title" style="color: var(--primary-purple); border: none; padding: 0; margin: 0;">📄 Detalles de la Cotización</h3>
                     <button class="btn-sm btn-delete" onclick="vaciarCarritoCotizacion()">🗑️ Vaciar Todo</button>
@@ -1307,8 +1305,7 @@
             
             <details id="panel-cotizacion-4" class="fold-card subli-panel v126-compact-details" data-pantalla-panel="cotizacion-4"><summary>Historial de Cotizaciones</summary><div class="fold-card-content"><div class="card" style="margin-top: 20px;">
                 <h3 class="section-title">Historial de Cotizaciones</h3>
-                <button onclick="toggleHistorial('wrapper-historial-cotizaciones')" style="width: 100%; padding: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dark); border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: bold;">👁️ Ver / Ocultar Historial</button>
-                <div id="wrapper-historial-cotizaciones" style="display: none;">
+                <div id="wrapper-historial-cotizaciones">
                     <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 10px; flex-wrap: wrap;">
                         <select id="filtro-mes-cotizaciones" onchange="renderHistorialCotizaciones()" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);"></select>
                         <select id="limite-historial-cotizaciones" onchange="cambiarLimiteHistorial('cotizaciones')" style="padding: 5px; font-size: 12px; border-radius: 5px; background: var(--card-bg); color: var(--text-dark); border: 1px solid var(--border-color);">
@@ -1680,13 +1677,14 @@
             </div>
         </div>
     </div>
-<script src="./assets/1.4.3/negocio-core.js"></script>
-    <script src="./assets/1.4.3/historial-ventas.js"></script>
-    <script src="./assets/1.4.3/integridad-firebase.js"></script>
-    <script src="./assets/1.4.3/operaciones-pendientes.js"></script>
-    <script src="./assets/1.4.3/gestion-negocio.js"></script>
-    <script src="./assets/1.4.3/finanzas-negocio.js"></script>
-    <script src="./assets/1.4.3/respaldo-negocio.js"></script>
+<script src="./assets/1.4.4/negocio-core.js"></script>
+    <script src="./assets/1.4.4/taller.js"></script>
+    <script src="./assets/1.4.4/historial-ventas.js"></script>
+    <script src="./assets/1.4.4/integridad-firebase.js"></script>
+    <script src="./assets/1.4.4/operaciones-pendientes.js"></script>
+    <script src="./assets/1.4.4/gestion-negocio.js"></script>
+    <script src="./assets/1.4.4/finanzas-negocio.js"></script>
+    <script src="./assets/1.4.4/respaldo-negocio.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -1806,7 +1804,7 @@
         function cargarBuscadorBajoDemanda() {
             if(typeof window.renderBuscadorDisenos === 'function') return Promise.resolve(true);
             if(promesaBuscadorBajoDemanda) return promesaBuscadorBajoDemanda;
-            promesaBuscadorBajoDemanda = import('./assets/1.4.3/buscador.js')
+            promesaBuscadorBajoDemanda = import('./assets/1.4.4/buscador.js')
                 .then(() => true)
                 .catch(error => {
                     promesaBuscadorBajoDemanda = null;
@@ -2457,6 +2455,9 @@
         }
 
         function aplicarPermisos(user) {
+            window.limpiarConsultasTaller?.();
+            const revisionIngresos = document.getElementById('boton-consulta-huellas');
+            if (revisionIngresos) revisionIngresos.hidden = user.rol !== 'dueno';
             document.body?.classList?.toggle('v126-ocultar-finanzas', user.rol !== 'dueno' && user.permisos?.verFinanzas !== true);
             window.refrescarGuardadosPendientesSubli?.();
             const todasPestañas = ['inicio', 'ingreso', 'inventario', 'ventas', 'cotizacion', 'alertas', 'buscador', 'ajustes'];
@@ -4250,8 +4251,9 @@
                 let provText = item.proveedor !== 'NO ESPECIFICADO' ? ` | Prov: ${item.proveedor}` : '';
                 let facText = item.factura ? ` | Fac: ${item.factura}` : '';
                 const origenCantidad = item.formaIngreso === 'lote' ? `${numeroFinito(item.cantidadComprada)} lote(s) × ${numeroFinito(item.contenidoPorCompra)} = ` : '';
+                const ordenTexto = item.ordenCompraId ? " | Orden: " + item.ordenCompraId : "";
                 const cambioDescripcion = item.actualizarDescripcion ? ' | Se actualizará la descripción' : '';
-                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">${escaparHTML(origenCantidad)}${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(cambioDescripcion)}${escaparHTML(provText)}${escaparHTML(facText)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
+                html += `<div class="item-row"><div class="item-info"><p class="item-title">${item.isNew ? '✨ Nuevo:' : '📦'} ${escaparHTML(item.nombre)}</p><p class="item-details">${escaparHTML(origenCantidad)}${numeroFinito(item.stock)} ${escaparHTML(item.unidadAbreviatura || 'pza')} | Q${numeroFinito(item.costoBase).toFixed(2)} por ${escaparHTML(item.unidadAbreviatura || 'pza')}${escaparHTML(cambioDescripcion)}${escaparHTML(provText)}${escaparHTML(facText)}${escaparHTML(ordenTexto)}</p></div><button onclick="borrarDelCarritoIngreso(${Number(item.tempId)})" class="btn-sm btn-delete">X</button></div>`;
             });
             html += `<div class="cart-total" style="font-size: 14px; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; color: var(--primary-blue);">Líneas a ingresar: <b>${carritoIngresos.length}</b><br>Costo Base Total: <b>Q ${costoTotalPreview.toFixed(2)}</b></div>`;
             contenedor.innerHTML = html;
@@ -4311,10 +4313,14 @@
                         const ingresoSnap = await t.get(ingresoRef);
                         if(!ingresoSnap.exists()) throw new Error("El ingreso que intentas editar ya no existe.");
                         ingresoAnterior = ingresoSnap.data();
+                        if(!Array.isArray(ingresoAnterior.items) || !ingresoAnterior.items.length) throw new Error('El ingreso no conserva su detalle de inventario.');
+                        if(carritoSnapshot.some(i=>i.aplicadoEnOrigen !== undefined && i.aplicadoEnOrigen !== ingresoAnterior.aplicadoEn)) throw new Error('El ingreso se modificó en otro equipo. Vuelve a abrirlo.');
                         if(ingresoAnterior.anulada) throw new Error("El ingreso ya fue anulado desde otro dispositivo.");
                         if(!(Number(ingresoAnterior.versionCalculo) >= 2)) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger tus costos reales no puede editarse automáticamente.");
                     }
 
+                    const actualizarOrden = carritoSnapshot.some(i => i.ordenCompraId) || ingresoAnterior?.items?.some(i => i.ordenCompraId)
+                        ? await window.prepararActualizacionOrden(t, carritoSnapshot, ingresoAnterior) : null;
                     const documentosExistentes = new Map();
                     const idsNecesarios = new Set();
                     const idsNuevos = new Set();
@@ -4353,7 +4359,7 @@
                             idsAnteriores.add(clave);
                             const producto = productosTrabajo.get(clave);
                             const camposExactos = [item.stockAntes, item.costoAntes, item.stockDespues, item.costoDespues, ingresoAnterior.aplicadoEn];
-                            if(camposExactos.some(valor => !Number.isFinite(Number(valor)))) throw new Error("El ingreso no tiene una huella matemática completa para revertirlo.");
+                            if(!camposExactos.every(SubliNegocioCore.esDatoReversion)) throw new Error("El ingreso no tiene una huella matemática completa para revertirlo.");
                             const estadoSinCambios = numeroFinito(producto.lastModified) === numeroFinito(ingresoAnterior.aplicadoEn)
                                 && Math.abs(numeroFinito(producto.stock) - numeroFinito(item.stockDespues)) < 0.000001
                                 && Math.abs(numeroFinito(producto.costo) - numeroFinito(item.costoDespues)) < 0.000001;
@@ -4433,7 +4439,7 @@
                         }
 
                         productosTrabajo.set(String(producto.id), producto);
-                        registroHistorial.items.push({ idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: producto.nombre, nombreAnterior: item.actualizarDescripcion ? item.nombreOriginal : null, descripcionActualizada: Boolean(item.actualizarDescripcion), formaIngreso: item.formaIngreso || 'unidad', stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, costoTotalCompra: SubliNegocioCore.redondearMoneda(costoTotalCompra), costoTotalConTransporte:SubliNegocioCore.redondearMoneda(costoTotalCompra + numeroFinito(item.transporteAsignado)), residuoCostoTotal:numeroFinito(item.residuoCostoTotal), proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
+                        registroHistorial.items.push({ ...(item.ordenCompraId ? {ordenCompraId:item.ordenCompraId} : {}), idFinal: item.idFinal, codigoInventario: producto.codigoInventario || null, nombre: producto.nombre, nombreAnterior: item.actualizarDescripcion ? item.nombreOriginal : null, descripcionActualizada: Boolean(item.actualizarDescripcion), formaIngreso: item.formaIngreso || 'unidad', stock: item.stock, cantidadComprada: item.cantidadComprada, contenidoPorCompra: item.contenidoPorCompra, unidadId: producto.unidadId || 'pieza', unidadNombre: producto.unidadNombre || 'Pieza', unidadAbreviatura: producto.unidadAbreviatura || 'pza', transporteAsignado: item.transporteAsignado, costoIngresado: costoFinal, costoTotalCompra: SubliNegocioCore.redondearMoneda(costoTotalCompra), costoTotalConTransporte:SubliNegocioCore.redondearMoneda(costoTotalCompra + numeroFinito(item.transporteAsignado)), residuoCostoTotal:numeroFinito(item.residuoCostoTotal), proveedor: item.proveedor, nit: item.nit, factura: item.factura, categoria: item.categoria, stockAntes, costoAntes, stockDespues: producto.stock, costoDespues: producto.costo });
                     }
 
                     const productosActualizados = Array.from(productosTrabajo.values());
@@ -4441,6 +4447,7 @@
                         t.set(window.doc(window.db, "inventario", String(producto.id)), producto);
                     });
                     escribirReservasInventario(t, reservasCodigos);
+                    actualizarOrden?.();
                     t.set(ingresoRef, registroHistorial);
                     t.update(configRef, { codigosInventario: estadoCodigosTrabajo, ultimaActualizacion: timestampActual });
 
@@ -4474,7 +4481,7 @@
             popularSelectMeses(historialIngresos, 'filtro-mes-ingresos');
             const mesFiltro = document.getElementById('filtro-mes-ingresos') ? document.getElementById('filtro-mes-ingresos').value : 'todos';
             
-            let data = [...historialIngresos].sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
+            let data = historialIngresos.filter(reg => reg && !reg.anulada).sort((a,b) => (b.timestamp || b.id || 0) - (a.timestamp || a.id || 0));
             if (mesFiltro !== 'todos') {
                 data = data.filter(r => getMesAnioFromDate(r.fecha, r.timestamp, r) === mesFiltro);
             }
@@ -4488,30 +4495,30 @@
             data.forEach(reg => {
                 if (reg.anulada) return; 
                 let totalGasto = 0; 
-                const resumen = reg.items.map(i => {
-                    totalGasto += i.costoTotalConTransporte === undefined ? (i.stock * (i.costoIngresado || 0)) : numeroFinito(i.costoTotalConTransporte);
-                    let info = `+${numeroFinito(i.stock)} ${i.unidadAbreviatura || 'unid'} × ${i.nombre}`;
-                    if(i.formaIngreso === 'lote') info += ` [${numeroFinito(i.cantidadComprada)} lote(s) × ${numeroFinito(i.contenidoPorCompra)}]`;
-                    if (i.proveedor && i.proveedor !== "NO ESPECIFICADO") info += ` (${i.proveedor})`;
-                    if (i.factura) info += ` [Fac: ${i.factura}]`;
-                    if (i.nit) info += ` [NIT: ${i.nit}]`;
-                    return info;
-                }).join(', ');
-                
+                const grupos = new Map();
+                for (const i of (Array.isArray(reg.items) ? reg.items : [])) {
+                    const proveedor = String(i.proveedor || '').trim();
+                    const titulo = proveedor && proveedor !== 'NO ESPECIFICADO' ? proveedor : 'Distribuidor sin registrar';
+                    if (!grupos.has(titulo)) grupos.set(titulo, []);
+                    totalGasto += i.costoTotalConTransporte === undefined ? numeroFinito(i.stock) * numeroFinito(i.costoIngresado) : numeroFinito(i.costoTotalConTransporte);
+                    const notas = [i.formaIngreso === 'lote' && (i.cantidadComprada + ' lote(s) × ' + i.contenidoPorCompra), i.factura && 'Factura ' + i.factura, i.nit && 'NIT ' + i.nit, i.ordenCompraId && 'Orden ' + i.ordenCompraId].filter(Boolean);
+                    grupos.get(titulo).push('<li><strong>' + escaparHTML(i.nombre || 'Artículo sin nombre') + '</strong> · ' + escaparHTML(numeroFinito(i.stock) + ' ' + (i.unidadAbreviatura || 'unid')) + (notas.length ? '<small> · ' + escaparHTML(notas.join(' · ')) + '</small>' : '') + '</li>');
+                }
+                const resumen = Array.from(grupos, ([distribuidor, filas]) => '<section><h4>' + escaparHTML(distribuidor) + '</h4><ul>' + filas.join('') + '</ul></section>').join('');
                 html += `
                 <div class="item-row" style="flex-direction: column; align-items: stretch; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px;">
-                        <p class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">📅 ${escaparHTML(reg.fecha)}</p>
+                        <div class="item-title" style="margin: 0; color: var(--primary-green); font-size: 14px;">${resumen || 'Distribuidor sin registrar'}</div>
                         <div style="display:flex; gap:5px;">
                             <button onclick="editarIngreso(decodeURIComponent('${codificarParametroHTML(reg.id)}'))" class="btn-sm btn-edit">Editar</button>
                             <button onclick="borrarIngreso(decodeURIComponent('${codificarParametroHTML(reg.id)}'))" class="btn-sm btn-delete">Anular y Restar</button>
                         </div>
                     </div>
                     <div class="item-details" style="font-size: 13px;">
-                        <p style="margin: 0 0 8px 0; color: var(--text-light); line-height: 1.6;">${escaparHTML(resumen)}</p>
+                        <p style="margin: 0 0 8px 0; color: var(--text-light); line-height: 1.6;">${escaparHTML(reg.fecha)} · Ref. ${escaparHTML(reg.id)}</p>
                         <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; font-weight: bold; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center;">
                             <span>Inversión Total del Lote:</span>
-                            <span style="color: var(--primary-green); font-size: 15px;">Q ${totalGasto.toFixed(2)}</span>
+                            <span style="color: var(--primary-green); font-size: 15px;">${escaparHTML(dineroNegocio(totalGasto))}</span>
                         </div>
                     </div>
                 </div>`;
@@ -4530,6 +4537,7 @@
                 alert("⚠️ Este ingreso pertenece al historial anterior. No se editará automáticamente porque no existe información suficiente para reconstruir con exactitud el costo promedio.");
                 return;
             }
+            if(!Array.isArray(reg.items) || !reg.items.length || !reg.items.every(i=>i && [i.stockAntes,i.costoAntes,i.stockDespues,i.costoDespues,reg.aplicadoEn].every(SubliNegocioCore.esDatoReversion))) return alert('El ingreso no tiene los datos de reversión completos.');
             if(carritoIngresos.length > 0 && !confirm("La lista previa actual se reemplazará por este ingreso. ¿Continuar?")) return;
             if(!confirm("¿Deseas cargar este ingreso para editarlo? El inventario NO cambiará hasta que confirmes la nueva lista.")) return;
             
@@ -4538,7 +4546,9 @@
                 return {
                     tempId: Date.now() + Math.random(),
                     isNew: false,
-                    idOriginal: i.idFinal,
+                    idOriginal: i.idFinal, aplicadoEnOrigen:reg.aplicadoEn,
+                    ...(i.ordenCompraId ? {ordenCompraId:i.ordenCompraId} : {}),
+                    ...(SubliNegocioCore.esDatoReversion(i.costoTotalCompra) ? {costoTotalCompra:i.costoTotalCompra} : {}),
                     nombre: i.nombre,
                     nombreOriginal: i.nombreAnterior || i.nombre,
                     actualizarDescripcion: Boolean(i.descripcionActualizada),
@@ -4547,7 +4557,7 @@
                     cantidadComprada: numeroFinito(i.cantidadComprada, numeroFinito(i.stock)),
                     contenidoPorCompra: numeroFinito(i.contenidoPorCompra, 1),
                     min: producto?.min ?? 5,
-                    costoBase: i.costoIngresado || 0,
+                    costoBase: Number(i.stock) > 0 ? (SubliNegocioCore.esDatoReversion(i.costoTotalCompra) ? i.costoTotalCompra / i.stock : Math.max(0, numeroFinito(i.costoIngresado) - numeroFinito(i.transporteAsignado) / i.stock)) : 0,
                     costoIngresado: i.costoIngresado || 0,
                     tipoCosto: i.formaIngreso === 'lote' ? 'total' : 'unitario',
                     proveedor: i.proveedor || '',
@@ -4562,6 +4572,7 @@
                 };
             });
             ingresoEnEdicion = String(reg.id);
+            document.getElementById('ingreso-transporte-global').value = String(reg.transporteGlobal ?? reg.items.reduce((suma,i) => suma + numeroFinito(i.transporteAsignado),0));
             document.getElementById('aviso-ingreso-edicion').style.display = 'block';
             renderCarritoIngresos();
             cambiarPestaña('ingreso');
@@ -4588,9 +4599,11 @@
                 const ingresoSnap = await t.get(ingresoRef);
                 if(!ingresoSnap.exists()) throw new Error("El ingreso ya no existe.");
                 const registro = ingresoSnap.data();
+                if(!Array.isArray(registro.items) || !registro.items.length) throw new Error('El ingreso no conserva su detalle de inventario.');
                 if(registro.anulada) throw new Error("El ingreso ya fue anulado desde otro dispositivo.");
                 if(!(Number(registro.versionCalculo) >= 2)) throw new Error("Este ingreso es anterior al control de reversión exacta. Para proteger el inventario real no puede anularse automáticamente.");
 
+                const actualizarOrden = registro.items?.some(i => i.ordenCompraId) ? await window.prepararActualizacionOrden(t, [], registro) : null;
                 const idsVistos = new Set();
                 const productosLeidos = [];
                 for(const item of registro.items) {
@@ -4608,7 +4621,7 @@
                     const producto = copiarDatos(entrada.datos);
                     const item = entrada.item;
                     const camposExactos = [item.stockAntes, item.costoAntes, item.stockDespues, item.costoDespues, registro.aplicadoEn];
-                    if(camposExactos.some(valor => !Number.isFinite(Number(valor)))) throw new Error("El ingreso no tiene una huella matemática completa para revertirlo.");
+                    if(!camposExactos.every(SubliNegocioCore.esDatoReversion)) throw new Error("El ingreso no tiene una huella matemática completa para revertirlo.");
                     const estadoSinCambios = numeroFinito(producto.lastModified) === numeroFinito(registro.aplicadoEn)
                         && Math.abs(numeroFinito(producto.stock) - numeroFinito(item.stockDespues)) < 0.000001
                         && Math.abs(numeroFinito(producto.costo) - numeroFinito(item.costoDespues)) < 0.000001;
@@ -4623,6 +4636,7 @@
                 }
 
                 productosLeidos.forEach((entrada, indice) => t.set(entrada.ref, productosActualizados[indice]));
+                actualizarOrden?.();
                 t.update(ingresoRef, { anulada: true, anuladaEn: timestampActual });
                 return { productosActualizados, registro: { ...registro, anulada: true, anuladaEn: timestampActual } };
             });
@@ -5110,6 +5124,7 @@
         }
 
         function agregarAlCarritoVenta() {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return;
             const idProd = document.getElementById('venta-producto').value; 
             const rol = document.getElementById('venta-rol').value; 
             const qtyEntrada = Number(document.getElementById('venta-qty').value);
@@ -5150,10 +5165,13 @@
             renderCarritoVentas();
         }
 
-        function borrarDelCarritoVenta(tempId) { carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); if(!carritoVentas.length) window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); }
-        function vaciarCarritoVentas() { if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) { carritoVentas = []; ventaEnEdicion = null; ventaEdicionVersion = null; cotizacionOrigenVentaId = null; cotizacionOrigenVentaVersion = null; document.getElementById('aviso-venta-edicion').style.display = 'none'; window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); } }
+        function borrarDelCarritoVenta(tempId) {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return; carritoVentas = carritoVentas.filter(item => item.tempId !== tempId); if(!carritoVentas.length) window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); }
+        function vaciarCarritoVentas() {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return; if(confirm("¿Estás seguro de vaciar todo el carrito de ventas?")) { carritoVentas = []; ventaEnEdicion = null; ventaEdicionVersion = null; cotizacionOrigenVentaId = null; cotizacionOrigenVentaVersion = null; document.getElementById('aviso-venta-edicion').style.display = 'none'; window.borrarBorradorV130?.('ventas'); renderCarritoVentas(); } }
 
         function cancelarEdicionVenta() {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return;
             if(!ventaEnEdicion) return;
             if(!confirm('¿Cancelar la edición? La venta original seguirá exactamente igual.')) return;
             ventaEnEdicion = null;
@@ -5177,6 +5195,7 @@
         }
         
         function renderCarritoVentas() {
+            if(!carritoVentas.length) window.mostrarAnticipoCotizado?.(0);
             const contenedor = document.getElementById('lista-carrito-ventas');
             if (carritoVentas.length === 0) {
                 contenedor.innerHTML = '<p class="item-details" style="text-align:center;">Carrito vacío.</p>';
@@ -5218,6 +5237,8 @@
             isProcessingTransaction = true;
             let ventaConfirmada = null;
             try {
+                if (window.pendienteElegirAnticipo?.()) { alert('Elige cómo se cubre el anticipo acordado antes de finalizar.'); return; }
+                window.bloquearFormularioVenta?.(true);
                 if(carritoVentas.length === 0) { alert("⚠️ El carrito está vacío."); return; }
                 if(!window.db || !navigator.onLine) {
                     alert("📡 Para evitar ventas duplicadas o stock negativo, finalizar una venta requiere conexión. Tu carrito permanece intacto.");
@@ -5434,6 +5455,7 @@
                     const costoPorLinea = SubliNegocioCore.distribuirCentavos(aCentavos(costosProductos), pesosCosto);
                     const detalleFinal = detalleConIds.map(item => ({
                         ...item,
+                        prorrateoVersion: 2,
                         cantidadOriginalMilesimas: aMilesimas(item.qty),
                         ingresoLineaOriginalCentavos: ingresoPorLinea[item.lineId],
                         costoLineaOriginalCentavos: costoPorLinea[item.lineId]
@@ -5482,6 +5504,7 @@
                     const pagoInicial = pagoDinero > 0 ? { id: pagoInicialId, timestamp: timestampActual, fecha: fechaHoraNegocio(timestampActual), monto: pagoDinero, metodo: metodoPago, ubicacion: ubicacionPago, tipo: ventaAnterior ? 'pago_legacy' : 'pago_inicial' } : null;
                     const nuevaVenta = {
                         id: nuevaVentaId,
+                        ...(ventaAnterior?.fechaEntrega ? {fechaEntrega:ventaAnterior.fechaEntrega, entrega:ventaAnterior.entrega} : {}),
                         fechaNegocio:ventaAnterior?.fechaNegocio || SubliNegocioCore.fechaDiaNegocio(fechaContable),
                         mesContable:mesAnio,
                         timestamp: ventaAnterior ? (ventaAnterior.timestamp ?? null) : timestampActual,
@@ -5630,6 +5653,7 @@
                 alert(ventaConfirmada ? `La venta ${ventaConfirmada} sí quedó registrada. Falló la actualización de pantalla; recarga y revisa el historial antes de repetirla. ${error.message}` : (error.commitIncierto ? 'No se pudo confirmar la respuesta. Conserva el carrito y revisa el historial antes de repetir la venta. ' : 'No se aplicó ningún cambio. Tu carrito sigue completo. Error: ') + error.message);
             } finally {
                 isProcessingTransaction = false;
+                window.bloquearFormularioVenta?.(false);
             }
         }
 
@@ -5815,10 +5839,12 @@
         }
 
         async function editarVenta(id) {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return;
             const pass = await solicitarPassword("Ingrese la contraseña de seguridad para editar esta venta:");
             if(pass === null) return;
             if(!await esDueno(pass)) { alert("❌ Contraseña incorrecta."); return; }
 
+            if(isProcessingTransaction) return;
             const ventaLocal = ventas.find(x => String(x.id) === String(id));
             if(!ventaLocal || ventaLocal.anulada) return;
             if(Number(ventaLocal.versionCalculo) !== 2) {
@@ -5845,7 +5871,8 @@
             document.getElementById('venta-aplicar-anticipo').value = '0';
             document.getElementById('venta-factura').checked = ventaLocal.factura || false;
             document.getElementById('aviso-venta-edicion').style.display = 'block';
-            actualizarCamposCobroVenta(); renderCarritoVentas(); cambiarPestaña('ventas'); window.subliAbrirPanel?.('lista-carrito-ventas');
+            actualizarCamposCobroVenta(); renderCarritoVentas(); cambiarPestaña('ventas');
+            window.mostrarAnticipoCotizado?.(0); window.subliAbrirPanel?.('lista-carrito-ventas');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -6171,15 +6198,17 @@
 
         function generarImagenCotizacionActual() {
             if(carritoCotizacion.length === 0) { alert("⚠️ La cotización actual está vacía. Debes añadir artículos al carrito de cotización primero."); return; }
-            const principales = carritoCotizacion.filter(item => item.rol === 'principal' || item.rol === 'combo' || aCentavos(item.precioCobrado) > 0);
+            let lineas;
+            let anticipoCotizado;
+            try {
+                anticipoCotizado = SubliNegocioCore.normalizarMontoMoneda(document.getElementById('cotiza-anticipo').value || 0, { permitirCero: true });
+                lineas = SubliNegocioCore.lineasImagenCotizacion(carritoCotizacion, anticipoCotizado);
+            } catch(error) { alert(error.message); return; }
+            const principales = lineas.filter(item => item.rol === 'principal' || item.rol === 'combo' || aCentavos(item.precioCobrado) > 0);
             if(principales.length === 0) { alert("No hay productos principales ni combos para cobrarle al cliente en esta cotización."); return; }
 
             let clienteNombre = (window.nombreClienteFormulario?.('cotiza') ?? document.getElementById('cotiza-nombre').value).trim(); let clienteNit = document.getElementById('cotiza-nit').value.trim();
             if(clienteNit === '') clienteNit = 'C/F';
-            let anticipoCotizado;
-            try {
-                anticipoCotizado = SubliNegocioCore.normalizarMontoMoneda(document.getElementById('cotiza-anticipo').value || 0, { permitirCero: true });
-            } catch(error) { alert('⚠️ Anticipo: ' + error.message); return; }
             const metodoAnticipoCotizado = document.getElementById('cotiza-metodo-anticipo').value === 'transferencia' ? 'TRANSFERENCIA' : 'EFECTIVO';
 
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
@@ -6224,17 +6253,17 @@
             principales.forEach(item => {
                 let nombreLimpio = item.isService ? item.nombre.replace('🎨 ', '') : item.nombre; 
                 ctx.fillStyle = '#374151'; ctx.fillText(item.qty + 'x', 45, y);
-                let sub = item.qty * item.precioCobrado; total += sub;
-                if (tieneCombo && item.rol === 'combo' && aCentavos(item.precioCobrado) === 0) { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText('Q ' + redondear(sub).toFixed(2), 480, y, 90); }
+                const sub = item.subtotalImagenCentavos; total += sub;
+                if (tieneCombo && item.rol === 'combo' && aCentavos(item.precioCobrado) === 0) { ctx.fillStyle = '#10b981'; ctx.fillText('INCLUIDO', 480, y); } else { ctx.fillStyle = '#374151'; ctx.fillText(dineroNegocio(sub / 100), 480, y, 90); }
                 ctx.fillStyle = '#1f2937'; let lineasUsadas = wrapTextCotizacion(ctx, nombreLimpio, 120, y, 340, 22);
                 y += (lineasUsadas * 22) + 20;
             });
 
             ctx.beginPath(); ctx.moveTo(30, y - 10); ctx.lineTo(570, y - 10); ctx.stroke();
-            y += 30; ctx.font = 'bold 22px Arial'; ctx.fillStyle = '#2563eb'; ctx.fillText('TOTAL:', 380, y); ctx.fillText('Q ' + redondear(total).toFixed(2), 480, y, 90);
+            y += 30; ctx.font = 'bold 22px Arial'; ctx.fillStyle = '#2563eb'; ctx.fillText('TOTAL:', 380, y); ctx.fillText(dineroNegocio(total / 100), 480, y, 90);
             if(anticipoCotizado > 0) {
                 y += 32; ctx.font = 'bold 14px Arial'; ctx.fillStyle = '#059669';
-                ctx.fillText(`ANTICIPO ACORDADO: Q ${anticipoCotizado.toFixed(2)} · ${metodoAnticipoCotizado}`, 120, y);
+                ctx.fillText(`ANTICIPO ACORDADO: ${dineroNegocio(anticipoCotizado)} · ${metodoAnticipoCotizado}`, 120, y);
             }
 
             const nombreArchivo = configuracionNegocio.nombreNegocio.replace(/[^a-z0-9]+/gi, '_');
@@ -6330,6 +6359,8 @@
         }
 
         function cargarCotizacionEnFormularioVenta(cotizacion, idOrigen = null, versionOrigen = null) {
+            if (typeof isProcessingTransaction !== "undefined" && isProcessingTransaction) return;
+            if (aCentavos(cotizacion.anticipoCotizado || 0) > aCentavos(cotizacion.ingresoTotal ?? (cotizacion.detalleItems || []).reduce((s,i)=>s+numeroFinito(i.qty)*numeroFinito(i.precioCobrado),0))) { alert('El anticipo supera el total cotizado. Revisa la cotización.'); return false; }
             if(carritoVentas.length && !confirm('Ya hay una venta en preparación. ¿Reemplazar ese borrador por la cotización?')) return false;
             ventaEnEdicion = null;
             ventaEdicionVersion = null;
@@ -6347,12 +6378,13 @@
             document.getElementById('venta-factura').checked = Boolean(cotizacion.factura);
             const anticipoCotizado = Math.max(0, numeroFinito(cotizacion.anticipoCotizado));
             const totalCotizado = Math.max(0, numeroFinito(cotizacion.ingresoTotal, carritoVentas.reduce((total, item) => total + numeroFinito(item.qty) * numeroFinito(item.precioCobrado), 0)));
-            const esPagoParcialAcordado = anticipoCotizado > 0 && aCentavos(anticipoCotizado) < aCentavos(totalCotizado);
-            document.getElementById('venta-tipo-cobro').value = esPagoParcialAcordado ? 'credito' : 'contado';
+            const tieneAnticipoAcordado = anticipoCotizado > 0;
+            document.getElementById('venta-tipo-cobro').value = tieneAnticipoAcordado ? 'credito' : 'contado';
             document.getElementById('venta-metodo-pago').value = cotizacion.metodoAnticipoCotizado === 'transferencia' ? 'transferencia' : 'efectivo';
-            document.getElementById('venta-pago-inicial').value = esPagoParcialAcordado ? String(anticipoCotizado) : '0';
+            document.getElementById('venta-pago-inicial').value = '0';
             document.getElementById('venta-aplicar-anticipo').value = '0';
             actualizarCamposCobroVenta(); renderCarritoVentas(); cambiarPestaña('ventas');
+            window.mostrarAnticipoCotizado?.(anticipoCotizado, totalCotizado);
             window.subliAbrirPanel?.('lista-carrito-ventas');
             window.subliAbrirPanel?.('venta-nombre');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -7416,7 +7448,7 @@
         }
 
         // --- INTEGRACIÓN: CÓDIGO DE AUTO-ACTUALIZACIÓN VÍA VERSION.JSON ---
-        const APP_VERSION = "1.4.3";
+        const APP_VERSION = "1.4.4";
 
         function esVersionMasNueva(versionRemota, versionActual) {
             const remota = String(versionRemota).split('.').map(parte => Number(parte) || 0);
