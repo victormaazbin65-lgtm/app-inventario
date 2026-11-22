@@ -93,8 +93,10 @@ test('retiro sin saldo en el origen conserva íntegra la contabilidad',async()=>
  const {c,base}=entorno();base.set('sistema/config',{fondos:c.fondos,saldosDinero:{efectivo:0,banco:200,inicializado:true}});
  const antes=JSON.stringify([...base]);assert.equal(await c.procesarRetiro('Ganancia',25,'gananciaLibre',{motivo:'Hilo'}),false);assert.equal(JSON.stringify([...base]),antes);
 });
-test('los paneles nuevos inician cerrados y el módulo de opciones no escribe datos de negocio',()=>{
- const panels=[...html.matchAll(/<details[^>]*data-pantalla-panel=[^>]*>/g)];assert.ok(panels.length>=20);for(const p of panels)assert.doesNotMatch(p[0],/\sopen(?:\s|=|>)/);
+test('los formularios de trabajo abren juntos y los historiales quedan plegados',()=>{
+ const panels=[...html.matchAll(/<details[^>]*data-pantalla-panel=[^>]*>/g)].map(m=>m[0]);
+ assert.deepEqual(panels.filter(p=>/\sopen(?:\s|=|>)/.test(p)).map(p=>p.match(/id="([^"]+)"/)[1]).sort(),['panel-cotizacion-1','panel-ingreso-1','panel-ventas-1']);
+ for (const id of ['panel-cotizacion-4','panel-ingreso-3','panel-ventas-4']) assert.ok(panels.some(p=>p.includes(id)));
  const ui=leer('pantallas-v131.js');assert.doesNotThrow(()=>new Function(ui));assert.doesNotMatch(ui,/setDoc|runTransaction|setInterval|MutationObserver/);assert.match(ui,/subli-panel-oculto/);
 });
 test('un fallo visual después de confirmar nunca informa que la venta se canceló',async()=>{

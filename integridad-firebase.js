@@ -233,7 +233,7 @@
                     original.set(global.doc(db,'auditoria_sistema',opId), {
                         id:opId, timestamp, tipo:opciones.tipoOperacion || 'operacion_atomica', usuarioId:usuario?.id || null,
                         usuarioNombre:usuario?.nombre || 'Acceso del propietario', autorUID,
-                        operaciones, version:'1.4.3'
+                        operaciones, version:'1.4.4'
                     });
                     return valor;
                 }, { maxAttempts:opciones.maxAttempts || 5 });
@@ -265,7 +265,7 @@
         global.setDoc = (ref,datos,opciones) => global.runTransaction(global.db, async t => { await t.get(ref); t.set(ref,datos,opciones); }, { claveOperacion:`set:${claveRef(ref)}:${JSON.stringify(datos)}:${JSON.stringify(opciones)}`, soloDueno:true });
         global.updateDoc = (ref,datos) => global.runTransaction(global.db, async t => { await t.get(ref); t.update(ref,datos); }, { claveOperacion:`update:${claveRef(ref)}:${JSON.stringify(datos)}`, soloDueno:true });
         global.deleteDoc = ref => global.runTransaction(global.db, async t => { await t.get(ref); t.delete(ref); }, { claveOperacion:`delete:${claveRef(ref)}`, soloDueno:true });
-        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.3' });
+        global.subliIntegridadFirebase = Object.freeze({ instalada:true, version:'1.4.4' });
     }
     global.instalarIntegridadFirebase = instalarIntegridadFirebase;
     global.crearOpcionesOperacionSubli = crearOpcionesOperacion;

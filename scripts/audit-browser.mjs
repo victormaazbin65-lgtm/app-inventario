@@ -121,6 +121,99 @@ async function escenario(viewport,nombre,accion,{acceso=true,zona='America/Guate
 }
 try {
 for(const viewport of [{width:1365,height:900},{width:393,height:852}]) {
+
+ 
+ await escenario(viewport,'taller: la imagen de cotización cuadra por línea y los ingresos incompletos se conservan',async(page,avisos)=>{
+     const calculo=await page.evaluate(()=>{
+         const dibujar=CanvasRenderingContext2D.prototype.fillText,descargar=HTMLAnchorElement.prototype.click,textos=[];
+         let descargas=0;
+         CanvasRenderingContext2D.prototype.fillText=function(texto,...args){textos.push(texto);return dibujar.call(this,texto,...args);};
+         HTMLAnchorElement.prototype.click=function(){descargas++;};
+         try{
+             carritoCotizacion=['Diseño uno','Diseño dos'].map(nombre=>({nombre,qty:0.5,rol:'principal',isService:true,precioCobrado:10.01,costoBase:0}));
+             document.getElementById('cotiza-anticipo').value='50';generarImagenCotizacionActual();const invalidas=descargas;
+             document.getElementById('cotiza-anticipo').value='0';generarImagenCotizacionActual();
+             return {invalidas,descargas,textos};
+         }finally{CanvasRenderingContext2D.prototype.fillText=dibujar;HTMLAnchorElement.prototype.click=descargar;}
+     });
+     assert.equal(calculo.invalidas,0);assert.equal(calculo.descargas,1);assert.match(calculo.textos.join('|'),/5.01.*5.00.*10.01/);
+     await page.evaluate(async()=>{
+         const prod=__fixture.base.get('inventario/p1');
+         __fixture.base.set('ingresos/incompleto',{id:'incompleto',fecha:'21/11/2026',aplicadoEn:prod.lastModified,versionCalculo:2,items:[{idFinal:'p1',nombre:'TAZA',stock:1,stockAntes:null,costoAntes:' ',stockDespues:prod.stock,costoDespues:prod.costo}]});
+         await cargarHistorialCompleto('ingresos');
+     });
+     const sinCambio=await page.evaluate(async()=>{
+         try{await anularIngresoAtomico('incompleto');return false;}catch(e){return /huella/.test(e.message) && __fixture.base.get('inventario/p1').stock===10 && !__fixture.base.get('ingresos/incompleto').anulada;}
+     });
+     assert.equal(sinCambio,true);await page.evaluate(()=>consultarHuellasIngresos());assert.match(await page.locator('#consulta-huellas').textContent(),/incompleto/);
+ });
+ 
+ await escenario(viewport,'taller: una cotización aplica el anticipo de caja una sola vez y protege el carrito durante el cobro',async(page,avisos)=>{
+     await page.evaluate(()=>{
+         const c={id:'ana',nombreCompleto:'ANA',activo:true,limiteCredito:500,saldoCredito:0,saldoAnticipos:30},an={id:'a1',clienteId:'ana',saldoPendiente:30,montoOriginal:30,aplicadoTotal:0,devueltoTotal:0,estado:'pendiente',metodo:'efectivo'};
+         __fixture.base.set('clientes/ana',c);__fixture.base.set('anticipos/a1',an);clientes=[c];anticipos=[an];
+         cargarCotizacionEnFormularioVenta({clienteId:'ana',clienteNombre:'ANA',anticipoCotizado:30,ingresoTotal:100,detalleItems:[{idProd:'p1',nombre:'TAZA',qty:1,rol:'principal',costoBase:5,precioCobrado:100,unidadId:'pieza'}]});
+     });
+     assert.equal(await page.locator('#formulario-venta #venta-nombre').isVisible(),true);
+     assert.equal(await page.locator('#formulario-venta #lista-carrito-ventas').isVisible(),true);
+     assert.equal(await page.locator('#anticipo-conversion').isVisible(),true);
+     await page.evaluate(()=>procesarVentaMultiple());assert.equal(await cuenta(page,'ventas'),0);
+     await page.getByRole('button',{name:'Registrar pago recibido hoy'}).click();
+     assert.equal(await page.locator('#venta-pago-inicial').inputValue(),'30');
+     await page.getByRole('button',{name:'Dejar pendiente'}).click();assert.equal(await page.locator('#venta-pago-inicial').inputValue(),'0');
+     await page.locator('#anticipo-existente').click();assert.equal(await page.locator('#venta-aplicar-anticipo').inputValue(),'30');
+     const resultado=await page.evaluate(async()=>{
+         let liberar;const espera=new Promise(r=>liberar=r);const real=window.runTransaction;
+         window.runTransaction=async(...args)=>{await espera;return real(...args);};
+         const guardado=procesarVentaMultiple(),bloqueado=document.getElementById('formulario-venta').disabled;
+         borrarDelCarritoVenta(carritoVentas[0].tempId);agregarAlCarritoVenta();vaciarCarritoVentas();const lineas=carritoVentas.length;
+         liberar();await guardado;window.runTransaction=real;
+         return {bloqueado,lineas,venta:[...__fixture.base].find(([k])=>k.startsWith('ventas/'))?.[1],anticipo:__fixture.base.get('anticipos/a1').saldoPendiente};
+     });
+     assert.equal(resultado.bloqueado,true);assert.equal(resultado.lineas,1);assert.ok(resultado.venta,JSON.stringify(avisos));
+     assert.equal(resultado.venta.montoPagadoDinero,0);assert.equal(resultado.venta.anticipoAplicado,30);assert.equal(resultado.venta.saldoPendiente,70);assert.equal(resultado.anticipo,0);
+ });
+ await escenario(viewport,'taller: recepción parcial, revisión concurrente y anulación de una recepción confirmada',async(page,avisos)=>{
+     await page.evaluate(()=>{__fixture.base.set('ordenes_compra/oc1',{id:'oc1',proveedor:'Distribuidor Uno',estado:'pendiente',items:[{id:'p1',nombre:'TAZA',cantidad:5,costoUnitario:4,unidadId:'pieza',proveedor:'Distribuidor Uno'}]});});
+     await page.locator('#tab-ingreso').click();await page.locator('#recepcion-orden > summary').click();
+     await page.locator('#orden-pendiente').selectOption('oc1');await page.locator('[data-cantidad]').fill('2');
+     await page.getByRole('button',{name:'Añadir recepción a la lista previa'}).click();
+     await page.evaluate(()=>procesarIngresoMultiple());
+     const previo=await page.evaluate(()=>({stock:__fixture.base.get('inventario/p1').stock,orden:__fixture.base.get('ordenes_compra/oc1'),ing:[...__fixture.base].find(([k])=>k.startsWith('ingresos/'))?.[1]}));
+     assert.ok(previo.ing,JSON.stringify(avisos));assert.equal(previo.stock,12);assert.equal(previo.orden.items[0].recibido,2);assert.equal(previo.orden.estado,'pendiente');assert.equal(previo.ing.items[0].ordenCompraId,'oc1');
+     await page.locator('#panel-ingreso-3>summary').click();
+     assert.equal(await page.locator('#lista-historial-ingresos h4').first().innerText(),'Distribuidor Uno');
+     assert.match(await page.locator('#lista-historial-ingresos li').first().innerText(),/TAZA.*2 pza/i);
+     await page.evaluate(()=>cargarOrdenesPendientes());await page.locator('#orden-pendiente').selectOption('oc1');
+     assert.equal(await page.locator('[data-cantidad]').inputValue(),'3');
+     await page.getByRole('button',{name:'Añadir recepción a la lista previa'}).click();
+     await page.evaluate(()=>__fixture.base.get('ordenes_compra/oc1').revisionRecepcion++);
+     await page.evaluate(()=>procesarIngresoMultiple());assert.equal(await cuenta(page,'ingresos'),1);assert.match(avisos.at(-1),/orden cambió/);
+     await page.evaluate(()=>{carritoIngresos=[];renderCarritoIngresos();});await page.evaluate(()=>cargarOrdenesPendientes());await page.locator('#orden-pendiente').selectOption('oc1');
+     await page.getByRole('button',{name:'Añadir recepción a la lista previa'}).click();await page.evaluate(()=>procesarIngresoMultiple());
+     assert.equal(await page.evaluate(()=>__fixture.base.get('ordenes_compra/oc1').estado),'recibida');
+     await page.evaluate(async id=>{const ultimo=[...__fixture.base].find(([k,v])=>k.startsWith('ingresos/') && v.id!==id)[1];await anularIngresoAtomico(ultimo.id);},previo.ing.id);
+     assert.deepEqual(await page.evaluate(()=>[__fixture.base.get('ordenes_compra/oc1').items[0].recibido,__fixture.base.get('inventario/p1').stock]),[2,12]);
+ });
+ await escenario(viewport,'taller: historial por cliente, filtros y entrega con diseño aprobado y saldo vigente',async(page)=>{
+     await page.evaluate(async()=>{
+         for(const v of [{id:'venta1',clienteNombre:'María López',saldoPendiente:25,detalleItems:[{nombre:'Playera roja',qty:2,rol:'principal',precioCobrado:25}],ingresoTotal:50},{id:'dev',clienteNombre:'Luis',detalleItems:[],devoluciones:[{cantidad:1,productoNombre:'Taza'}],ingresoTotal:0},{id:'anul',anulada:true,anuladaEn:Date.now(),clienteNombre:'Eva',ingresoTotal:90,versionCalculo:4}])__fixture.base.set('ventas/'+v.id,v);
+         await cargarHistorialCompleto('ventas');
+     });
+     await page.locator('#tab-ventas').click();await page.locator('#panel-ventas-4>summary').click();await page.locator('#filtro-estado-ventas').selectOption('anuladas');
+     const anul=page.locator('[data-venta="anul"]');await anul.locator('summary').first().click();assert.match(await anul.innerText(),/Total original/);assert.equal(await anul.locator('button').count(),0);
+     await page.locator('#filtro-estado-ventas').selectOption('devueltas');assert.equal(await page.locator('.venta-ficha').count(),1);
+     await page.locator('#filtro-estado-ventas').selectOption('saldo');const ficha=page.locator('[data-venta="venta1"]');
+     assert.equal(await ficha.locator('summary .venta-encabezado strong').innerText(),'María López');await ficha.locator('summary').first().click();
+     assert.match(await ficha.locator('li').first().innerText(),/Playera roja/);await ficha.getByRole('button',{name:'Programar entrega'}).click();
+     await page.locator('#entrega-hora').fill('14:30');await page.locator('#entrega-diseno').selectOption('aprobado');await page.locator('#entrega-estado').selectOption('listo');
+     await page.getByRole('button',{name:'Guardar entrega'}).click();await page.locator('#dialogo-entrega').waitFor({state:'hidden'});
+     await page.locator('#panel-entregas>summary').click();await page.getByRole('button',{name:'Actualizar entrega',exact:true}).waitFor();
+     const entrega=await page.locator('#entregas-lista').innerText();assert.match(entrega,/María López/);assert.match(entrega,/14:30.*Listo.*Aprobado/);assert.match(entrega,/25.00/);
+     await page.getByRole('button',{name:'Actualizar entrega',exact:true}).click();await page.locator('#entrega-estado').selectOption('entregado');await page.getByRole('button',{name:'Guardar entrega'}).click();await page.locator('#dialogo-entrega').waitFor({state:'hidden'});
+     assert.equal(await page.evaluate(()=>__fixture.base.get('ventas/venta1').entrega.estado),'entregado');
+ });
+ 
 await escenario(viewport,'historial: buscar por producto o código, abrir la ficha y devolver la venta elegida',async page=>{
   await page.evaluate(async()=>{
    carritoVentas=[

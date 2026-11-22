@@ -226,6 +226,7 @@
             totalCent += subtotalCent;
             return {
                 id:String(p.id || ''), codigo:p.codigoInventario || '', nombre:p.nombre || 'Producto', proveedor:p.proveedorSurtido || p.proveedor || 'NO ESPECIFICADO',
+                unidadId:p.unidadId || 'pieza', unidadAbreviatura:p.unidadAbreviatura || 'pza',
                 stock:numero(p.stockNormalizado, numero(p.stock)), minimo:numero(p.minimoNormalizado, numero(p.min)), cantidad,
                 costoUnitario, subtotal:monedaDesdeCentavos(subtotalCent), estado:p.estadoSurtido || ''
             };

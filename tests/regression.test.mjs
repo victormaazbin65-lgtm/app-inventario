@@ -37,7 +37,7 @@ test('HTML, JavaScript clásico, módulo y JSON tienen sintaxis válida', () => 
   scriptsNegocio.forEach((codigo, indice) => assert.doesNotThrow(() => new Function(codigo), archivosNegocio[indice]));
   assert.doesNotThrow(() => new vm.SourceTextModule(scriptModulo));
   assert.doesNotThrow(() => JSON.parse(leer('manifest.json')));
-  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.3' });
+  assert.deepEqual(JSON.parse(leer('version.json')), { version: '1.4.4' });
 });
 
 test('no existen identificadores HTML ni funciones globales duplicadas', () => {
@@ -188,7 +188,7 @@ test('la vista previa cambia al instante al modificar producción, envío o fact
   assert.match(html, /id="cotiza-envio"[^>]+oninput="renderCarritoCotizacion\(\)"/);
 });
 
-test('el anticipo acordado solo se vuelve pago al cargar y confirmar la venta', () => {
+test('convertir una cotización nunca registra por defecto el anticipo acordado como dinero de hoy', () => {
   const ids = ['venta-tinta', 'venta-mano-obra', 'venta-envio', 'venta-nombre', 'venta-cliente-id', 'venta-nit', 'venta-factura', 'venta-tipo-cobro', 'venta-metodo-pago', 'venta-pago-inicial', 'venta-aplicar-anticipo'];
   const elementos = Object.fromEntries(ids.map(id => [id, { value: '', checked: false }]));
   const contexto = vm.createContext({
@@ -217,14 +217,14 @@ test('el anticipo acordado solo se vuelve pago al cargar y confirmar la venta', 
   }, 'cot-1');
   assert.equal(elementos['venta-tipo-cobro'].value, 'credito');
   assert.equal(elementos['venta-metodo-pago'].value, 'transferencia');
-  assert.equal(elementos['venta-pago-inicial'].value, '30');
+  assert.equal(elementos['venta-pago-inicial'].value, '0');
   assert.equal(elementos['venta-aplicar-anticipo'].value, '0');
 
   contexto.cargarCotizacionEnFormularioVenta({
     detalleItems: [{ idProd: 'p1', qty: 1, precioCobrado: 100, costoBase: 40 }],
     ingresoTotal: 100, anticipoCotizado: 100, metodoAnticipoCotizado: 'efectivo'
   });
-  assert.equal(elementos['venta-tipo-cobro'].value, 'contado');
+  assert.equal(elementos['venta-tipo-cobro'].value, 'credito');
   assert.equal(elementos['venta-metodo-pago'].value, 'efectivo');
   assert.equal(elementos['venta-pago-inicial'].value, '0');
 });
@@ -638,9 +638,9 @@ test('el análisis inteligente detecta surtido, anomalías y cierre sin escribir
 
 test('PWA usa la misma versión y sus iconos existen', () => {
   const manifest = JSON.parse(leer('manifest.json'));
-  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.3"/);
-  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.3/);
-  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.3\/buscador\.js'\)/);
+  assert.match(scriptClasico, /const APP_VERSION = "1\.4\.4"/);
+  assert.match(leer('sw.js'), /sublicosturas-v1\.4\.4/);
+  assert.match(scriptClasico, /import\('\.\/assets\/1\.4\.4\/buscador\.js'\)/);
   archivosNegocio.forEach(archivo => assert.match(leer('sw.js'), new RegExp(archivo.replace('.', '\\.'))));
   for(const icono of manifest.icons) {
     assert.equal(icono.type, 'image/png');

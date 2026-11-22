@@ -550,7 +550,7 @@
             cantidad = validarCantidadProducto(cantidad, { unidadId: item.unidadId || 'pieza' });
         }
         if (core.aMilesimas(cantidad) > core.aMilesimas(item.qty)) throw new Error('Cantidad devuelta inválida.');
-        const calculoLinea = core.calcularDevolucionLinea(item, cantidad);
+        const calculoLinea = core.calcularDevolucionLinea(item, cantidad, true);
         const ingresoDevuelto = calculoLinea.ingresoDevuelto;
         const saldoAntes = core.redondearMoneda(venta.saldoPendiente || 0);
         const cobradoAntes = core.redondearMoneda(venta.montoCobradoTotal ?? venta.ingresoTotal);
@@ -613,7 +613,7 @@
                 const indiceServidor = core.localizarLineaVenta(venta.detalleItems, preview.referenciaLinea);
                 if (indiceServidor < 0) throw new Error('El artículo cambió de posición o contenido desde otro dispositivo. No se aplicó la devolución.');
                 const item = venta.detalleItems[indiceServidor];
-                const calculoLinea = core.calcularDevolucionLinea(item, preview.cantidad);
+                const calculoLinea = core.calcularDevolucionLinea(item, preview.cantidad, true);
                 let clienteRef = null;
                 let clienteServidor = null;
                 if (venta.clienteId) {
@@ -679,6 +679,7 @@
                 if (reembolsoDinero > 0) saldos = cambiarSaldo(saldos, ubicacion, reembolsoDinero, -1);
                 const detalleNuevo = venta.detalleItems.map((detalle, indice) => indice === indiceServidor ? {
                     ...detalle,
+                    prorrateoVersion: 2,
                     qty: calculoLinea.cantidadRestante,
                     cantidadOriginalMilesimas: calculoLinea.cantidadOriginalMilesimas,
                     ingresoLineaOriginalCentavos: calculoLinea.ingresoLineaOriginalCentavos,

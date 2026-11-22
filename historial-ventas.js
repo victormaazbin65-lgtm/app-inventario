@@ -11,7 +11,7 @@
         if (!esNumero(item.qty) || Number(item.qty) <= 0) return '';
         if (Number.isSafeInteger(item.ingresoLineaOriginalCentavos) && item.ingresoLineaOriginalCentavos >= 0 &&
             Number.isSafeInteger(item.cantidadOriginalMilesimas) && item.cantidadOriginalMilesimas >= core.aMilesimas(item.qty) && core.aMilesimas(item.qty) > 0) {
-            return dinero(core.calcularDevolucionLinea(item, item.qty).ingresoDevuelto);
+            return dinero(core.calcularDevolucionLinea(item, item.qty, true).ingresoDevuelto);
         }
         return esNumero(item.precioCobrado) ? `${dinero(core.redondearMoneda(Number(item.qty) * Number(item.precioCobrado)))} (calculado)` : '';
     }
@@ -36,12 +36,9 @@
         const devoluciones = lista(venta.devoluciones);
         const totalDevuelto = devoluciones.length > 0 && Array.isArray(venta.detalleItems) && !items.length;
         const clave = escaparHTML(venta.id);
-        const nombres = items.filter(i => i.rol !== 'material').map(nombre);
-        const vista = (nombres.length ? nombres : items.map(nombre)).slice(0, 2).join(' · ');
-        const cantidadNombres = nombres.length || items.length;
-        const titulo = vista ? vista + (cantidadNombres > 2 ? ` (+${cantidadNombres - 2})` : '') :
-            (totalDevuelto ? venta.resumenItemsOriginal || devoluciones.map(d => d.productoNombre).filter(Boolean).join(' · ') : venta.resumenItems) || 'Venta sin detalle de productos';
-        const estado = totalDevuelto ? 'Devuelta' : Number(venta.saldoPendiente) > 0 ? 'Crédito pendiente' :
+        const tituloAnterior = (totalDevuelto ? venta.resumenItemsOriginal || devoluciones.map(d => d.productoNombre).filter(Boolean).join(' · ') : venta.resumenItems) || 'Venta sin detalle de productos';
+        const vistaProductos = items.length ? '<span class="venta-vista-lineas" role="list">' + items.map(i => '<small role="listitem">' + escaparHTML(cantidad(i)) + ' × ' + escaparHTML(nombre(i)) + (i.rol === 'material' ? ' · Material usado' : i.rol === 'combo' ? ' · Combo' : i.isService ? ' · Servicio' : '') + '</small>').join('') + '</span>' : '<small>' + escaparHTML(tituloAnterior) + '</small>';
+        const estado = venta.anulada ? 'Anulada' : totalDevuelto ? 'Devuelta' : Number(venta.saldoPendiente) > 0 ? 'Crédito pendiente' :
             esNumero(venta.saldoPendiente) || venta.estadoCobro === 'pagado' ? 'Pagada' : 'Cobro sin desglose';
         const reembolsos = movimientos('Devoluciones', devoluciones, d => {
             const partes = [`${escaparHTML(d.fecha)} · ${escaparHTML(d.cantidad)} × ${escaparHTML(d.productoNombre)}`, `Importe devuelto ${dinero(d.ingresoDevuelto)}`];
@@ -63,16 +60,17 @@
             [ `Impuesto (${numeroFinito(venta.porcentajeSAT, 5)}%)`,venta.factura ? venta.impuestoSAT : null],['Ganancia neta',venta.ganancia]
         ]) : '';
         const acciones = [];
+        if (!venta.anulada && !totalDevuelto) acciones.push(['entrega',venta.fechaEntrega ? 'Ver o actualizar entrega' : 'Programar entrega']);
         const version = Number(venta.versionCalculo);
-        if (version === 2) acciones.push(['editar','Editar venta']);
-        if (version >= 3 && items.length && puedeAbrirSeccionSubli('caja')) acciones.push(['devolver','Registrar devolución']);
-        if (version >= 2 && !devoluciones.length) acciones.push(['deshacer','Deshacer venta']);
+        if (!venta.anulada && version === 2) acciones.push(['editar','Editar venta']);
+        if (!venta.anulada && version >= 3 && items.length && puedeAbrirSeccionSubli('caja')) acciones.push(['devolver','Registrar devolución']);
+        if (!venta.anulada && version >= 2 && !devoluciones.length) acciones.push(['deshacer','Deshacer venta']);
         const notasStock = Array.isArray(venta.movimientosInventario) && !venta.movimientosInventario.length ? 'Sin descuento de existencias al registrar.' : '';
         const resumenOriginal = devoluciones.length && venta.resumenItemsOriginal ? `<p>Venta original · ${escaparHTML(venta.resumenItemsOriginal)}</p>` : '';
         return `<details class="venta-ficha" data-venta="${clave}" data-apartado="ficha"><summary>
-            <span class="venta-encabezado"><strong>${escaparHTML(titulo)}</strong><small>${escaparHTML(venta.fecha || 'Fecha sin registrar')} · ${escaparHTML(venta.clienteNombre || 'C/F')}</small></span>
-            <span class="venta-importe"><strong>${dinero(venta.ingresoTotal)}</strong><small>${estado}${venta.factura ? ' · Con factura' : ''}</small></span></summary>
-            <div class="venta-cuerpo"><p class="venta-ref">Referencia ${clave}</p><h4>${devoluciones.length ? 'Productos después de devoluciones' : 'Productos de la venta'}</h4>
+            <span class="venta-encabezado"><strong>${escaparHTML(!venta.clienteNombre || venta.clienteNombre === 'C/F' ? 'Consumidor final (C/F)' : venta.clienteNombre)}</strong>${vistaProductos}<small>${escaparHTML(venta.fecha || 'Fecha sin registrar')}</small></span>
+            <span class="venta-importe"><strong>${venta.anulada ? 'Total original · ' : ''}${dinero(venta.ingresoTotal)}</strong><small>${estado}${venta.factura ? ' · Con factura' : ''}</small></span></summary>
+            <div class="venta-cuerpo"><p class="venta-ref">Referencia ${clave}${venta.anulada ? ` · Anulada ${venta.anuladaEn ? escaparHTML(fechaHoraNegocio(venta.anuladaEn)) : '(fecha sin registrar)'}` : ''}</p><h4>${devoluciones.length ? 'Productos después de devoluciones' : 'Productos de la venta'}</h4>
             ${items.length ? `<ul class="venta-productos">${items.map(filaProducto).join('')}</ul>` : `<p>${totalDevuelto ? 'Se devolvieron todos los artículos.' : 'Esta venta antigua solo conserva la información del resumen.'}</p>`}
             ${resumenOriginal}${cobro ? `<dl class="venta-cifras">${cobro}</dl>` : ''}${pagos}${reembolsos}${stock}${notasStock ? `<p>${notasStock}</p>` : ''}
             ${finanzas ? `<details data-apartado="finanzas"><summary>Costos y ganancia</summary><dl class="venta-cifras">${finanzas}</dl></details>` : ''}
@@ -85,7 +83,10 @@
         if (actualizarMeses) popularSelectMeses(ventas, 'filtro-mes-ventas');
         const mes = document.getElementById('filtro-mes-ventas').value || 'todos';
         const consulta = document.getElementById('buscar-historial-ventas').value.trim();
-        const cargadas = ventas.filter(v => v && !v.anulada);
+        const estadoFiltro = document.getElementById('filtro-estado-ventas')?.value || 'vigentes';
+        const cargadas = ventas.filter(v => v && (estadoFiltro === 'anuladas' ? v.anulada : !v.anulada)
+            && (estadoFiltro !== 'saldo' || Number(v.saldoPendiente) > 0)
+            && (estadoFiltro !== 'devueltas' || lista(v.devoluciones).length));
         const filtradas = cargadas.filter(v => {
             if (mes !== 'todos' && getMesAnioFromDate(v.fecha, v.timestamp, v) !== mes) return false;
             if (!consulta) return true;
@@ -120,6 +121,7 @@
         const boton = event.target.closest('button[data-accion]');
         if (!boton || !puedeAbrirSeccionSubli('ventas')) return;
         const id = boton.closest('[data-venta]').dataset.venta;
+        if (boton.dataset.accion === 'entrega') return global.editarEntregaVenta(id);
         if (boton.dataset.accion === 'editar') return editarVenta(id);
         if (boton.dataset.accion === 'deshacer') return borrarVenta(id);
         if (!puedeAbrirSeccionSubli('caja')) return;

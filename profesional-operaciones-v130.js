@@ -26,7 +26,7 @@
 
     function esDueno() { try { return currentUserData?.rol === 'dueno'; } catch(_) { return false; } }
     function usuario() { try { return currentUserData || null; } catch(_) { return null; } }
-    function versionApp() { try { return typeof APP_VERSION === 'string' ? APP_VERSION : '1.4.3'; } catch(_) { return '1.4.3'; } }
+    function versionApp() { try { return typeof APP_VERSION === 'string' ? APP_VERSION : '1.4.4'; } catch(_) { return '1.4.4'; } }
 
     async function valorServerTimestamp() {
         try {
@@ -199,7 +199,7 @@
     function asegurarOrdenCompra() {
         const sec=document.getElementById('sec-alertas'); if(!sec||document.getElementById('v130-orden-compra')) return;
         const d=document.createElement('details'); d.id='v130-orden-compra'; d.className='fold-card'; d.open=false;
-        d.innerHTML=`<summary>🧾 Orden de compra a proveedor</summary><div class="fold-card-content"><p class="v130-op-note">Usa el cálculo de Por Surtir para preparar un pedido. Generarlo no aumenta inventario; el ingreso se hace cuando recibes la mercadería.</p><div class="form-group"><label>Proveedor</label><select id="v130-orden-proveedor"></select></div><div id="v130-orden-contenido"></div><div class="v130-op-actions"><button onclick="imprimirOrdenV130()">Imprimir</button><button onclick="exportarOrdenV130()">Excel / CSV</button><button class="primary" onclick="guardarOrdenV130()">Guardar orden</button></div></div>`;
+        d.innerHTML=`<summary>🧾 Orden de compra a proveedor</summary><div class="fold-card-content"><p class="v130-op-note">Usa el cálculo de Por Surtir para preparar un pedido. Generarlo no aumenta inventario; el ingreso se hace cuando recibes la mercadería.</p><div class="form-group"><label>Proveedor</label><select id="v130-orden-proveedor"></select></div><div id="v130-orden-contenido"></div><div class="v130-op-actions"><button onclick="imprimirOrdenV130()">Imprimir</button><button onclick="exportarOrdenV130()">Excel / CSV</button><button class="primary" onclick="guardarOrdenV130()">Guardar orden</button><button type="button" onclick="abrirRecepcionOrden()">Recibir mercadería</button></div></div>`;
         sec.appendChild(d); document.getElementById('v130-orden-proveedor').addEventListener('change',renderOrdenCompra); actualizarOrdenCompra();
     }
 

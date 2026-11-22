@@ -33,7 +33,7 @@ test('los módulos profesionales esperan hasta después del acceso', () => {
 
 test('buscador se importa solo al abrir su pestaña', () => {
   assert.doesNotMatch(html, /<script type=["']module["'] src=["']\.\/buscador\.js["']/);
-  assert.match(html, /import\('\.\/assets\/1\.4\.3\/buscador\.js'\)/);
+  assert.match(html, /import\('\.\/assets\/1\.4\.4\/buscador\.js'\)/);
   assert.match(html, /if\(pestaña === 'buscador'\)/);
 });
 
@@ -51,7 +51,7 @@ test('Excel profesional conserva fallback y carga bajo demanda', () => {
 });
 
 test('la PWA precarga solo archivos esenciales y mantiene vendors cacheables bajo demanda', () => {
-  assert.match(sw, /sublicosturas-v1\.4\.3-historial-ventas/);
+  assert.match(sw, /sublicosturas-v1\.4\.4-historial-ventas/);
   assert.doesNotMatch(sw.match(/const APP_SHELL = \[[\s\S]*?\];/)?.[0] || '', /mejoras-v128|profesional-ui-v130|buscador\.js/);
   assert.doesNotMatch(sw.match(/const APP_SHELL = \[[\s\S]*?\];/)?.[0] || '', /'\.\/'|logo\.jpeg/);
   assert.match(sw, /cache\.match\('\.\/index\.html'\)/);
